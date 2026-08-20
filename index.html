@@ -15,172 +15,209 @@
 </style>
 </head>
 <body>
-<div class="wrap"><header style="display:flex;align-items:center;gap:16px"><img id="logo" src="" alt="Salexx logo" style="height:40px;width:auto;display:none"><div><p class="eyebrow">Salexx Construction</p><h1>Ops <span>Hub</span></h1></div><div style="margin-left:auto;text-align:right"><span id="savedTag" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--steel);display:block;margin-bottom:5px"></span><button id="backupBtn" class="chip" style="padding:6px 11px;font-size:13px">Backup</button></div></header><section id="s-today" class="panel"><p class="lbl">All time · one set of numbers</p><div class="kpis" id="kpis"></div><div class="attn" id="attn"></div><p class="lbl" style="margin-top:22px">Pipeline</p><div id="stageBars"></div></section><section id="s-jobs" class="panel hidden"><input class="search" id="q" placeholder="Search client, job ID, city, trade, source…"><div class="chips" id="stageChips"></div><div id="jobList"></div><p class="count" id="jobCount"></p></section><section id="s-time" class="panel hidden"><p class="lbl">Timesheet · you enter, crew never logs in</p><div id="roster"></div><div class="kpis" style="margin-top:13px"><div class="kpi"><p class="k">Day total</p><p class="v" id="dayHrs">0.00</p><p class="d">hours</p></div><div class="kpi"><p class="k">Labor @ $35</p><p class="v" id="dayCost">$0</p><p class="d">today</p></div></div><p class="note">One table for everyone — replaces 9 per-person tabs and 6 per-month tabs. Admin staff have no job field; their hours go to overhead, not job labor.</p></section><section id="s-leads" class="panel hidden"><p class="lbl">Lead source · 217 leads <span class="src ghl">GHL</span></p><div id="srcBars"></div><div class="attn" style="margin-top:18px"><h4>Status never advances</h4><ul style="margin:0;padding-left:16px"><li>189 of 217 leads still read "New Lead" — nothing marks them contacted, quoted, won or lost.</li><li>Conversion rate can't be calculated at all, so "Facebook is our best source" is unproven.</li><li>Fix belongs in GHL: let the pipeline stage write back to Status.</li></ul></div></section><section id="s-reports" class="panel hidden"><p class="lbl">Sold vs completed revenue · 2026</p><div class="scroller"><table id="soldTable"></table></div><p class="lbl" style="margin-top:22px">Top selling services</p><div class="scroller"><table id="svcTable"></table></div><p class="note">Both tables read the same job records as Job Costing, so they can't disagree with each other the way your four dashboards currently do.</p></section></div>
-<div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="fi" aria-selected="false">Files</button></div><div class="panel" id="dBody"></div></div><nav role="tablist"><button role="tab" aria-selected="true" data-tab="today">Today</button><button role="tab" aria-selected="false" data-tab="jobs">Jobs</button><button role="tab" aria-selected="false" data-tab="time">Time</button><button role="tab" aria-selected="false" data-tab="leads">Leads</button><button role="tab" aria-selected="false" data-tab="reports">Reports</button></nav>
+<div id="authGate" class="panel" style="max-width:340px;margin:15vh auto 0"><p class="eyebrow">Salexx Construction</p><h1 style="margin-bottom:18px">Ops <span>Hub</span></h1><input class="search" id="authEmail" type="email" placeholder="Email" autocomplete="username"><input class="search" id="authPass" type="password" placeholder="Password" autocomplete="current-password"><button id="authSubmit" class="chip" aria-pressed="true" style="width:100%;text-align:center;display:block">Sign in</button><p id="authError" class="warn" style="display:none;margin-top:10px"></p></div>
+<div id="app" class="hidden">
+<div class="wrap"><header style="display:flex;align-items:center;gap:16px"><img id="logo" src="" alt="Salexx logo" style="height:40px;width:auto;display:none"><div><p class="eyebrow">Salexx Construction</p><h1>Ops <span>Hub</span></h1></div><div style="margin-left:auto;text-align:right"><span id="backupStatus" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--steel);display:block;margin-bottom:5px"></span><button id="backupBtn" class="chip" style="padding:6px 11px;font-size:13px">Backup</button><button id="signOutBtn" class="chip" style="padding:6px 11px;font-size:13px;margin-left:6px">Sign out</button></div></header><section id="s-today" class="panel"><p class="lbl">All time · one set of numbers</p><div class="kpis" id="kpis"></div><div class="attn" id="attn"></div><p class="lbl" style="margin-top:22px">Pipeline</p><div id="stageBars"></div></section><section id="s-jobs" class="panel hidden"><input class="search" id="q" placeholder="Search client, job ID, city, trade, source…"><div class="chips" id="stageChips"></div><div id="jobList"></div><p class="count" id="jobCount"></p></section><section id="s-time" class="panel hidden"><p class="lbl">Timesheet · you enter, crew never logs in</p><p class="note" id="timeSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p><div id="roster"></div><div class="kpis" style="margin-top:13px"><div class="kpi"><p class="k">Day total</p><p class="v" id="dayHrs">0.00</p><p class="d">hours</p></div><div class="kpi"><p class="k">Labor @ $35</p><p class="v" id="dayCost">$0</p><p class="d">today</p></div></div><p class="note">One table for everyone — replaces 9 per-person tabs and 6 per-month tabs. Admin staff have no job field; their hours go to overhead, not job labor.</p></section><section id="s-leads" class="panel hidden"><p class="lbl">Lead source <span class="src ghl">Supabase</span></p><div class="attn" style="margin-top:4px"><h4>Real lead import is next</h4><ul style="margin:0;padding-left:16px"><li>The leads table is live and status now tracks New → Contacted → Estimated → Won/Lost, but it's empty — the historical GHL leads haven't been imported yet.</li><li>Once imported, this screen and the numbers below read straight from that table, same as everything else.</li></ul></div></section><section id="s-reports" class="panel hidden"><p class="lbl">Sold vs completed revenue · 2026</p><div class="scroller"><table id="soldTable"></table></div><p class="lbl" style="margin-top:22px">Top selling services</p><div class="scroller"><table id="svcTable"></table></div><p class="note">Both tables read the same job records as Job Costing, so they can't disagree with each other the way your four dashboards currently do.</p></section></div>
+<div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="fi" aria-selected="false">Files</button><button data-st="up" aria-selected="false">Updates</button></div><div class="panel" id="dBody"></div></div><nav role="tablist"><button role="tab" aria-selected="true" data-tab="today">Today</button><button role="tab" aria-selected="false" data-tab="jobs">Jobs</button><button role="tab" aria-selected="false" data-tab="time">Time</button><button role="tab" aria-selected="false" data-tab="leads">Leads</button><button role="tab" aria-selected="false" data-tab="reports">Reports</button></nav>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const RATE=35,OH_DEFAULT=12,money=n=>n==null?"—":"$"+Math.round(n).toLocaleString("en-US"),STAGES=["Designs Sold","Permitting/Drawings","Ready for scheduling","Project scheduled","In progress","Final walk through","Touch-ups","Final Payment due","Final payment received","Final photos/videos","Review requested","Project on hold","Completed"],stKey={"Designs Sold":"st-design","Permitting/Drawings":"st-permit","Ready for scheduling":"st-sched","Project scheduled":"st-proj","In progress":"st-prog","Final walk through":"st-final","Touch-ups":"st-touch","Final Payment due":"st-pay","Final payment received":"st-paid","Final photos/videos":"st-photos","Review requested":"st-review","Project on hold":"st-hold","Completed":"st-done"};
-const jobs=[
-{id:"SLX-001",client:"Linda Pattorford",type:"Decking",loc:"13635 SW Garrett Ct Tigard Or",crew:"",contract:248.54,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-02-02",done:"2025-02-02",src:"",permitReq:"—",drive:0},
-{id:"SLX-002",client:"Diane Engebretson",type:"Siding",loc:"564 NE Amanda Pl Hillsboro Or",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-04-24",done:"2025-04-24",src:"",permitReq:"—",drive:0},
-{id:"SLX-003",client:"Sebastian",type:"Painting",loc:"10815 S Southridge Dr",crew:"",contract:23073.87,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-07-11",done:"2025-07-11",src:"",permitReq:"—",drive:0},
-{id:"SLX-004",client:"Judy Durand",type:"Decking",loc:"3614 N DAHLIA ST Newberg or 97132",crew:"",contract:25833.55,co:0,disc:0,mat:10631,sub:0,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-07-28",done:"2025-07-28",src:"",permitReq:"—",drive:0},
-{id:"SLX-005",client:"Kolene Hammer",type:"Concrete / Hardscape",loc:"6 Oriole Lane, Lake Oswego",crew:"",contract:30664.88,co:0,disc:0,mat:7942,sub:0,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-08-18",done:"2025-08-18",src:"",permitReq:"—",drive:0},
-{id:"SLX-006",client:"Kim Scott",type:"Painting",loc:"16365 SW Copper Creek Drive Tigard Or 97224",crew:"",contract:8798.78,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-08-25",done:"2025-08-25",src:"",permitReq:"—",drive:0},
-{id:"SLX-007",client:"Eric Underwood",type:"Painting",loc:"4050 Serango Court West Linn, OR, 97068",crew:"",contract:3575.69,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-08-28",done:"2025-08-28",src:"",permitReq:"—",drive:0},
-{id:"SLX-008",client:"Santiago Segarra",type:"Windows/Doors",loc:"8152 Southwest 181st Avenue Beaverton, OR, 9",crew:"",contract:35250.32,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-09-01",done:"2025-09-01",src:"",permitReq:"—",drive:0},
-{id:"SLX-009",client:"Andrew Plunkett",type:"Decking",loc:"20665 SW Jaquith Rd, Newberg Or",crew:"",contract:12598.78,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-09-11",done:"2025-09-11",src:"",permitReq:"—",drive:0},
-{id:"SLX-010",client:"Steve Langella",type:"Multi-Trade",loc:"8239 SW Piute Ct, Tualatin, OR 97062",crew:"",contract:92000.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-09-15",done:"2025-09-15",src:"",permitReq:"—",drive:0},
-{id:"SLX-011",client:"Roberta Michael's",type:"Multi-Trade",loc:"12945 SW Glenn Dr Beverton Or, 97008",crew:"",contract:3398.78,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-09-26",done:"2025-09-26",src:"",permitReq:"—",drive:0},
-{id:"SLX-012",client:"Jessica Bronson",type:"Multi-Trade",loc:"11770 SW swendon Tigard Or",crew:"",contract:29600.98,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-10-06",done:"2025-10-06",src:"",permitReq:"—",drive:0},
-{id:"SLX-013",client:"Jenny Kalmbach",type:"Windows/Doors",loc:"18480 Ray Ridge Dr Lake Oswego Or",crew:"",contract:375.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-10-07",done:"2025-10-07",src:"",permitReq:"—",drive:0},
-{id:"SLX-014",client:"Casey Winxson",type:"Multi-Trade",loc:"1950 Furlong Dr West Linn Or",crew:"",contract:30250.65,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-10-13",done:"2025-10-13",src:"",permitReq:"—",drive:0},
-{id:"SLX-015",client:"Patti W",type:"Decking",loc:"4236 Harvey Way Lake Oswego Or OR 97035",crew:"",contract:21822.77,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-10-27",done:"2025-10-27",src:"",permitReq:"—",drive:0},
-{id:"SLX-016",client:"Jesus santana/Teresa",type:"Multi-Trade",loc:"410 W Sheridan St, Newberg, Oregon, 97132",crew:"",contract:33060.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Touch-ups",sold:"2025-10-29",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-017",client:"Darlene Lufkin",type:"Multi-Trade",loc:"1005 ferry st #39 Dayton, Or 97128",crew:"",contract:27578.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2025-11-10",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-018",client:"Madeline",type:"Decking",loc:"901 W Sheridan St. Newberg Or 97132",crew:"",contract:37370.88,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-11-17",done:"2025-11-17",src:"",permitReq:"—",drive:0},
-{id:"SLX-019",client:"Elizabeth Faoro",type:"Windows/Doors",loc:"6433 N Yale St, Portland, OR 97203",crew:"",contract:3950.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-11-21",done:"2025-11-21",src:"",permitReq:"—",drive:0},
-{id:"SLX-020",client:"Ray & Kylee",type:"Roofing",loc:"303 METLZER AVE Molalla Or",crew:"",contract:4707.06,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-11-25",done:"2025-11-25",src:"",permitReq:"—",drive:0},
-{id:"SLX-021",client:"Stephen Browning",type:"Roofing",loc:"13655 SW Garrett Ct Tigard Or",crew:"",contract:20260.67,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-12-01",done:"2025-12-01",src:"",permitReq:"—",drive:0},
-{id:"SLX-022",client:"Stacey Pollard",type:"Siding",loc:"21544 sw longacker st Beaverton Or",crew:"",contract:20450.56,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-12-10",done:"2025-12-10",src:"",permitReq:"—",drive:0},
-{id:"SLX-023",client:"Alan Finkle",type:"Roofing",loc:"809 west sheridan st NEWBERG OR 97140",crew:"",contract:2661.38,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2025-12-20",done:"2025-12-20",src:"",permitReq:"—",drive:0},
-{id:"SLX-024",client:"Noor",type:"Concrete / Hardscape",loc:"8328 SW Perennial Pl, Beaverton, OR 97007",crew:"",contract:44869.82,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Project on hold",sold:"2026-01-21",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-025",client:"Pepper",type:"Multi-Trade",loc:"2901 es 2nd unit 50 Newberg Or",crew:"",contract:20653.41,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-01-23",done:"2026-01-23",src:"",permitReq:"—",drive:0},
-{id:"SLX-026",client:"Carol Rinaldi",type:"Multi-Trade",loc:"1000 S McKern Ct Newberg Or",crew:"",contract:11143.88,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-02-02",done:"2026-02-02",src:"",permitReq:"—",drive:0},
-{id:"SLX-027",client:"Daniel Hernandez",type:"Multi-Trade",loc:"17835 sw Galewood Dr. Sherwood Or",crew:"",contract:8440.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-02-05",done:"2026-02-05",src:"",permitReq:"—",drive:0},
-{id:"SLX-028",client:"Angelina R",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-02-09",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-029",client:"Angelina Rockelman",type:"patio cover",loc:"2238 SE Thrush Avenue Hillsboro OR 97123",crew:"",contract:5365.45,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-02-09",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-030",client:"Jayme",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-02-10",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-031",client:"Dana Nimz",type:"Multi-Trade",loc:"14899 Southwest Sophia Lane Tigard",crew:"",contract:26945.26,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-02-11",done:"2026-04-20",src:"",permitReq:"—",drive:0},
-{id:"SLX-032",client:"OFF",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-02-18",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-033",client:"Brenna White",type:"Multi-Trade",loc:"15050 SW Patricia Ave Hillsboro, Oregon, 971",crew:"",contract:186.55,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-02-19",done:"2026-02-24",src:"",permitReq:"—",drive:0},
-{id:"SLX-034",client:"Preston",type:"Multi-Trade",loc:"14901 SW Sophia Ln Tigard Or",crew:"",contract:4338.82,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-02-24",done:"2026-03-03",src:"",permitReq:"—",drive:0},
-{id:"SLX-035",client:"Sara",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-02-26",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-036",client:"Sara Dennis",type:"Roofing",loc:"2264 SE Singing Woods Dr, Hillsboro, OR 9712",crew:"",contract:32395.43,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-02-26",done:"2026-02-26",src:"",permitReq:"—",drive:0},
-{id:"SLX-037",client:"Brad",type:"Multi-Trade",loc:"12251 NE Dudley Rd",crew:"",contract:46450.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-03-10",done:"2026-04-10",src:"",permitReq:"—",drive:0},
-{id:"SLX-038",client:"Jacob Bohanam",type:"Exterior stairs",loc:"19265 NE KENS HILL LN",crew:"",contract:11393.7,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-03-16",done:"2026-03-16",src:"",permitReq:"—",drive:0},
-{id:"SLX-039",client:"Kathy",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-03-16",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-040",client:"Kena James",type:"Multi-Trade",loc:"2415 dillow drive West Linn OR 97068",crew:"",contract:6320.75,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-03-20",done:"2026-04-20",src:"",permitReq:"—",drive:0},
-{id:"SLX-041",client:"Adriana Britton",type:"Multi-Trade",loc:"NEWBERG OR 97132",crew:"",contract:78341.1,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-03-27",done:"2026-04-10",src:"",permitReq:"—",drive:0},
-{id:"SLX-042",client:"Cherylene",type:"Multi-Trade",loc:"16689 SW Rubicon lane Tigard Or",crew:"",contract:17500.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-04-14",done:"2026-04-14",src:"",permitReq:"—",drive:0},
-{id:"SLX-043",client:"(Ferguson House Rental) Cherylene A Joyner",type:"Painting",loc:"21450 SW Ferguson Terrace, Sherwood",crew:"",contract:13496.12,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-04-15",done:"2026-04-15",src:"",permitReq:"—",drive:0},
-{id:"SLX-044",client:"Dundee house;",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:949,sub:0,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-04-17",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-045",client:"Heather",type:"Multi-Trade",loc:"4231 SE Madison St, Portland, OR 97215 PORTL",crew:"",contract:68505.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-04-21",done:"2026-05-19",src:"",permitReq:"—",drive:0},
-{id:"SLX-046",client:"Tom Eagleston",type:"Siding",loc:"13601 Sw Ridge Terreace Tigard Or",crew:"",contract:12505.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-05",done:"2026-05-08",src:"",permitReq:"—",drive:0},
-{id:"SLX-047",client:"Kurt Lorenzen",type:"Painting",loc:"912 NE Camelia Drive, Newberg, Oregon, 97132",crew:"",contract:8415.9,co:0,disc:0,mat:10860,sub:6600,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-08",done:"2026-05-08",src:"",permitReq:"—",drive:0},
-{id:"SLX-048",client:"John Richardson",type:"Roofing",loc:"2611 roberts ln Newberg OR Newberg OR",crew:"",contract:34730.45,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-11",done:"2026-05-14",src:"",permitReq:"—",drive:0},
-{id:"SLX-049",client:"Carrie Hoppe",type:"Concrete / Hardscape",loc:"1816 N Millican Creek St Lafayette Oregon 97",crew:"",contract:5897.32,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-14",done:"2026-05-14",src:"",permitReq:"—",drive:0},
-{id:"SLX-050",client:"Dave Pendleton",type:"Multi-Trade",loc:"2317 gardenia st Forest grove OR 97007",crew:"",contract:8800.78,co:0,disc:0,mat:555,sub:730,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-15",done:"2026-05-15",src:"",permitReq:"—",drive:0},
-{id:"SLX-051",client:"Ronald Lai",type:"Multi-Trade",loc:"8405 SW 158th Pl, Beaverton OR 97007",crew:"",contract:44897.16,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-17",done:"2026-05-22",src:"",permitReq:"—",drive:0},
-{id:"SLX-052",client:"Elda Hernandez",type:"Painting",loc:"6024 se harney st Portland OR 97206 Portland",crew:"",contract:5175.43,co:0,disc:0,mat:10714,sub:3500,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-25",done:"2026-06-18",src:"",permitReq:"—",drive:0},
-{id:"SLX-053",client:"Jane Vitek Dixon",type:"Roofing",loc:"187 Fairway Newberg OR 97128 Newberg OR 9712",crew:"",contract:21723.74,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-25",done:"2026-05-25",src:"",permitReq:"—",drive:0},
-{id:"SLX-054",client:"Katherine Stinson",type:"Roofing",loc:"525 NE Amanda Pl Hillsboro OR 97124",crew:"",contract:14200.45,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-25",done:"2026-05-29",src:"",permitReq:"—",drive:0},
-{id:"SLX-055",client:"Chelsea-Andrea Crowell",type:"Exterior Painting",loc:"1122 Parkside Ave Forest Grove OR 97116",crew:"",contract:3900.54,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-27",done:"2026-05-27",src:"",permitReq:"—",drive:0},
-{id:"SLX-056",client:"Patti Cook",type:"Siding",loc:"11980 sw denny rd Beaverton OR 97230 Beavert",crew:"",contract:6075.31,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-05-28",done:"2026-06-04",src:"",permitReq:"—",drive:0},
-{id:"SLX-057",client:"Chris Boucher",type:"Multi-Trade",loc:"13925 sw weir Rd Beaverton OR Beaverton OR",crew:"",contract:20151.09,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-01",done:"2026-06-12",src:"",permitReq:"—",drive:0},
-{id:"SLX-058",client:"Robyn Brant",type:"Roofing",loc:"10751 main st Donald OR",crew:"",contract:10450.65,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-02",done:"2026-07-10",src:"",permitReq:"—",drive:0},
-{id:"SLX-059",client:"David Morton",type:"Painting",loc:"5801 southeast harold street portland or 972",crew:"",contract:13375.25,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-08",done:"2026-06-10",src:"",permitReq:"—",drive:0},
-{id:"SLX-060",client:"Pepper Davison",type:"Roofing",loc:"2901 es 2nd unit 50",crew:"",contract:20858.99,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-08",done:"2026-06-26",src:"",permitReq:"—",drive:0},
-{id:"SLX-061",client:"Linda Chinn",type:"Painting",loc:"1119 E Foothills drive NEWBERG OR 97132",crew:"",contract:4075.54,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-11",done:"2026-06-12",src:"",permitReq:"—",drive:0},
-{id:"SLX-062",client:"Fara Heath",type:"Decking",loc:"11517 sw 58th ct portland Portland",crew:"",contract:17275.23,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-15",done:"2026-06-17",src:"",permitReq:"—",drive:0},
-{id:"SLX-063",client:"Mark",type:"Painting",loc:"1159 se 56th ave Hillsboro OR",crew:"",contract:1265.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-15",done:"2026-06-19",src:"",permitReq:"—",drive:0},
-{id:"SLX-064",client:"Sam",type:"Painting",loc:"2809 se 75th ave Portland OR ANAHEIM CA 9280",crew:"",contract:13500.56,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-15",done:"2026-06-29",src:"",permitReq:"—",drive:0},
-{id:"SLX-065",client:"Cristian Rheinisch",type:"Multi-Trade",loc:"3735 N College St Newberg OR 97132",crew:"",contract:8875.45,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-22",done:"2026-06-25",src:"",permitReq:"—",drive:0},
-{id:"SLX-066",client:"Mary Rennie",type:"Painting",loc:"10720 ne sylvan view drive Dundee OR Dundee ",crew:"",contract:7500.65,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-22",done:"2026-06-22",src:"",permitReq:"—",drive:0},
-{id:"SLX-067",client:"Diane Dickey",type:"Multi-Trade",loc:"5959 sw 161st ave Beaverton OR",crew:"",contract:8874.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-25",done:"2026-06-26",src:"",permitReq:"—",drive:0},
-{id:"SLX-068",client:"Kimberly Joy",type:"Patio Cover, Painting",loc:"9306 Southeast Winsor Drive Milwaukie OR 972",crew:"",contract:15000.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-06-29",done:"2026-07-08",src:"",permitReq:"—",drive:0},
-{id:"SLX-069",client:"Sam Sabin",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-06-29",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-070",client:"Lorraine Katz",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-07-02",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-071",client:"Amanda Davies",type:"Multi-Trade",loc:"14734 Sw Grandview Ln Portland Oregon 97224",crew:"",contract:1325.56,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-07-09",done:"2026-07-20",src:"",permitReq:"—",drive:0},
-{id:"SLX-072",client:"Morgan Steel",type:"Roofing",loc:"5613 se 58th ave Portland OR 97124 Portland ",crew:"",contract:10450.46,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-07-13",done:"2026-07-14",src:"",permitReq:"—",drive:0},
-{id:"SLX-073",client:"Derek Bliss",type:"Painting, Siding",loc:"11205 sw champoeg ct east Wilsonville OR 970",crew:"",contract:12300.34,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-07-16",done:"2026-07-21",src:"",permitReq:"—",drive:0},
-{id:"SLX-074",client:"John Tran",type:"Decking",loc:"11220 sw chickadee terrce Beaverton OR 97007",crew:"",contract:40000.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-07-20",done:"2026-08-14",src:"",permitReq:"—",drive:0},
-{id:"SLX-075",client:"Ryan Carle",type:"Exterior",loc:"1101 E Sunset Drive Newberg OR 97132 Newberg",crew:"",contract:3295.54,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-07-22",done:"2026-07-22",src:"",permitReq:"—",drive:0},
-{id:"SLX-076",client:"Joney Hanby",type:"—",loc:"—",crew:"",contract:4000.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-07-23",done:"2026-07-23",src:"",permitReq:"—",drive:0},
-{id:"SLX-077",client:"Sarah Lyn Lawton",type:"Multi-Trade",loc:"1985 Northwest 156th Avenue Beaverton OR 970",crew:"",contract:20415.66,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"In progress",sold:"2026-07-27",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-078",client:"Jenni B",type:"Siding & Paint",loc:"11375 sw 95th ave Tigard OR",crew:"",contract:10228.76,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-08-03",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-079",client:"Rhonda W",type:"Painting, Concrete",loc:"1817 e fulton st NEWBERG OR 97132",crew:"",contract:13700.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-08-05",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-080",client:"David Dybdahl",type:"Decking",loc:"1471 wilamette falls drive West Linn OR",crew:"",contract:8497.75,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-08-19",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-081",client:"Marlene Miller",type:"Siding",loc:"14618 SW Pinot Court Tigard OR 97224 Tigard ",crew:"",contract:13171.09,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-08-21",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-082",client:"Puck Ja",type:"Exterior Painting",loc:"5373 NW Lianna Way, Portland, OR 97229",crew:"",contract:14275.0,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-08-28",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-083",client:"Tim Packard",type:"Roofing",loc:"269 15th st Lafayette OR",crew:"",contract:19521.04,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-09-03",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-084",client:"Doug Baldwin",type:"Decking",loc:"1395 sw 31st st Gresham OR",crew:"",contract:32450.25,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"2026-09-18",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-085",client:"Joyce",type:"Siding",loc:"1811 sw boxwood lane Dallas Or",crew:"",contract:32754.67,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Completed",sold:"2026-10-20",done:"2026-10-20",src:"",permitReq:"—",drive:0},
-{id:"SLX-086",client:"Carol",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-087",client:"Christina",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-088",client:"Dan Brown",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-089",client:"Darlene",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-090",client:"Lexi Vandomelen",type:"Interior, Staircase",loc:"9079 Southwest Waverly Drive Tigard OR 97224",crew:"",contract:3777.5,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-091",client:"Teresa",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-092",client:"Clock In Time",type:"—",loc:"—",crew:"",contract:null,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"Date",done:"",src:"",permitReq:"—",drive:0},
-{id:"SLX-093",client:"Jennie Clark",type:"Concrete / Hardscape",loc:"20539 SW Lavender Ave, Sherwood, OR 97140",crew:"",contract:10200.75,co:0,disc:0,mat:null,sub:null,equip:null,disp:null,permit:null,fuel:null,other:null,oh:OH_DEFAULT,hrs:0,stage:"Designs Sold",sold:"N/A",done:"",src:"",permitReq:"—",drive:0}];
-const people=[{n:"Carlos",r:"Crew"},{n:"Tito",r:"Crew"},{n:"Roberto",r:"Crew"},{n:"Ronald",r:"Crew"},{n:"Avelino",r:"Crew"},{n:"Edy",r:"Crew"},{n:"Rosa",r:"Admin"},{n:"Krissalyn",r:"Admin"}],sources=[["Facebook",93],["Website",44],["Facebook Ads",31],["Alex Reached out",17],["Instagram",13],["Referral",6],["Nextdoor",5],["Google",4]],soldVsDone=[["January",174042,31245],["February",40398,81684],["March",168524,143193],["April",182321,198147],["May",144445,308773],["June",107737,236813],["July",79722,110368],["August",97615,33587]],services=[["Siding + Painting",14,333632],["Decking",13,247792],["Roofing",14,247327],["Painting",15,211177],["Siding",9,102568],["Siding+Roofing+Painting+Gutters",1,100540],["Siding + Painting + Decking",1,76348]];
-const $=s=>document.querySelector(s);let stageF="All",query="",day={},cur=null,st="ov";const num=v=>v==null?0:+v,revenue=j=>j.contract==null?null:num(j.contract)+num(j.co)-num(j.disc),labor=j=>j.hrs*RATE,direct=j=>labor(j)+num(j.mat)+num(j.sub)+num(j.equip),addl=j=>num(j.disp)+num(j.permit)+num(j.fuel)+num(j.other),ohDollars=j=>revenue(j)==null?0:revenue(j)*num(j.oh)/100,jobCost=j=>direct(j)+addl(j)+ohDollars(j),gp=j=>revenue(j)==null?null:revenue(j)-jobCost(j),pct=j=>revenue(j)==null?null:gp(j)/revenue(j)*100,noCosts=j=>revenue(j)!=null&&j.mat==null&&j.sub==null&&j.hrs===0,col=p=>p==null?"var(--steel)":p>=50?"var(--good)":p>=38?"var(--hivis-dim)":"var(--alert)";
-function drawToday(){const priced=jobs.filter(j=>revenue(j)!=null&&!noCosts(j)),rev=jobs.filter(j=>revenue(j)!=null).reduce((s,j)=>s+revenue(j),0),pRev=priced.reduce((s,j)=>s+revenue(j),0),pGp=priced.reduce((s,j)=>s+gp(j),0),avg=pRev?pGp/pRev*100:0;$("#kpis").innerHTML=[["Contract value",money(rev),jobs.filter(j=>revenue(j)!=null).length+" jobs priced"],["Avg margin",avg.toFixed(1)+"%",priced.length+" jobs with real costs"],["Unpriced",jobs.filter(noCosts).length,"revenue, zero costs entered"],["Open",jobs.filter(j=>j.stage!=="Completed").length,"not yet completed"]].map(([k,v,d])=>`<div class="kpi"><p class="k">${k}</p><p class="v">${v}</p><p class="d">${d}</p></div>`).join("");$("#attn").innerHTML=`<h4>Why your dashboards disagree</h4><ul style="margin:0;padding-left:16px"><li>Job Costing said $1.87M / 129 jobs · Margins said $1.27M / 65 · Top Selling said $2.13M / 111.</li><li>Every view counts a different set because no row has a job ID to join on.</li><li>Margin reads 100% wherever costs were never entered — that inflates the average, it isn't profit.</li></ul>`;const counts=STAGES.map(s=>[s,jobs.filter(j=>j.stage===s).length]),mx=Math.max(...counts.map(c=>c[1]),1);$("#stageBars").innerHTML=counts.map(([s,n])=>`<div class="bar"><div class="t"><span>${s}</span><b>${n}</b></div><div class="track"><i style="width:${n/mx*100}%"></i></div></div>`).join("")}
-function rowHTML(j){const p=pct(j);return `<button class="jrow" data-open="${j.id}"><span class="id">${j.id}</span><span class="mid"><span class="cn">${j.client}</span><span class="mt">${j.type} · ${j.crew}</span></span><span class="rt"><span class="rv" style="color:${col(noCosts(j)?null:p)}">${revenue(j)==null?"—":noCosts(j)?"n/a":p.toFixed(0)+"%"}</span><span class="stage ${stKey[j.stage]}">${j.stage}</span>${noCosts(j)?'<span class="warn">no costs entered</span>':""}</span></button>`}
+const SUPABASE_URL="https://jrewbkwbbwpwflkqectk.supabase.co";
+const SUPABASE_KEY="sb_publishable_8l8KcBekL3dut7hWy1l0Ig_Ah4bXmq4";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const RATE=35,OH_DEFAULT=12,money=n=>n==null?"—":"$"+Math.round(n).toLocaleString("en-US"),STAGES=["Designs Sold","Permitting/Drawings","Ready For Scheduling","Project scheduled","In Progress","Final Walk-through","Punch list / Touch-ups","Final payment due","Final payment received","Final Photos / Videos","Review requested","Project on hold","Completed"],stKey={"Designs Sold":"st-design","Permitting/Drawings":"st-permit","Ready For Scheduling":"st-sched","Project scheduled":"st-proj","In Progress":"st-prog","Final Walk-through":"st-final","Punch list / Touch-ups":"st-touch","Final payment due":"st-pay","Final payment received":"st-paid","Final Photos / Videos":"st-photos","Review requested":"st-review","Project on hold":"st-hold","Completed":"st-done"};
+const jobs=[];
+const people=[{n:"Carlos",r:"Crew"},{n:"Tito",r:"Crew"},{n:"Roberto",r:"Crew"},{n:"Ronald",r:"Crew"},{n:"Avelino",r:"Crew"},{n:"Edy",r:"Crew"},{n:"Rosa",r:"Admin"},{n:"Krissalyn",r:"Admin"}];
+const $=s=>document.querySelector(s);let stageF="All",query="",day={},cur=null,st="ov",currentUserEmail=null,currentUserProfile=null,currentUpdates=null;const col=p=>p==null?"var(--steel)":p>=50?"var(--good)":p>=38?"var(--hivis-dim)":"var(--alert)";
+const COST_CATEGORY_FIELD={Materials:"mat",Subcontractors:"sub","Equipment / Rentals":"equip","Disposal / Dumpster":"disp","Permits / Fees":"permit","Fuel / Travel":"fuel","Other / Misc":"other"};
+function costRowsToFields(costRows){
+  const c={};
+  for(const row of costRows||[]){
+    const key=COST_CATEGORY_FIELD[row.category];if(!key)continue;
+    c[key]=(c[key]||0)+Number(row.amount);
+  }
+  return c;
+}
+function mergeJobRecord(j,m,costRows){
+  const c=costRowsToFields(costRows);
+  return{
+    id:j.job_id,client:j.client_name,type:j.job_type||"—",loc:j.address_city||"—",crew:j.crew||"",
+    contract:j.contract_price==null?null:Number(j.contract_price),co:Number(j.change_orders)||0,disc:Number(j.discounts)||0,
+    mat:c.mat??null,sub:c.sub??null,equip:c.equip??null,disp:c.disp??null,permit:c.permit??null,fuel:c.fuel??null,other:c.other??null,
+    oh:Number(j.overhead_pct),hrs:Number(m.hours)||0,stage:j.stage,sold:j.sold_date||"",done:j.completed_date||"",
+    src:j.lead_source||"",permitReq:j.permit_required===true?"Yes":j.permit_required===false?"No":"—",drive:j.drive_folder_url||"",
+    revenue:m.revenue==null?null:Number(m.revenue),laborCost:Number(m.labor_cost)||0,materialCost:Number(m.material_cost)||0,
+    additionalCost:Number(m.additional_cost)||0,overheadCost:Number(m.overhead_cost)||0,
+    totalCost:m.total_job_cost==null?null:Number(m.total_job_cost),gp:m.gross_profit==null?null:Number(m.gross_profit),
+    marginPct:m.margin_pct==null?null:Number(m.margin_pct),unpriced:!!m.unpriced
+  };
+}
+async function fetchJobs(){
+  const [{data:jobRows,error:e1},{data:marginRows,error:e2},{data:costRows,error:e3}]=await Promise.all([
+    sb.from("jobs").select("*"),
+    sb.from("job_margins").select("*"),
+    sb.from("job_costs").select("*")
+  ]);
+  if(e1||e2||e3){console.error(e1||e2||e3);return false}
+  const marginsById=Object.fromEntries((marginRows||[]).map(m=>[m.job_id,m]));
+  const costsById={};
+  for(const c of costRows||[]){(costsById[c.job_id]||=[]).push(c)}
+  jobs.length=0;
+  for(const j of jobRows||[]){
+    jobs.push(mergeJobRecord(j,marginsById[j.job_id]||{},costsById[j.job_id]));
+  }
+  return true;
+}
+const FIELD_TO_CATEGORY=Object.fromEntries(Object.entries(COST_CATEGORY_FIELD).map(([cat,field])=>[field,cat]));
+const JOB_COLUMN={co:"change_orders",disc:"discounts",oh:"overhead_pct"};
+async function refreshJob(jobId){
+  const [{data:j,error:e1},{data:m,error:e2},{data:costRows,error:e3}]=await Promise.all([
+    sb.from("jobs").select("*").eq("job_id",jobId).single(),
+    sb.from("job_margins").select("*").eq("job_id",jobId).single(),
+    sb.from("job_costs").select("*").eq("job_id",jobId)
+  ]);
+  if(e1||e2||e3){console.error(e1||e2||e3);return false}
+  const fresh=mergeJobRecord(j,m||{},costRows);
+  const i=jobs.findIndex(x=>x.id===jobId);
+  if(i>-1)Object.assign(jobs[i],fresh);
+  if(cur&&cur.id===jobId)Object.assign(cur,fresh);
+  return true;
+}
+function setCoStatus(msg,isError){
+  const el=document.getElementById("coSaveStatus");if(!el)return;
+  el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
+}
+async function saveCostField(jobId,field,rawValue){
+  setCoStatus("Saving…",false);
+  const blank=rawValue===""||rawValue==null;
+  let error;
+  if(JOB_COLUMN[field]){
+    const value=blank?0:Number(rawValue);
+    ({error}=await sb.from("jobs").update({[JOB_COLUMN[field]]:value}).eq("job_id",jobId));
+  }else{
+    const category=FIELD_TO_CATEGORY[field];
+    if(!category)return;
+    ({error}=await sb.from("job_costs").delete().eq("job_id",jobId).eq("category",category));
+    if(!error&&!blank){
+      ({error}=await sb.from("job_costs").insert({job_id:jobId,category,amount:Number(rawValue)}));
+    }
+  }
+  if(error){setCoStatus("Error: "+error.message,true);return}
+  const ok=await refreshJob(jobId);
+  if(!ok){setCoStatus("Saved, but couldn't refresh — reload to confirm.",true);return}
+  if(cur&&cur.id===jobId&&st==="co")drawDetail();
+  drawToday();drawJobs();
+  setCoStatus("Saved",false);
+  setTimeout(()=>{if(document.getElementById("coSaveStatus")?.textContent==="Saved")setCoStatus("",false)},2000);
+}
+function drawToday(){const priced=jobs.filter(j=>j.revenue!=null&&!j.unpriced),rev=jobs.filter(j=>j.revenue!=null).reduce((s,j)=>s+j.revenue,0),pRev=priced.reduce((s,j)=>s+j.revenue,0),pGp=priced.reduce((s,j)=>s+j.gp,0),avg=pRev?pGp/pRev*100:0;$("#kpis").innerHTML=[["Contract value",money(rev),jobs.filter(j=>j.revenue!=null).length+" jobs priced"],["Avg margin",avg.toFixed(1)+"%",priced.length+" jobs with real costs"],["Unpriced",jobs.filter(j=>j.unpriced).length,"revenue, zero costs entered"],["Open",jobs.filter(j=>j.stage!=="Completed").length,"not yet completed"]].map(([k,v,d])=>`<div class="kpi"><p class="k">${k}</p><p class="v">${v}</p><p class="d">${d}</p></div>`).join("");$("#attn").innerHTML=`<h4>One set of numbers now</h4><ul style="margin:0;padding-left:16px"><li>Every screen reads the same Supabase <code>job_margins</code> view — Today, Jobs, Job Costing, and Reports can no longer disagree.</li><li>Margin shows <b>n/a</b>, not 100%, wherever no cost or hour has been entered yet — that job stays out of the average until it does.</li></ul>`;const counts=STAGES.map(s=>[s,jobs.filter(j=>j.stage===s).length]),mx=Math.max(...counts.map(c=>c[1]),1);$("#stageBars").innerHTML=counts.map(([s,n])=>`<div class="bar"><div class="t"><span>${s}</span><b>${n}</b></div><div class="track"><i style="width:${n/mx*100}%"></i></div></div>`).join("")}
+function rowHTML(j){const p=j.marginPct;return `<button class="jrow" data-open="${j.id}"><span class="id">${j.id}</span><span class="mid"><span class="cn">${j.client}</span><span class="mt">${j.type} · ${j.crew}</span></span><span class="rt"><span class="rv" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":j.unpriced?"n/a":p.toFixed(0)+"%"}</span><span class="stage ${stKey[j.stage]}">${j.stage}</span>${j.unpriced?'<span class="warn">no costs entered</span>':""}</span></button>`}
 function drawJobs(){$("#stageChips").innerHTML=["All",...STAGES].map(s=>{const n=s==="All"?jobs.length:jobs.filter(j=>j.stage===s).length;return `<button class="chip" aria-pressed="${stageF===s}" data-s="${s}">${s}<b>${n}</b></button>`}).join("");const q=query.toLowerCase(),list=jobs.filter(j=>(stageF==="All"||j.stage===stageF)&&(!q||[j.client,j.id,j.loc,j.type,j.src].join(" ").toLowerCase().includes(q)));$("#jobList").innerHTML=list.length?list.map(rowHTML).join(""):`<div class="empty">No jobs match "${query}".<br>Try a city, trade, or SLX number.</div>`;$("#jobCount").textContent=`${list.length} of ${jobs.length} jobs`}
 const F=(k,v,cls="")=>`<div class="fld ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`,FI=(k,f,v)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" value="${v??""}" placeholder="—"></div>`;
-function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stKey[cur.stage]}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#detail").classList.remove("hidden");window.scrollTo(0,0)}
-function drawDetail(){const j=cur,p=pct(j),b=$("#dBody");if(st==="ov")b.innerHTML=`${revenue(j)==null?`<div class="empty">No contract price yet.<br>Fills in automatically when GHL marks the opportunity won.</div>`:noCosts(j)?`<p class="bignum" style="color:var(--steel)">n/a</p><p class="lbl" style="margin-top:6px">Margin — not calculable</p><div class="flagbox">Contract is ${money(revenue(j))} but no materials, subs, or hours have been entered. Your Monday app shows this as <b>100% margin</b>. It isn't — it's an unpriced job, and it's dragging the company average up.</div>`:`<p class="bignum" style="color:${col(p)}">${p.toFixed(1)}%</p><p class="lbl" style="margin-top:6px">Gross margin · target 50%</p><div class="gauge"><div class="fill" style="width:${Math.max(Math.min(p,100),0)}%;background:${col(p)}"></div><div class="target"></div></div><div class="gaugecap"><span>${money(gp(j))} GP</span><span>${money(revenue(j))} revenue</span></div>`}<div class="grp" style="margin-top:18px"><h5>Delivery</h5><div class="fields">${F(`Stage <span class="src mon">Monday</span>`,j.stage)}${F(`Sold date <span class="src ghl">GHL</span>`,j.sold||"—")}${F(`Completed date <span class="src mon">Monday</span>`,j.done||"—")}${F(`Crew type <span class="src man">edit</span>`,j.crew)}${F(`Permit required <span class="src mon">Monday</span>`,j.permitReq)}${F(`Lead source <span class="src ghl">GHL</span>`,j.src)}</div></div>`;
-if(st==="co")b.innerHTML=`<div class="grp"><h5>Revenue breakdown</h5><div class="fields">${F(`Contract price <span class="src ghl">GHL</span>`,money(j.contract))}${FI("Change orders +/−","co",j.co)}${FI("Discounts / credits","disc",j.disc)}${F("Total revenue",money(revenue(j)),"tot")}</div></div><div class="grp"><h5>Direct costs</h5><div class="fields">${F(`Labor · ${j.hrs} hrs @ $35 <span class="src zap">from Time</span>`,money(labor(j)))}${FI("Materials","mat",j.mat)}${FI("Subcontractors","sub",j.sub)}${FI("Equipment / rentals","equip",j.equip)}${F("Total direct cost",money(direct(j)),"tot")}</div></div><div class="grp"><h5>Additional costs</h5><div class="fields">${FI("Disposal / dumpster","disp",j.disp)}${FI("Permits / fees","permit",j.permit)}${FI("Fuel / travel","fuel",j.fuel)}${FI("Other / misc","other",j.other)}${F("Total additional",money(addl(j)),"tot")}</div></div><div class="grp"><h5>Overhead &amp; profit</h5><div class="fields">${FI("Overhead %","oh",j.oh)}${F("Overhead $",money(ohDollars(j)))}${F("Total job cost",money(jobCost(j)),"tot")}<div class="fld tot"><span class="k">Gross profit</span><span class="v" style="color:${col(noCosts(j)?null:p)}">${revenue(j)==null?"—":money(gp(j))}</span></div><div class="fld tot"><span class="k">Margin %</span><span class="v" style="color:${col(noCosts(j)?null:p)}">${revenue(j)==null?"—":noCosts(j)?"n/a":p.toFixed(1)+"%"}</span></div></div></div>${noCosts(j)?`<div class="flagbox">Margin shows <b>n/a</b>, not 100%, until at least one cost is entered. A blank cost field is missing data, not free work.</div>`:""}<p class="note">Overhead % is a percentage of revenue — your Monday app has it rendering as "$12", which is why Overhead $ comes out at zero there.</p>`;
-if(st==="hr")b.innerHTML=j.hrs?`<p class="bignum">${j.hrs}</p><p class="lbl" style="margin-top:6px">Hours logged · ${money(labor(j))} labor</p><p class="note">Live build lists every entry — who, which day, in and out — so a bad number traces back to the row that caused it.</p>`:`<div class="empty">No hours logged against this job.<br>${j.crew==="Sub out"?"Sub-out job — labor sits in Subcontractors instead.":"If crew worked it, the time went somewhere else or was never entered."}</div>`;
-if(st==="fi")b.innerHTML=`<div class="grp"><h5>Project folder</h5><div class="fields">${j.drive?`<div class="fld"><span class="k">Google Drive <span class="src zap">Zapier</span></span><span class="v"><a href="#">Open folder →</a></span></div>`:`<div class="fld"><span class="k">Google Drive</span><span class="v" style="color:var(--alert)">not created</span></div>`}${F(`Final photos / videos <span class="src mon">Monday</span>`,j.stage==="Completed"?"Uploaded":"Pending")}</div></div><p class="note">Same automation you already have on Monday: new client → Zapier creates the Drive folder from a template and writes the link back to the job record. It survives the move because Zapier does the work, not Monday.</p>`}
+function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";currentUpdates=null;$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stKey[cur.stage]}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#detail").classList.remove("hidden");window.scrollTo(0,0)}
+function drawDetail(){const j=cur,p=j.marginPct,b=$("#dBody");if(st==="ov")b.innerHTML=`${j.revenue==null?`<div class="empty">No contract price yet.<br>Fills in automatically when GHL marks the opportunity won.</div>`:j.unpriced?`<p class="bignum" style="color:var(--steel)">n/a</p><p class="lbl" style="margin-top:6px">Margin — not calculable</p><div class="flagbox">Contract is ${money(j.revenue)} but no costs or hours have been entered yet. That's <b>not</b> 100% margin — it's an unpriced job, kept out of the company average until real numbers land.</div>`:`<p class="bignum" style="color:${col(p)}">${p.toFixed(1)}%</p><p class="lbl" style="margin-top:6px">Gross margin · target 50%</p><div class="gauge"><div class="fill" style="width:${Math.max(Math.min(p,100),0)}%;background:${col(p)}"></div><div class="target"></div></div><div class="gaugecap"><span>${money(j.gp)} GP</span><span>${money(j.revenue)} revenue</span></div>`}<div class="grp" style="margin-top:18px"><h5>Delivery</h5><div class="fields">${F(`Stage <span class="src mon">Monday</span>`,j.stage)}${F(`Sold date <span class="src ghl">GHL</span>`,j.sold||"—")}${F(`Completed date <span class="src mon">Monday</span>`,j.done||"—")}${F(`Crew type <span class="src man">edit</span>`,j.crew||"—")}${F(`Permit required <span class="src mon">Monday</span>`,j.permitReq)}${F(`Lead source <span class="src ghl">GHL</span>`,j.src||"—")}</div></div>`;
+if(st==="co")b.innerHTML=`<p class="note" id="coSaveStatus" style="margin:0 0 11px;min-height:14px;border:0;padding:0"></p><div class="grp"><h5>Revenue breakdown</h5><div class="fields">${F(`Contract price <span class="src ghl">GHL</span>`,money(j.contract))}${FI("Change orders +/−","co",j.co)}${FI("Discounts / credits","disc",j.disc)}${F("Total revenue",money(j.revenue),"tot")}</div></div><div class="grp"><h5>Direct costs</h5><div class="fields">${F(`Labor · ${j.hrs} hrs @ $35 <span class="src zap">from Time</span>`,money(j.laborCost))}${FI("Materials","mat",j.mat)}${FI("Subcontractors","sub",j.sub)}${FI("Equipment / rentals","equip",j.equip)}${F("Total direct cost",money(j.laborCost+j.materialCost),"tot")}</div></div><div class="grp"><h5>Additional costs</h5><div class="fields">${FI("Disposal / dumpster","disp",j.disp)}${FI("Permits / fees","permit",j.permit)}${FI("Fuel / travel","fuel",j.fuel)}${FI("Other / misc","other",j.other)}${F("Total additional",money(j.additionalCost),"tot")}</div></div><div class="grp"><h5>Overhead &amp; profit</h5><div class="fields">${FI("Overhead %","oh",j.oh)}${F("Overhead $",money(j.overheadCost))}${F("Total job cost",money(j.totalCost),"tot")}<div class="fld tot"><span class="k">Gross profit</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":money(j.gp)}</span></div><div class="fld tot"><span class="k">Margin %</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":j.unpriced?"n/a":p.toFixed(1)+"%"}</span></div></div></div>${j.unpriced?`<div class="flagbox">Margin shows <b>n/a</b>, not 100%, until at least one cost or hour is entered. A blank cost field is missing data, not free work.</div>`:""}<p class="note">Editing writes straight to Supabase — margin updates after each save reflect what's actually in the database.</p>`;
+if(st==="hr")b.innerHTML=j.hrs?`<p class="bignum">${j.hrs}</p><p class="lbl" style="margin-top:6px">Hours logged · ${money(j.laborCost)} labor</p><p class="note">Live build lists every entry — who, which day, in and out — so a bad number traces back to the row that caused it.</p>`:`<div class="empty">No hours logged against this job.<br>${j.crew==="Sub out"?"Sub-out job — labor sits in Subcontractors instead.":"If crew worked it, the time went somewhere else or was never entered."}</div>`;
+if(st==="fi")b.innerHTML=`<div class="grp"><h5>Project folder</h5><div class="fields">${j.drive?`<div class="fld"><span class="k">Google Drive <span class="src zap">Zapier</span></span><span class="v"><a href="#">Open folder →</a></span></div>`:`<div class="fld"><span class="k">Google Drive</span><span class="v" style="color:var(--alert)">not created</span></div>`}${F(`Final photos / videos <span class="src mon">Monday</span>`,j.stage==="Completed"?"Uploaded":"Pending")}</div></div><p class="note">Same automation you already have on Monday: new client → Zapier creates the Drive folder from a template and writes the link back to the job record. It survives the move because Zapier does the work, not Monday.</p>`;
+if(st==="up"){
+  const list=currentUpdates===null?`<p class="note" style="border:0;padding:0">Loading…</p>`:currentUpdates.length===0?`<div class="empty">No updates yet.<br>The first note here becomes the record of why anything changed.</div>`:currentUpdates.map(u=>`<div style="display:flex;gap:10px;margin-bottom:14px"><div style="width:32px;height:32px;border-radius:50%;background:${u.author_color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${escapeHtml(u.author_initials)}</div><div style="flex:1;min-width:0"><div style="display:flex;gap:6px;align-items:baseline;flex-wrap:wrap"><b style="font-size:13px">${escapeHtml(u.author_name)}</b><span style="font-size:11px;color:var(--steel)">${relativeTime(u.posted_at)}</span></div><div style="font-size:13px;margin-top:2px;white-space:pre-wrap;line-height:1.45">${escapeHtml(u.body)}</div></div></div>`).join("");
+  b.innerHTML=`<div id="updatesList">${list}</div><div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><textarea id="newUpdateBody" placeholder="Write an update…" style="width:100%;min-height:70px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:10px;font:inherit;font-size:13px;resize:vertical"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="updateStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="postUpdateBtn" class="chip">Post</button></div></div>`;
+  if(currentUpdates===null)loadUpdates();
+}
+}
+const escapeHtml=s=>(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function relativeTime(iso){
+  const diffMs=Date.now()-new Date(iso).getTime(),min=Math.floor(diffMs/60000);
+  if(min<1)return"now";
+  if(min<60)return min+"m";
+  const hr=Math.floor(min/60);
+  if(hr<24)return hr+"h";
+  const day=Math.floor(hr/24);
+  if(day<30)return day+"d";
+  return new Date(iso).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+}
+function setUpdateStatus(msg,isError){
+  const el=document.getElementById("updateStatus");if(!el)return;
+  el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
+}
+async function loadUpdates(){
+  const jobId=cur.id;
+  const {data,error}=await sb.from("job_updates_feed").select("*").eq("job_id",jobId).order("posted_at",{ascending:false});
+  if(error){console.error(error);currentUpdates=[];}else{currentUpdates=data;}
+  if(cur&&cur.id===jobId&&st==="up")drawDetail();
+}
+async function postUpdate(){
+  const ta=document.getElementById("newUpdateBody");
+  const body=ta.value.trim();
+  if(!body)return;
+  const jobId=cur.id;
+  setUpdateStatus("Posting…",false);
+  const {data:{user}}=await sb.auth.getUser();
+  const author=currentUserProfile?.full_name||currentUserEmail||"Unknown";
+  const {error}=await sb.from("job_updates").insert({job_id:jobId,author_id:user.id,author,body});
+  if(error){setUpdateStatus("Error: "+error.message,true);return}
+  await loadUpdates();
+  setUpdateStatus("Posted",false);
+  setTimeout(()=>{if(document.getElementById("updateStatus")?.textContent==="Posted")setUpdateStatus("",false)},2000);
+}
 
-/* ---------- persistence: survives refresh, phone, everything ---------- */
-const STORE="salexx-ops-hub";
-function saveState(){
-  try{localStorage.setItem(STORE,JSON.stringify({v:1,jobs,timeEntries,
-    leads:(typeof leadRecords!=="undefined"?leadRecords:[])}));
-    const el=document.getElementById("savedTag");
-    if(el)el.textContent="saved "+new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
-  }catch(e){const el=document.getElementById("savedTag");
-    if(el){el.textContent="NOT SAVED";el.style.color="var(--alert)"}}
+function setBackupStatus(msg,isError){
+  const el=document.getElementById("backupStatus");if(!el)return;
+  el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
 }
-function loadState(){
-  try{
-    const raw=localStorage.getItem(STORE); if(!raw)return false;
-    const d=JSON.parse(raw);
-    if(Array.isArray(d.jobs)&&d.jobs.length){jobs.length=0;jobs.push(...d.jobs)}
-    if(Array.isArray(d.timeEntries))timeEntries=d.timeEntries;
-    return d;
-  }catch(e){return false}
-}
-function downloadBackup(){
+async function downloadBackup(){
+  setBackupStatus("Preparing backup…",false);
+  const [{data:jobRows,error:e1},{data:costRows,error:e2},{data:timeRows,error:e3},{data:leadRows,error:e4}]=await Promise.all([
+    sb.from("jobs").select("*"),
+    sb.from("job_costs").select("*"),
+    sb.from("time_entries").select("*"),
+    sb.from("leads").select("*")
+  ]);
+  const error=e1||e2||e3||e4;
+  if(error){setBackupStatus("Error: "+error.message,true);return}
   const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([JSON.stringify({v:1,jobs,timeEntries},null,1)],
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({v:2,jobs:jobRows,job_costs:costRows,time_entries:timeRows,leads:leadRows},null,1)],
     {type:"application/json"}));
   a.download="salexx-backup-"+new Date().toISOString().slice(0,10)+".json";
   a.click();URL.revokeObjectURL(a.href);
+  setBackupStatus("Downloaded",false);
+  setTimeout(()=>{if(document.getElementById("backupStatus")?.textContent==="Downloaded")setBackupStatus("",false)},2000);
 }
 const hoursOf=e=>{if(!e||!e.in||!e.out)return 0;const[a,b]=e.in.split(":").map(Number),[c,d]=e.out.split(":").map(Number);return Math.max(((c*60+d)-(a*60+b))/60,0)};
-/* Time entries live in their own list. A job's hours are the SUM of its entries —
-   never a single day overwriting the total. */
-let timeEntries=[];
 function currentDate(){return document.getElementById("workDate")?.value||new Date().toISOString().slice(0,10)}
-function recomputeHours(){
-  const totals={};
-  for(const e of timeEntries){if(e.job)totals[e.job]=(totals[e.job]||0)+e.h}
-  for(const j of jobs)j.hrs=totals[j.id]||0;
+function setTimeStatus(msg,isError){
+  const el=document.getElementById("timeSaveStatus");if(!el)return;
+  el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
 }
-/* The imported jobs carry hour totals with no entries behind them. Turn each into
-   one baseline entry so recompute keeps them and new days add on top. */
-function seedBaselineHours(){
-  for(const j of jobs){
-    if(j.hrs>0 && !timeEntries.some(e=>e.job===j.id)){
-      timeEntries.push({date:j.sold||"",who:"(imported)",job:j.id,in:"",out:"",h:j.hrs,baseline:true});
-    }
+async function saveRosterEntry(person){
+  const p=people.find(x=>x.n===person);if(!p)return;
+  const e=day[person]||{},h=Math.round(hoursOf(e)*100)/100,d=currentDate();
+  const needsJob=p.r!=="Admin"&&h>0&&!e.job;
+  setTimeStatus(needsJob?"":"Saving…",false);
+  const {error:delErr}=await sb.from("time_entries").delete().eq("person",person).eq("work_date",d);
+  if(delErr){setTimeStatus("Error: "+delErr.message,true);return}
+  let affectedJobId=null;
+  if(!needsJob&&h>0){
+    const kind=p.r==="Admin"?"Admin":"Job";
+    const jobId=kind==="Job"?e.job:null;
+    const {error:insErr}=await sb.from("time_entries").insert({
+      job_id:jobId,person,work_date:d,clock_in:e.in||null,clock_out:e.out||null,
+      hours:h,kind,entered_by:currentUserEmail
+    });
+    if(insErr){setTimeStatus("Error: "+insErr.message,true);return}
+    if(kind==="Job")affectedJobId=jobId;
   }
-}
-function syncEntries(){
-  const d=currentDate();
-  timeEntries=timeEntries.filter(e=>e.date!==d);
-  for(const p of people){
-    const r=day[p.n]||{}, h=hoursOf(r);
-    if(!h)continue;
-    timeEntries.push({date:d,who:p.n,job:p.r==="Admin"?"":(r.job||""),in:r.in,out:r.out,h});
+  if(affectedJobId){
+    const ok=await refreshJob(affectedJobId);
+    if(ok){drawToday();drawJobs();if(cur&&cur.id===affectedJobId)drawDetail()}
   }
-  recomputeHours(); saveState();
+  drawRoster();
+  window.syncRoster?.();
+  if(needsJob){setTimeStatus("",false);return}
+  setTimeStatus("Saved",false);
+  setTimeout(()=>{if(document.getElementById("timeSaveStatus")?.textContent==="Saved")setTimeStatus("",false)},2000);
 }
-function drawRoster(){const opts=jobs.filter(j=>j.stage!=="Completed").map(j=>`<option value="${j.id}">${j.id} · ${j.client}</option>`).join("");$("#roster").innerHTML=people.map(p=>{const e=day[p.n]||{},h=hoursOf(e);return `<div class="fld" style="border:1px solid var(--line);border-radius:10px;margin-bottom:7px;background:${p.r==="Admin"?"#1A2C4A":"var(--navy-2)"};flex-wrap:wrap"><span class="k" style="min-width:76px"><b style="color:#fff;font-size:14px">${p.n}</b><br>${p.r}</span>${p.r==="Admin"?`<span class="v" style="color:var(--steel);font-size:11px">overhead</span>`:`<select data-p="${p.n}" data-f="job" style="flex:1;min-width:118px"><option value="">Job…</option>${opts}</select>`}<input type="time" data-p="${p.n}" data-f="in" value="${e.in||""}" style="width:90px"><input type="time" data-p="${p.n}" data-f="out" value="${e.out||""}" style="width:90px"><span class="v" style="color:${h?"var(--hivis)":"#3D5273"};min-width:50px">${h?h.toFixed(2):"—"}</span></div>`}).join("");const t=people.reduce((s,p)=>s+hoursOf(day[p.n]),0);$("#dayHrs").textContent=t.toFixed(2);$("#dayCost").textContent=money(t*RATE)}
+function drawRoster(){const opts=jobs.filter(j=>j.stage!=="Completed").map(j=>`<option value="${j.id}">${j.id} · ${j.client}</option>`).join("");$("#roster").innerHTML=people.map(p=>{const e=day[p.n]||{},h=hoursOf(e),needsJob=p.r!=="Admin"&&h>0&&!e.job;return `<div class="fld" style="border:1px solid var(--line);border-radius:10px;margin-bottom:7px;background:${p.r==="Admin"?"#1A2C4A":"var(--navy-2)"};flex-wrap:wrap"><span class="k" style="min-width:76px"><b style="color:#fff;font-size:14px">${p.n}</b><br>${p.r}</span>${p.r==="Admin"?`<span class="v" style="color:var(--steel);font-size:11px">overhead</span>`:`<select data-p="${p.n}" data-f="job" style="flex:1;min-width:118px"><option value="">Job…</option>${opts}</select>`}<input type="time" data-p="${p.n}" data-f="in" value="${e.in||""}" style="width:90px"><input type="time" data-p="${p.n}" data-f="out" value="${e.out||""}" style="width:90px"><span class="v" style="color:${h?"var(--hivis)":"#3D5273"};min-width:50px">${h?h.toFixed(2):"—"}</span>${needsJob?'<span class="warn" style="flex-basis:100%">pick a job before this saves</span>':""}</div>`}).join("");const t=people.reduce((s,p)=>s+hoursOf(day[p.n]),0);$("#dayHrs").textContent=t.toFixed(2);$("#dayCost").textContent=money(t*RATE)}
 let reportStart="2026-01-01",reportEnd=new Date().toISOString().slice(0,10),reportReady=false;
 const reportDateInRange=date=>date&&date>=reportStart&&date<=reportEnd;
 function drawReports(){
@@ -193,17 +230,48 @@ function drawReports(){
 	}
 	const monthNames=["January","February","March","April","May","June","July","August","September","October","November","December"],months={};
 	jobs.forEach(job=>{
-		["sold","done"].forEach(field=>{const date=job[field];if(!reportDateInRange(date))return;const month=monthNames[Number(date.slice(5,7))-1];months[month]||={sold:0,completed:0};months[month][field==="sold"?"sold":"completed"]+=revenue(job)||0;});
+		["sold","done"].forEach(field=>{const date=job[field];if(!reportDateInRange(date))return;const month=monthNames[Number(date.slice(5,7))-1];months[month]||={sold:0,completed:0};months[month][field==="sold"?"sold":"completed"]+=job.revenue||0;});
 	});
 	let ts=0,tc=0;const rows=Object.entries(months).map(([month,data])=>{ts+=data.sold;tc+=data.completed;const diff=data.sold-data.completed;return `<tr><td>${month}</td><td>${money(data.sold)}</td><td>${money(data.completed)}</td><td class="${diff>=0?"pos":"neg"}">${diff>=0?"+":"−"}${money(Math.abs(diff))}</td></tr>`}).join("");
 	const diff=ts-tc;$("#soldTable").innerHTML=`<thead><tr><th>Month</th><th>Sold</th><th>Completed</th><th>Diff</th></tr></thead><tbody>${rows||'<tr><td colspan="4">No jobs in this period.</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${money(ts)}</td><td>${money(tc)}</td><td class="${diff>=0?"pos":"neg"}">${diff>=0?"+":"−"}${money(Math.abs(diff))}</td></tr></tfoot>`;
-	const serviceData={};jobs.filter(job=>reportDateInRange(job.sold)).forEach(job=>{serviceData[job.type]||={count:0,revenue:0};serviceData[job.type].count++;serviceData[job.type].revenue+=revenue(job)||0;});
+	const serviceData={};jobs.filter(job=>reportDateInRange(job.sold)).forEach(job=>{serviceData[job.type]||={count:0,revenue:0};serviceData[job.type].count++;serviceData[job.type].revenue+=job.revenue||0;});
 	$("#svcTable").innerHTML=`<thead><tr><th>Job type</th><th>Jobs</th><th>Revenue</th><th>Avg price</th></tr></thead><tbody>${Object.entries(serviceData).map(([type,data])=>`<tr><td>${type}</td><td>${data.count}</td><td>${money(data.revenue)}</td><td>${money(data.revenue/data.count)}</td></tr>`).join("")||'<tr><td colspan="4">No jobs in this period.</td></tr>'}</tbody>`;
 }
-document.addEventListener("click",e=>{if(e.target.id==="backupBtn"){downloadBackup();return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const s=e.target.closest("[data-s]");if(s){stageF=s.dataset.s;drawJobs();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest("[data-tab]");if(t){document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected",b===t));["today","jobs","time","leads","reports"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab))}});
+document.addEventListener("click",e=>{if(e.target.id==="backupBtn"){downloadBackup();return}if(e.target.id==="signOutBtn"){sb.auth.signOut();return}if(e.target.id==="postUpdateBtn"){postUpdate();return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const s=e.target.closest("[data-s]");if(s){stageF=s.dataset.s;drawJobs();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest("[data-tab]");if(t){document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected",b===t));["today","jobs","time","leads","reports"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab))}});
 document.addEventListener("click",e=>{const range=e.target.closest("[data-report-range]");if(!range)return;const today=new Date(),year=today.getFullYear(),month=String(today.getMonth()+1).padStart(2,"0");document.querySelectorAll("[data-report-range]").forEach(button=>button.setAttribute("aria-pressed",button===range));if(range.dataset.reportRange==="month"){reportStart=`${year}-${month}-01`;reportEnd=today.toISOString().slice(0,10);$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="year"){reportStart=`${year}-01-01`;reportEnd=today.toISOString().slice(0,10);$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="all"){reportStart="0000-01-01";reportEnd="9999-12-31";$("#reportCustom").style.display="none"}else{$("#reportCustom").style.display="block"}drawReports()});
-document.addEventListener("input",e=>{const t=e.target;if(t.id==="reportFrom"||t.id==="reportTo"){if($("#reportFrom").value&&$("#reportTo").value){reportStart=$("#reportFrom").value;reportEnd=$("#reportTo").value;drawReports()}return}if(t.id==="q"){query=t.value;drawJobs();return}if(t.dataset.p){(day[t.dataset.p]||={})[t.dataset.f]=t.value;syncEntries();drawRoster();return}if(t.dataset.c){cur[t.dataset.c]=t.value===""?null:+t.value;saveState();drawDetail()}});const had=loadState();if(!had)seedBaselineHours();recomputeHours();
-drawToday();drawJobs();drawRoster();drawReports();saveState();
+document.addEventListener("input",e=>{const t=e.target;if(t.id==="reportFrom"||t.id==="reportTo"){if($("#reportFrom").value&&$("#reportTo").value){reportStart=$("#reportFrom").value;reportEnd=$("#reportTo").value;drawReports()}return}if(t.id==="q"){query=t.value;drawJobs();return}if(t.dataset.p){(day[t.dataset.p]||={})[t.dataset.f]=t.value;drawRoster();return}});
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset.c&&cur){saveCostField(cur.id,t.dataset.c,t.value);return}if(t.dataset.p){saveRosterEntry(t.dataset.p)}});
+
+function showApp(){$("#authGate").classList.add("hidden");$("#app").classList.remove("hidden")}
+function showAuthGate(msg){$("#app").classList.add("hidden");$("#authGate").classList.remove("hidden");const e=$("#authError");if(msg){e.textContent=msg;e.style.display="block"}else{e.style.display="none"}}
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  currentUserEmail=session?.user?.email||null;
+  if(session){
+    const {data:profile}=await sb.from("profiles").select("full_name,initials,avatar_color").eq("user_id",session.user.id).single();
+    currentUserProfile=profile||null;
+  }
+  const ok=await fetchJobs();
+  if(!ok){showAuthGate("Couldn't load data — check your connection and try again.");return}
+  if(window.refreshLeads)await window.refreshLeads();
+  drawToday();drawJobs();drawRoster();drawReports();
+  showApp();
+}
+async function attemptSignIn(){
+  const email=$("#authEmail").value.trim(),password=$("#authPass").value;
+  const errEl=$("#authError");errEl.style.display="none";
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error){errEl.textContent=error.message;errEl.style.display="block";return}
+  boot();
+}
+$("#authSubmit").addEventListener("click",e=>{e.preventDefault();attemptSignIn()});
+$("#authPass").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();attemptSignIn()}});
+$("#authEmail").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("#authPass").focus()}});
+sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(session)await boot();else showAuthGate();
+})();
 </script>
 <script>
 (() => {
@@ -241,21 +309,47 @@ drawToday();drawJobs();drawRoster();drawReports();saveState();
 		}
 	});
 
+	window.syncRoster = syncRoster;
 	syncRoster();
 })();
 </script>
 <script>
-(() => {
-	const leadRecords = [
-		{name:"Adriana Britton",source:"Referral",status:"Won",leadDate:"2026-01-14",estimateDate:"2026-01-15",closedDate:"2026-01-20",value:78341},
-		{name:"Brad",source:"Facebook Ads",status:"Estimated",leadDate:"2026-01-15",estimateDate:"2026-01-18",closedDate:"",value:46450},
-		{name:"Steve Langella",source:"Website",status:"Won",leadDate:"2025-08-01",estimateDate:"2025-08-01",closedDate:"2025-08-02",value:92000},
-		{name:"John Tran",source:"Referral",status:"Estimated",leadDate:"2026-05-15",estimateDate:"2026-05-28",closedDate:"",value:40000},
-		{name:"Kolene Hammer",source:"Website",status:"Won",leadDate:"2025-07-25",estimateDate:"2025-07-28",closedDate:"2025-07-30",value:30665},
-		{name:"Judy Durand",source:"Facebook",status:"Won",leadDate:"2025-07-05",estimateDate:"2025-07-10",closedDate:"2025-07-12",value:25834},
-		{name:"Morgan Steel",source:"Facebook Ads",status:"Open",leadDate:"2026-06-01",estimateDate:"",closedDate:"",value:0}
-	].map((lead, index) => ({id: `LEAD-${String(index + 1).padStart(3, "0")}`, ...lead}));
+(async () => {
+	let leadRecords = [];
+	async function fetchLeads(){
+		const {data,error}=await sb.from("leads").select("*").order("lead_date",{ascending:false});
+		if(error){console.error(error);return}
+		leadRecords=(data||[]).map(l=>({id:l.lead_id,name:l.name,source:l.source||"",status:l.status,leadDate:l.lead_date,value:Number(l.est_value)||0}));
+	}
+	function setLeadStatus(msg,isError){
+		const el=document.getElementById("leadSaveStatus");if(!el)return;
+		el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
+	}
+	const LEAD_COLUMN={source:"source",status:"status",leadDate:"lead_date",value:"est_value"};
+	async function updateLeadField(leadId,field,rawValue){
+		const column=LEAD_COLUMN[field];if(!column)return;
+		setLeadStatus("Saving…",false);
+		const value=field==="value"?(rawValue===""?0:Number(rawValue)):rawValue;
+		const {error}=await sb.from("leads").update({[column]:value}).eq("lead_id",leadId);
+		if(error){setLeadStatus("Error: "+error.message,true);return}
+		await fetchLeads();drawLeadReport();drawLeadList();
+		setLeadStatus("Saved",false);
+		setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Saved")setLeadStatus("",false)},2000);
+	}
+	async function createLead(fields){
+		if(!fields.name){setLeadStatus("Error: name is required",true);return}
+		setLeadStatus("Saving…",false);
+		const {error}=await sb.from("leads").insert({
+			name:fields.name,source:fields.source||null,status:fields.status||"New",
+			lead_date:fields.leadDate,est_value:fields.value===""?null:Number(fields.value)
+		});
+		if(error){setLeadStatus("Error: "+error.message,true);return}
+		await fetchLeads();drawLeadReport();drawLeadList();
+		setLeadStatus("Saved",false);
+		setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Saved")setLeadStatus("",false)},2000);
+	}
 	const sourceOptions = ["Facebook", "Website", "Facebook Ads", "Alex Reached out", "Instagram", "Referral", "Nextdoor", "Google"];
+	const statusOptions = ["New", "Contacted", "Estimated", "Won", "Lost"];
 	let filterStart = new Date();
 	let filterEnd = new Date();
 	filterStart.setDate(1);
@@ -291,13 +385,23 @@ drawToday();drawJobs();drawRoster();drawReports();saveState();
 			<span class="k">To</span><input type="date" id="rangeTo" style="width:110px">
 		</div>
 	</div>
+	<p class="lbl">New lead</p>
+	<p class="note" id="leadSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p>
+	<div class="fields" style="margin-bottom:18px">
+		<div class="fld"><span class="k">Name</span><input type="text" id="newLeadName" placeholder="Lead name" style="width:170px"></div>
+		<div class="fld"><span class="k">Source</span><select id="newLeadSource" style="width:170px"><option value="">Source…</option>${sourceOptions.map(s=>`<option>${s}</option>`).join("")}</select></div>
+		<div class="fld"><span class="k">Lead date</span><input type="date" id="newLeadDate" style="width:170px"></div>
+		<div class="fld"><span class="k">Value</span><input type="number" id="newLeadValue" placeholder="—" style="width:170px"></div>
+	</div>
+	<button id="addLeadBtn" class="chip" style="margin-bottom:22px">Add lead</button>
 	<p class="lbl">Dashboard <span id="dashboardMonth" style="color:var(--hivis)"></span></p>
 	<div id="leadReport"></div>
 	<p class="lbl" style="margin-top:22px">Leads this period · <span id="totalLeadsCount">0</span> total</p>
 	<input class="search" id="leadSearch" placeholder="Search lead name…">
 	<div id="leadList"></div>`;
 	leadsPanel.append(sourceList);
-	
+	document.getElementById("newLeadDate").value = new Date().toISOString().slice(0,10);
+
 	const [start, end] = getDateRange("month");
 	filterStart = new Date(start);
 	filterEnd = new Date(end);
@@ -305,7 +409,7 @@ drawToday();drawJobs();drawRoster();drawReports();saveState();
 	const drawLeadReport = () => {
 		const bySource = {};
 		sourceOptions.forEach(src => {
-			bySource[src] = {open: 0, estimated: 0, won: 0, lost: 0, total: 0, wonValue: 0};
+			bySource[src] = {new: 0, contacted: 0, estimated: 0, won: 0, lost: 0, total: 0, wonValue: 0};
 		});
 		const filtered = leadRecords.filter(lead => {
 			const leadD = new Date(lead.leadDate);
@@ -314,16 +418,17 @@ drawToday();drawJobs();drawRoster();drawReports();saveState();
 		const monthYear = filterStart.toLocaleString("en-US", {month: "long", year: "numeric"});
 		$("#dashboardMonth").textContent = `· ${monthYear}`;
 		filtered.forEach(lead => {
-			if (!bySource[lead.source]) bySource[lead.source] = {open: 0, estimated: 0, won: 0, lost: 0, total: 0, wonValue: 0};
-			bySource[lead.source][lead.status.toLowerCase()] = (bySource[lead.source][lead.status.toLowerCase()] || 0) + 1;
+			if (!bySource[lead.source]) bySource[lead.source] = {new: 0, contacted: 0, estimated: 0, won: 0, lost: 0, total: 0, wonValue: 0};
+			const key = (lead.status || "New").toLowerCase();
+			bySource[lead.source][key] = (bySource[lead.source][key] || 0) + 1;
 			bySource[lead.source].total++;
 			if (lead.status==="Won") bySource[lead.source].wonValue += lead.value;
 		});
 		const rows = Object.entries(bySource).map(([source, data]) => {
 			const rate = data.total ? ((data.won / data.total) * 100).toFixed(0) : "—";
-			return `<tr><td>${source}</td><td>${data.total}</td><td style="color:var(--hivis)">${data.open}</td><td style="color:var(--amber)">${data.estimated}</td><td style="color:var(--good)">${data.won}</td><td style="color:var(--alert)">${data.lost}</td><td>${rate}%</td><td>${money(data.wonValue)}</td></tr>`;
+			return `<tr><td>${source}</td><td>${data.total}</td><td style="color:var(--steel)">${data.new}</td><td style="color:var(--sky)">${data.contacted}</td><td style="color:var(--amber)">${data.estimated}</td><td style="color:var(--good)">${data.won}</td><td style="color:var(--alert)">${data.lost}</td><td>${rate}%</td><td>${money(data.wonValue)}</td></tr>`;
 		});
-		$("#leadReport").innerHTML = `<div class="scroller"><table><thead><tr><th>Source</th><th>Total</th><th>Open</th><th>Est</th><th>Won</th><th>Lost</th><th>Close %</th><th>Won value</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+		$("#leadReport").innerHTML = `<div class="scroller"><table><thead><tr><th>Source</th><th>Total</th><th>New</th><th>Contacted</th><th>Est</th><th>Won</th><th>Lost</th><th>Close %</th><th>Won value</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
 	};
 
 	const drawLeadList = () => {
@@ -334,8 +439,8 @@ drawToday();drawJobs();drawRoster();drawReports();saveState();
 		});
 		$("#totalLeadsCount").textContent = filtered.length;
 		$("#leadList").innerHTML = filtered.length ? filtered.map(lead => {
-			const statusColor = lead.status==="Won"?"var(--good)":lead.status==="Lost"?"var(--alert)":lead.status==="Estimated"?"var(--amber)":"var(--steel)";
-			return `<div class="fld" style="margin-bottom:7px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><span class="k" style="flex-basis:100%"><b style="color:#fff;font-size:14px">${lead.name}</b><br><span style="font-size:10px;color:var(--steel)">${lead.id}</span></span><select data-lead-source="${lead.id}" aria-label="Source" style="width:120px"><option value="">Source</option>${sourceOptions.map(s => `<option ${lead.source===s?"selected":""}>${s}</option>`).join("")}</select><select data-lead-status="${lead.id}" aria-label="Status" style="width:100px;color:${statusColor}"><option value="Open" ${lead.status==="Open"?"selected":""}>Open</option><option value="Estimated" ${lead.status==="Estimated"?"selected":""}>Estimated</option><option value="Won" ${lead.status==="Won"?"selected":""}>Won</option><option value="Lost" ${lead.status==="Lost"?"selected":""}>Lost</option></select><input type="date" data-lead-date="${lead.id}" value="${lead.leadDate}" style="width:110px" aria-label="Lead date"><input type="number" data-lead-value="${lead.id}" value="${lead.value}" placeholder="Value" style="width:90px" aria-label="Deal value"></div>`;
+			const statusColor = lead.status==="Won"?"var(--good)":lead.status==="Lost"?"var(--alert)":lead.status==="Estimated"?"var(--amber)":lead.status==="Contacted"?"var(--sky)":"var(--steel)";
+			return `<div class="fld" style="margin-bottom:7px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><span class="k" style="flex-basis:100%"><b style="color:#fff;font-size:14px">${lead.name}</b></span><select data-lead-id="${lead.id}" data-field="source" aria-label="Source" style="width:120px"><option value="">Source</option>${sourceOptions.map(s=>`<option ${lead.source===s?"selected":""}>${s}</option>`).join("")}</select><select data-lead-id="${lead.id}" data-field="status" aria-label="Status" style="width:100px;color:${statusColor}">${statusOptions.map(s=>`<option ${lead.status===s?"selected":""}>${s}</option>`).join("")}</select><input type="date" data-lead-id="${lead.id}" data-field="leadDate" value="${lead.leadDate||""}" style="width:110px" aria-label="Lead date"><input type="number" data-lead-id="${lead.id}" data-field="value" value="${lead.value}" placeholder="Value" style="width:90px" aria-label="Deal value"></div>`;
 		}).join("") : '<div class="empty">No leads in this period.</div>';
 	};
 
@@ -349,27 +454,6 @@ drawToday();drawJobs();drawRoster();drawReports();saveState();
 				drawLeadList();
 			}
 			return;
-		}
-		const srcId = event.target.dataset.leadSource;
-		if (srcId) {
-			const lead = leadRecords.find(r => r.id === srcId);
-			if (lead) lead.source = event.target.value;
-			drawLeadReport();
-			drawLeadList();
-		}
-		const dateId = event.target.dataset.leadDate;
-		if (dateId) {
-			const lead = leadRecords.find(r => r.id === dateId);
-			if (lead) lead.leadDate = event.target.value;
-			drawLeadReport();
-			drawLeadList();
-		}
-		const valId = event.target.dataset.leadValue;
-		if (valId) {
-			const lead = leadRecords.find(r => r.id === valId);
-			if (lead) lead.value = +event.target.value;
-			drawLeadReport();
-			drawLeadList();
 		}
 	});
 	document.addEventListener("click", event => {
@@ -389,21 +473,28 @@ drawToday();drawJobs();drawRoster();drawReports();saveState();
 			document.querySelectorAll("#s-leads .chip").forEach(btn => btn.setAttribute("aria-pressed", "false"));
 			event.target.setAttribute("aria-pressed", "true");
 		}
+		if (preset === "addLeadBtn") {
+			const fields = {
+				name: document.getElementById("newLeadName").value.trim(),
+				source: document.getElementById("newLeadSource").value,
+				leadDate: document.getElementById("newLeadDate").value || new Date().toISOString().slice(0,10),
+				status: "New",
+				value: document.getElementById("newLeadValue").value
+			};
+			createLead(fields).then(() => {
+				document.getElementById("newLeadName").value = "";
+				document.getElementById("newLeadSource").value = "";
+				document.getElementById("newLeadValue").value = "";
+			});
+		}
 	});
 	document.addEventListener("change", event => {
-		const statId = event.target.dataset.leadStatus;
-		if (statId) {
-			const lead = leadRecords.find(r => r.id === statId);
-			if (lead) {
-				lead.status = event.target.value;
-				if (event.target.value === "Won" && !lead.closedDate) lead.closedDate = new Date().toISOString().slice(0, 10);
-				drawLeadList();
-				drawLeadReport();
-			}
-		}
+		const leadId = event.target.dataset.leadId;
+		if (leadId) updateLeadField(leadId, event.target.dataset.field, event.target.value);
 	});
 	drawLeadReport();
 	drawLeadList();
+	window.refreshLeads = async () => { await fetchLeads(); drawLeadReport(); drawLeadList(); };
 })();
 </script>
 </body>
