@@ -348,6 +348,15 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		setLeadStatus("Saved",false);
 		setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Saved")setLeadStatus("",false)},2000);
 	}
+	async function deleteLead(leadId,name){
+		if(!confirm(`Delete the lead for "${name}"? This can't be undone.`))return;
+		setLeadStatus("Deleting…",false);
+		const {error}=await sb.from("leads").delete().eq("lead_id",leadId);
+		if(error){setLeadStatus("Error: "+error.message,true);return}
+		await fetchLeads();drawLeadReport();drawLeadList();
+		setLeadStatus("Deleted",false);
+		setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Deleted")setLeadStatus("",false)},2000);
+	}
 	const sourceOptions = ["Facebook", "Website", "Facebook Ads", "Alex Reached out", "Instagram", "Referral", "Nextdoor", "Google"];
 	const statusOptions = ["New", "Contacted", "Estimated", "Won", "Lost"];
 	let filterStart = new Date();
@@ -366,6 +375,8 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		} else if (preset === "year") {
 			start.setMonth(0);
 			start.setDate(1);
+		} else if (preset === "all") {
+			start.setFullYear(2000, 0, 1);
 		}
 		return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)];
 	};
@@ -376,6 +387,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		<button id="rangeMonth" class="chip" aria-pressed="true">This Month</button>
 		<button id="rangeYear" class="chip" aria-pressed="false">This Year</button>
 		<button id="rangeCustom" class="chip" aria-pressed="false">Custom</button>
+		<button id="rangeAll" class="chip" aria-pressed="false">All</button>
 	</div>
 	<div id="customRange" style="display:none;margin-bottom:12px">
 		<div class="fld" style="border:1px solid var(--line);border-radius:10px">
@@ -440,7 +452,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		$("#totalLeadsCount").textContent = filtered.length;
 		$("#leadList").innerHTML = filtered.length ? filtered.map(lead => {
 			const statusColor = lead.status==="Won"?"var(--good)":lead.status==="Lost"?"var(--alert)":lead.status==="Estimated"?"var(--amber)":lead.status==="Contacted"?"var(--sky)":"var(--steel)";
-			return `<div class="fld" style="margin-bottom:7px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><span class="k" style="flex-basis:100%"><b style="color:#fff;font-size:14px">${lead.name}</b></span><select data-lead-id="${lead.id}" data-field="source" aria-label="Source" style="width:120px"><option value="">Source</option>${sourceOptions.map(s=>`<option ${lead.source===s?"selected":""}>${s}</option>`).join("")}</select><select data-lead-id="${lead.id}" data-field="status" aria-label="Status" style="width:100px;color:${statusColor}">${statusOptions.map(s=>`<option ${lead.status===s?"selected":""}>${s}</option>`).join("")}</select><input type="date" data-lead-id="${lead.id}" data-field="leadDate" value="${lead.leadDate||""}" style="width:110px" aria-label="Lead date"><input type="number" data-lead-id="${lead.id}" data-field="value" value="${lead.value}" placeholder="Value" style="width:90px" aria-label="Deal value"></div>`;
+			return `<div class="fld" style="margin-bottom:7px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><span class="k" style="flex-basis:100%"><b style="color:#fff;font-size:14px">${lead.name}</b></span><select data-lead-id="${lead.id}" data-field="source" aria-label="Source" style="width:120px"><option value="">Source</option>${sourceOptions.map(s=>`<option ${lead.source===s?"selected":""}>${s}</option>`).join("")}</select><select data-lead-id="${lead.id}" data-field="status" aria-label="Status" style="width:100px;color:${statusColor}">${statusOptions.map(s=>`<option ${lead.status===s?"selected":""}>${s}</option>`).join("")}</select><input type="date" data-lead-id="${lead.id}" data-field="leadDate" value="${lead.leadDate||""}" style="width:110px" aria-label="Lead date"><input type="number" data-lead-id="${lead.id}" data-field="value" value="${lead.value}" placeholder="Value" style="width:90px" aria-label="Deal value"><button data-lead-delete="${lead.id}" aria-label="Delete lead" title="Delete lead" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:26px;height:26px;line-height:1;cursor:pointer;font-size:15px">×</button></div>`;
 		}).join("") : '<div class="empty">No leads in this period.</div>';
 	};
 
@@ -457,8 +469,14 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		}
 	});
 	document.addEventListener("click", event => {
+		const delId = event.target.dataset.leadDelete;
+		if (delId) {
+			const lead = leadRecords.find(r => r.id === delId);
+			deleteLead(delId, lead ? lead.name : "this lead");
+			return;
+		}
 		const preset = event.target.id;
-		if (preset === "rangeWeek" || preset === "rangeMonth" || preset === "rangeYear") {
+		if (preset === "rangeWeek" || preset === "rangeMonth" || preset === "rangeYear" || preset === "rangeAll") {
 			document.getElementById("customRange").style.display = "none";
 			document.querySelectorAll("#s-leads .chip").forEach(btn => btn.setAttribute("aria-pressed", "false"));
 			event.target.setAttribute("aria-pressed", "true");
