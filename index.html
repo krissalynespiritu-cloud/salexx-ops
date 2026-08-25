@@ -189,35 +189,61 @@ function setTimeStatus(msg,isError){
   const el=document.getElementById("timeSaveStatus");if(!el)return;
   el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
 }
+const rosterSaveState={};
 async function saveRosterEntry(person){
+  const state=rosterSaveState[person]||(rosterSaveState[person]={inFlight:false,pending:false});
+  if(state.inFlight){state.pending=true;return}
+  state.inFlight=true;
+  try{await doSaveRosterEntry(person)}
+  finally{
+    state.inFlight=false;
+    if(state.pending){state.pending=false;saveRosterEntry(person)}
+  }
+}
+async function doSaveRosterEntry(person){
   const p=people.find(x=>x.n===person);if(!p)return;
-  const e=day[person]||{},h=Math.round(hoursOf(e)*100)/100,d=currentDate();
-  const needsJob=p.r!=="Admin"&&h>0&&!e.job;
-  setTimeStatus(needsJob?"":"Saving…",false);
+  const blocks=p.r==="Admin"?[blocksOf(person)[0]||{}]:blocksOf(person);
+  const d=currentDate();
+  let anyNeedsJob=false;
+  const rows=[];
+  for(const e of blocks){
+    const h=Math.round(hoursOf(e)*100)/100;
+    if(h<=0)continue;
+    if(p.r!=="Admin"&&!e.job){anyNeedsJob=true;continue}
+    const kind=p.r==="Admin"?"Admin":"Job";
+    rows.push({job_id:kind==="Job"?e.job:null,person,work_date:d,clock_in:e.in||null,clock_out:e.out||null,hours:h,kind,entered_by:currentUserEmail});
+  }
+  setTimeStatus("Saving…",false);
   const {error:delErr}=await sb.from("time_entries").delete().eq("person",person).eq("work_date",d);
   if(delErr){setTimeStatus("Error: "+delErr.message,true);return}
-  let affectedJobId=null;
-  if(!needsJob&&h>0){
-    const kind=p.r==="Admin"?"Admin":"Job";
-    const jobId=kind==="Job"?e.job:null;
-    const {error:insErr}=await sb.from("time_entries").insert({
-      job_id:jobId,person,work_date:d,clock_in:e.in||null,clock_out:e.out||null,
-      hours:h,kind,entered_by:currentUserEmail
-    });
+  if(rows.length){
+    const {error:insErr}=await sb.from("time_entries").insert(rows);
     if(insErr){setTimeStatus("Error: "+insErr.message,true);return}
-    if(kind==="Job")affectedJobId=jobId;
   }
-  if(affectedJobId){
-    const ok=await refreshJob(affectedJobId);
-    if(ok){drawToday();drawJobs();if(cur&&cur.id===affectedJobId)drawDetail()}
+  const affectedJobIds=[...new Set(rows.filter(r=>r.job_id).map(r=>r.job_id))];
+  for(const jobId of affectedJobIds){
+    const ok=await refreshJob(jobId);
+    if(ok){if(cur&&cur.id===jobId)drawDetail()}
   }
+  if(affectedJobIds.length){drawToday();drawJobs()}
   drawRoster();
   window.syncRoster?.();
-  if(needsJob){setTimeStatus("",false);return}
-  setTimeStatus("Saved",false);
-  setTimeout(()=>{if(document.getElementById("timeSaveStatus")?.textContent==="Saved")setTimeStatus("",false)},2000);
+  if(!rows.length&&anyNeedsJob){setTimeStatus("",false);return}
+  setTimeStatus(anyNeedsJob?"Saved (one entry still needs a job)":"Saved",anyNeedsJob);
+  setTimeout(()=>{if(document.getElementById("timeSaveStatus")?.textContent.startsWith("Saved"))setTimeStatus("",false)},2500);
 }
-function drawRoster(){const opts=jobs.filter(j=>j.stage!=="Completed").map(j=>`<option value="${j.id}">${j.id} · ${j.client}</option>`).join("");$("#roster").innerHTML=people.map(p=>{const e=day[p.n]||{},h=hoursOf(e),needsJob=p.r!=="Admin"&&h>0&&!e.job;return `<div class="fld" style="border:1px solid var(--line);border-radius:10px;margin-bottom:7px;background:${p.r==="Admin"?"#1A2C4A":"var(--navy-2)"};flex-wrap:wrap"><span class="k" style="min-width:76px"><b style="color:#fff;font-size:14px">${p.n}</b><br>${p.r}</span>${p.r==="Admin"?`<span class="v" style="color:var(--steel);font-size:11px">overhead</span>`:`<select data-p="${p.n}" data-f="job" style="flex:1;min-width:118px"><option value="">Job…</option>${opts}</select>`}<input type="time" data-p="${p.n}" data-f="in" value="${e.in||""}" style="width:90px"><input type="time" data-p="${p.n}" data-f="out" value="${e.out||""}" style="width:90px"><span class="v" style="color:${h?"var(--hivis)":"#3D5273"};min-width:50px">${h?h.toFixed(2):"—"}</span>${needsJob?'<span class="warn" style="flex-basis:100%">pick a job before this saves</span>':""}</div>`}).join("");const t=people.reduce((s,p)=>s+hoursOf(day[p.n]),0);$("#dayHrs").textContent=t.toFixed(2);$("#dayCost").textContent=money(t*RATE)}
+function blocksOf(person){return day[person]||=[{}]}
+function drawRoster(){const opts=jobs.filter(j=>j.stage!=="Completed").map(j=>`<option value="${j.id}">${j.id} · ${j.client}</option>`).join("");
+$("#roster").innerHTML=people.map(p=>{
+  const blocks=p.r==="Admin"?[blocksOf(p.n)[0]||{}]:blocksOf(p.n);
+  const rows=blocks.map((e,i)=>{
+    const h=hoursOf(e),needsJob=p.r!=="Admin"&&h>0&&!e.job;
+    return `<div class="fld" style="border:1px solid var(--line);border-radius:10px;margin-bottom:5px;background:${p.r==="Admin"?"#1A2C4A":"var(--navy-2)"};flex-wrap:wrap">${i===0?`<span class="k" style="min-width:76px"><b style="color:#fff;font-size:14px">${p.n}</b><br>${p.r}</span>`:`<span class="k" style="min-width:76px"></span>`}${p.r==="Admin"?`<span class="v" style="color:var(--steel);font-size:11px">overhead</span>`:`<select data-p="${p.n}" data-i="${i}" data-f="job" style="flex:1;min-width:118px"><option value="">Job…</option>${opts}</select>`}<input type="time" data-p="${p.n}" data-i="${i}" data-f="in" value="${e.in||""}" style="width:90px"><input type="time" data-p="${p.n}" data-i="${i}" data-f="out" value="${e.out||""}" style="width:90px"><span class="v" style="color:${h?"var(--hivis)":"#3D5273"};min-width:50px">${h?h.toFixed(2):"—"}</span>${p.r!=="Admin"&&blocks.length>1?`<button data-remove-block="${p.n}:${i}" aria-label="Remove block" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:22px;height:22px;line-height:1;cursor:pointer;font-size:13px">×</button>`:""}${needsJob?'<span class="warn" style="flex-basis:100%">pick a job before this saves</span>':""}</div>`;
+  }).join("");
+  const addBtn=p.r!=="Admin"?`<button data-add-block="${p.n}" class="chip" style="padding:5px 10px;font-size:11px;margin-bottom:9px">+ Add another job</button>`:"";
+  return rows+addBtn;
+}).join("");
+const t=people.reduce((s,p)=>s+blocksOf(p.n).reduce((sum,b)=>sum+hoursOf(b),0),0);$("#dayHrs").textContent=t.toFixed(2);$("#dayCost").textContent=money(t*RATE)}
 let reportStart="2026-01-01",reportEnd=new Date().toISOString().slice(0,10),reportReady=false;
 const reportDateInRange=date=>date&&date>=reportStart&&date<=reportEnd;
 function drawReports(){
@@ -237,10 +263,15 @@ function drawReports(){
 	const serviceData={};jobs.filter(job=>reportDateInRange(job.sold)).forEach(job=>{serviceData[job.type]||={count:0,revenue:0};serviceData[job.type].count++;serviceData[job.type].revenue+=job.revenue||0;});
 	$("#svcTable").innerHTML=`<thead><tr><th>Job type</th><th>Jobs</th><th>Revenue</th><th>Avg price</th></tr></thead><tbody>${Object.entries(serviceData).map(([type,data])=>`<tr><td>${type}</td><td>${data.count}</td><td>${money(data.revenue)}</td><td>${money(data.revenue/data.count)}</td></tr>`).join("")||'<tr><td colspan="4">No jobs in this period.</td></tr>'}</tbody>`;
 }
-document.addEventListener("click",e=>{if(e.target.id==="backupBtn"){downloadBackup();return}if(e.target.id==="signOutBtn"){sb.auth.signOut();return}if(e.target.id==="postUpdateBtn"){postUpdate();return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const s=e.target.closest("[data-s]");if(s){stageF=s.dataset.s;drawJobs();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest("[data-tab]");if(t){document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected",b===t));["today","jobs","time","leads","reports"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab))}});
+document.addEventListener("click",e=>{if(e.target.id==="backupBtn"){downloadBackup();return}if(e.target.id==="signOutBtn"){sb.auth.signOut();return}if(e.target.id==="postUpdateBtn"){postUpdate();return}if(e.target.dataset.addBlock){blocksOf(e.target.dataset.addBlock).push({});drawRoster();return}if(e.target.dataset.removeBlock){const[rp,ri]=e.target.dataset.removeBlock.split(":");blocksOf(rp).splice(+ri,1);drawRoster();window.syncRoster?.();scheduleRosterSave(rp);return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const s=e.target.closest("[data-s]");if(s){stageF=s.dataset.s;drawJobs();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest("[data-tab]");if(t){document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected",b===t));["today","jobs","time","leads","reports"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab))}});
 document.addEventListener("click",e=>{const range=e.target.closest("[data-report-range]");if(!range)return;const today=new Date(),year=today.getFullYear(),month=String(today.getMonth()+1).padStart(2,"0");document.querySelectorAll("[data-report-range]").forEach(button=>button.setAttribute("aria-pressed",button===range));if(range.dataset.reportRange==="month"){reportStart=`${year}-${month}-01`;reportEnd=today.toISOString().slice(0,10);$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="year"){reportStart=`${year}-01-01`;reportEnd=today.toISOString().slice(0,10);$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="all"){reportStart="0000-01-01";reportEnd="9999-12-31";$("#reportCustom").style.display="none"}else{$("#reportCustom").style.display="block"}drawReports()});
-document.addEventListener("input",e=>{const t=e.target;if(t.id==="reportFrom"||t.id==="reportTo"){if($("#reportFrom").value&&$("#reportTo").value){reportStart=$("#reportFrom").value;reportEnd=$("#reportTo").value;drawReports()}return}if(t.id==="q"){query=t.value;drawJobs();return}if(t.dataset.p){(day[t.dataset.p]||={})[t.dataset.f]=t.value;drawRoster();return}});
-document.addEventListener("change",e=>{const t=e.target;if(t.dataset.c&&cur){saveCostField(cur.id,t.dataset.c,t.value);return}if(t.dataset.p){saveRosterEntry(t.dataset.p)}});
+document.addEventListener("input",e=>{const t=e.target;if(t.id==="reportFrom"||t.id==="reportTo"){if($("#reportFrom").value&&$("#reportTo").value){reportStart=$("#reportFrom").value;reportEnd=$("#reportTo").value;drawReports()}return}if(t.id==="q"){query=t.value;drawJobs();return}if(t.dataset.p){const blocks=blocksOf(t.dataset.p);(blocks[+t.dataset.i]||={})[t.dataset.f]=t.value;drawRoster();return}});
+const rosterSaveTimers={};
+function scheduleRosterSave(person){
+  clearTimeout(rosterSaveTimers[person]);
+  rosterSaveTimers[person]=setTimeout(()=>saveRosterEntry(person),600);
+}
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset.c&&cur){saveCostField(cur.id,t.dataset.c,t.value);return}if(t.dataset.p){scheduleRosterSave(t.dataset.p)}});
 
 function showApp(){$("#authGate").classList.add("hidden");$("#app").classList.remove("hidden")}
 function showAuthGate(msg){$("#app").classList.add("hidden");$("#authGate").classList.remove("hidden");const e=$("#authError");if(msg){e.textContent=msg;e.style.display="block"}else{e.style.display="none"}}
@@ -291,7 +322,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 
 	const syncRoster = () => {
 		document.querySelectorAll('#roster select[data-f="job"]').forEach(select => {
-			select.value = day[select.dataset.p]?.job || "";
+			select.value = day[select.dataset.p]?.[+select.dataset.i]?.job || "";
 		});
 	};
 
