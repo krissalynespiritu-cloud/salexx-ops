@@ -17,10 +17,10 @@
 <body>
 <div id="authGate" class="panel" style="max-width:340px;margin:15vh auto 0"><p class="eyebrow">Salexx Construction</p><h1 style="margin-bottom:18px">Ops <span>Hub</span></h1><input class="search" id="authEmail" type="email" placeholder="Email" autocomplete="username"><input class="search" id="authPass" type="password" placeholder="Password" autocomplete="current-password"><button id="authSubmit" class="chip" aria-pressed="true" style="width:100%;text-align:center;display:block">Sign in</button><p id="authError" class="warn" style="display:none;margin-top:10px"></p></div>
 <div id="app" class="hidden">
-<div class="wrap"><header style="display:flex;align-items:center;gap:16px"><img id="logo" src="" alt="Salexx logo" style="height:40px;width:auto;display:none"><div><p class="eyebrow">Salexx Construction</p><h1>Ops <span>Hub</span></h1></div><div style="margin-left:auto;text-align:right"><span id="backupStatus" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--steel);display:block;margin-bottom:5px"></span><button id="backupBtn" class="chip" style="padding:6px 11px;font-size:13px">Backup</button><button id="signOutBtn" class="chip" style="padding:6px 11px;font-size:13px;margin-left:6px">Sign out</button></div></header><section id="s-today" class="panel"><p class="lbl">All time · one set of numbers</p><div class="kpis" id="kpis"></div><div class="attn" id="attn"></div><p class="lbl" style="margin-top:22px">Pipeline</p><div id="stageBars"></div></section><section id="s-jobs" class="panel hidden"><input class="search" id="q" placeholder="Search client, job ID, city, trade, source…"><div class="chips" id="stageChips"></div><div id="jobList"></div><p class="count" id="jobCount"></p></section><section id="s-time" class="panel hidden"><p class="lbl">Timesheet · you enter, crew never logs in</p><p class="note" id="timeSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p><div id="roster"></div><div class="kpis" style="margin-top:13px"><div class="kpi"><p class="k">Day total</p><p class="v" id="dayHrs">0.00</p><p class="d">hours</p></div><div class="kpi"><p class="k">Labor cost</p><p class="v" id="dayCost">$0</p><p class="d">today</p></div></div><p class="note">One table for everyone — replaces 9 per-person tabs and 6 per-month tabs. Admin staff have no job field; their hours go to overhead, not job labor.</p></section><section id="s-leads" class="panel hidden"><p class="lbl">Lead source <span class="src ghl">Supabase</span></p><div class="attn" style="margin-top:4px"><h4>Real lead import is next</h4><ul style="margin:0;padding-left:16px"><li>The leads table is live and status now tracks New → Contacted → Estimated → Won/Lost, but it's empty — the historical GHL leads haven't been imported yet.</li><li>Once imported, this screen and the numbers below read straight from that table, same as everything else.</li></ul></div></section><section id="s-reports" class="panel hidden"><p class="lbl">Sold vs completed revenue · 2026</p><div class="scroller"><table id="soldTable"></table></div><p class="lbl" style="margin-top:22px">Top selling services</p><div class="scroller"><table id="svcTable"></table></div><p class="note">Both tables read the same job records as Job Costing, so they can't disagree with each other the way your four dashboards currently do.</p></section><section id="s-payroll" class="panel hidden"><p class="lbl">Payroll · biweekly</p><div id="payrollList"></div><p class="note">Amounts are computed live from logged hours × each person's rate — nothing here is stored twice. Marking a period Paid is just a marker so you can track what's been run.</p></section><section id="s-billing" class="panel hidden"><p class="lbl">Billing · collected vs owed</p><div id="billingList"></div><p class="note">Reads the same payment records as each job's Payments tab — recording a payment there updates this list too.</p></section></div>
+<div class="wrap"><header style="display:flex;align-items:center;gap:16px"><img id="logo" src="" alt="Salexx logo" style="height:40px;width:auto;display:none"><div><p class="eyebrow">Salexx Construction</p><h1>Ops <span>Hub</span></h1></div><div style="margin-left:auto;text-align:right"><span id="backupStatus" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--steel);display:block;margin-bottom:5px"></span><button id="backupBtn" class="chip" style="padding:6px 11px;font-size:13px">Backup</button><button id="signOutBtn" class="chip" style="padding:6px 11px;font-size:13px;margin-left:6px">Sign out</button></div></header><section id="s-today" class="panel"><p class="lbl">All time · one set of numbers</p><div class="kpis" id="kpis"></div><div class="attn" id="attn"></div><p class="lbl" style="margin-top:22px">Pipeline</p><div id="stageBars"></div></section><section id="s-jobs" class="panel hidden"><input class="search" id="q" placeholder="Search client, job ID, city, trade, source…"><div class="chips" id="stageChips"></div><div id="jobList"></div><p class="count" id="jobCount"></p></section><section id="s-time" class="panel hidden"><p class="lbl">Timesheet · you enter, crew never logs in</p><p class="note" id="timeSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p><div id="roster"></div><div class="kpis" style="margin-top:13px"><div class="kpi"><p class="k">Day total</p><p class="v" id="dayHrs">0.00</p><p class="d">hours</p></div><div class="kpi"><p class="k">Labor cost</p><p class="v" id="dayCost">$0</p><p class="d">today</p></div></div><p class="note">One table for everyone — replaces 9 per-person tabs and 6 per-month tabs. Admin staff have no job field; their hours go to overhead, not job labor.</p></section><section id="s-leads" class="panel hidden"><p class="lbl">Lead source <span class="src ghl">Supabase</span></p><div class="attn" style="margin-top:4px"><h4>Real lead import is next</h4><ul style="margin:0;padding-left:16px"><li>The leads table is live and status now tracks New → Contacted → Estimated → Won/Lost, but it's empty — the historical GHL leads haven't been imported yet.</li><li>Once imported, this screen and the numbers below read straight from that table, same as everything else.</li></ul></div></section><section id="s-reports" class="panel hidden"><p class="lbl">Sold vs completed revenue · 2026</p><div class="scroller"><table id="soldTable"></table></div><p class="lbl" style="margin-top:22px">Top selling services</p><div class="scroller"><table id="svcTable"></table></div><p class="note">Both tables read the same job records as Job Costing, so they can't disagree with each other the way your four dashboards currently do.</p></section><section id="s-payroll" class="panel hidden"><p class="lbl">Payroll · biweekly</p><div id="payrollList"></div><p class="note">Amounts are computed live from logged hours × each person's rate — nothing here is stored twice. Marking a period Paid is just a marker so you can track what's been run.</p></section><section id="s-billing" class="panel hidden"><p class="lbl">Billing · collected vs owed</p><div id="billingList"></div><p class="note">Reads the same payment records as each job's Payments tab — recording a payment there updates this list too.</p></section><section id="s-subs" class="panel hidden"><p class="lbl">Subcontractors</p><div id="subsList"></div><div class="grp" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><h5>Add a subcontractor</h5><input id="newSubName" placeholder="Name" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><input id="newSubTrade" placeholder="Trade" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><input id="newSubPhone" placeholder="Phone" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><input id="newSubEmail" placeholder="Email" style="width:100%;margin-bottom:8px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><div style="display:flex;justify-content:space-between;align-items:center"><span id="subStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="addSubBtn" class="chip">Add</button></div></div><div class="grp" style="margin-top:20px;border-top:1px solid var(--line);padding-top:14px"><h5>Contracts &amp; payments</h5><div id="subPaymentsList"></div></div><div class="grp" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><h5>Add a contract</h5><select id="newSpJob" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><option value="">Job…</option></select><select id="newSpSub" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><option value="">Subcontractor…</option></select><input id="newSpScope" placeholder="Scope of work" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><input id="newSpContract" type="number" step="0.01" placeholder="Contract amount" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><input id="newSpPaid" type="number" step="0.01" placeholder="Amount paid so far" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><select id="newSpMethod" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><option value="">Method…</option><option value="Check">Check</option><option value="Card">Card</option><option value="ACH / Transfer">ACH / Transfer</option><option value="Cash">Cash</option><option value="Financing">Financing</option><option value="Other">Other</option></select><input id="newSpDue" type="date" style="width:100%;margin-bottom:8px;background:var(--navy-2);border:1px solid var(--line);color:#fff;border-radius:8px;padding:9px;font:inherit"><div style="display:flex;justify-content:space-between;align-items:center"><span id="spStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="addSpBtn" class="chip">Add contract</button></div></div></section></div>
 <div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="pay" aria-selected="false">Payments</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="fi" aria-selected="false">Files</button><button data-st="up" aria-selected="false">Updates</button></div><div class="panel" id="dBody"></div></div>
 <div id="payrollDetail" class="hidden"><div class="dhead"><button class="back" id="payrollBack">← Payroll</button><h2 id="ppName"></h2><p class="sub" id="ppSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Total</p><p class="v" id="ppTotal">$0</p><p class="d" id="ppStatus">—</p></div><div class="kpi" style="display:flex;flex-direction:column;justify-content:center;gap:8px"><button id="ppToggle" class="chip" style="text-align:center">Mark as Paid</button><button id="ppExport" class="chip" style="text-align:center">Export CSV</button></div></div><div class="scroller"><table id="ppTable"><thead><tr><th>Name</th><th>Hours</th><th>Amount</th></tr></thead><tbody id="ppBody"></tbody><tfoot><tr><td>Total</td><td id="ppFootHrs"></td><td id="ppFootAmt"></td></tr></tfoot></table></div></div></div>
-<nav role="tablist"><button role="tab" aria-selected="true" data-tab="today">Today</button><button role="tab" aria-selected="false" data-tab="jobs">Jobs</button><button role="tab" aria-selected="false" data-tab="time">Time</button><button role="tab" aria-selected="false" data-tab="leads">Leads</button><button role="tab" aria-selected="false" data-tab="reports">Reports</button><button role="tab" aria-selected="false" data-tab="payroll">Payroll</button><button role="tab" aria-selected="false" data-tab="billing">Billing</button></nav>
+<nav role="tablist"><button role="tab" aria-selected="true" data-tab="today">Today</button><button role="tab" aria-selected="false" data-tab="jobs">Jobs</button><button role="tab" aria-selected="false" data-tab="time">Time</button><button role="tab" aria-selected="false" data-tab="leads">Leads</button><button role="tab" aria-selected="false" data-tab="reports">Reports</button><button role="tab" aria-selected="false" data-tab="payroll">Payroll</button><button role="tab" aria-selected="false" data-tab="billing">Billing</button><button role="tab" aria-selected="false" data-tab="subs">Subs</button></nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL="https://jrewbkwbbwpwflkqectk.supabase.co";
@@ -36,7 +36,7 @@ async function fetchCrewRates(){
   for(const p of people)p.rate=byName[p.n]??RATE;
 }
 const $=s=>document.querySelector(s);let stageF="All",query="",day={},cur=null,st="ov",currentUserEmail=null,currentUserProfile=null,currentUpdates=null,currentPayments=null;const col=p=>p==null?"var(--steel)":p>=50?"var(--good)":p>=38?"var(--hivis-dim)":"var(--alert)";
-const COST_CATEGORY_FIELD={Materials:"mat",Subcontractors:"sub","Equipment / Rentals":"equip","Disposal / Dumpster":"disp","Permits / Fees":"permit","Fuel / Travel":"fuel","Other / Misc":"other"};
+const COST_CATEGORY_FIELD={Materials:"mat","Equipment / Rentals":"equip","Disposal / Dumpster":"disp","Permits / Fees":"permit","Fuel / Travel":"fuel","Other / Misc":"other"};
 function costRowsToFields(costRows){
   const c={};
   for(const row of costRows||[]){
@@ -45,12 +45,12 @@ function costRowsToFields(costRows){
   }
   return c;
 }
-function mergeJobRecord(j,m,costRows){
+function mergeJobRecord(j,m,costRows,subTotal){
   const c=costRowsToFields(costRows);
   return{
     id:j.job_id,client:j.client_name,type:j.job_type||"—",loc:j.address_city||"—",crew:j.crew||"",
     contract:j.contract_price==null?null:Number(j.contract_price),co:Number(j.change_orders)||0,disc:Number(j.discounts)||0,
-    mat:c.mat??null,sub:c.sub??null,equip:c.equip??null,disp:c.disp??null,permit:c.permit??null,fuel:c.fuel??null,other:c.other??null,
+    mat:c.mat??null,sub:subTotal??null,equip:c.equip??null,disp:c.disp??null,permit:c.permit??null,fuel:c.fuel??null,other:c.other??null,
     oh:Number(j.overhead_pct),hrs:Number(m.hours)||0,stage:j.stage,sold:j.sold_date||"",done:j.completed_date||"",
     src:j.lead_source||"",permitReq:j.permit_required===true?"Yes":j.permit_required===false?"No":"—",drive:j.drive_folder_url||"",
     revenue:m.revenue==null?null:Number(m.revenue),laborCost:Number(m.labor_cost)||0,materialCost:Number(m.material_cost)||0,
@@ -60,31 +60,36 @@ function mergeJobRecord(j,m,costRows){
   };
 }
 async function fetchJobs(){
-  const [{data:jobRows,error:e1},{data:marginRows,error:e2},{data:costRows,error:e3}]=await Promise.all([
+  const [{data:jobRows,error:e1},{data:marginRows,error:e2},{data:costRows,error:e3},{data:subRows,error:e4}]=await Promise.all([
     sb.from("jobs").select("*"),
     sb.from("job_margins").select("*"),
-    sb.from("job_costs").select("*")
+    sb.from("job_costs").select("*"),
+    sb.from("sub_payments").select("job_id,contract_amount")
   ]);
-  if(e1||e2||e3){console.error(e1||e2||e3);return false}
+  if(e1||e2||e3||e4){console.error(e1||e2||e3||e4);return false}
   const marginsById=Object.fromEntries((marginRows||[]).map(m=>[m.job_id,m]));
   const costsById={};
   for(const c of costRows||[]){(costsById[c.job_id]||=[]).push(c)}
+  const subTotalsById={};
+  for(const s of subRows||[]){if(!s.job_id)continue;subTotalsById[s.job_id]=(subTotalsById[s.job_id]||0)+Number(s.contract_amount)}
   jobs.length=0;
   for(const j of jobRows||[]){
-    jobs.push(mergeJobRecord(j,marginsById[j.job_id]||{},costsById[j.job_id]));
+    jobs.push(mergeJobRecord(j,marginsById[j.job_id]||{},costsById[j.job_id],subTotalsById[j.job_id]));
   }
   return true;
 }
 const FIELD_TO_CATEGORY=Object.fromEntries(Object.entries(COST_CATEGORY_FIELD).map(([cat,field])=>[field,cat]));
 const JOB_COLUMN={co:"change_orders",disc:"discounts",oh:"overhead_pct"};
 async function refreshJob(jobId){
-  const [{data:j,error:e1},{data:m,error:e2},{data:costRows,error:e3}]=await Promise.all([
+  const [{data:j,error:e1},{data:m,error:e2},{data:costRows,error:e3},{data:subRows,error:e4}]=await Promise.all([
     sb.from("jobs").select("*").eq("job_id",jobId).single(),
     sb.from("job_margins").select("*").eq("job_id",jobId).single(),
-    sb.from("job_costs").select("*").eq("job_id",jobId)
+    sb.from("job_costs").select("*").eq("job_id",jobId),
+    sb.from("sub_payments").select("contract_amount").eq("job_id",jobId)
   ]);
-  if(e1||e2||e3){console.error(e1||e2||e3);return false}
-  const fresh=mergeJobRecord(j,m||{},costRows);
+  if(e1||e2||e3||e4){console.error(e1||e2||e3||e4);return false}
+  const subTotal=(subRows||[]).reduce((s,r)=>s+Number(r.contract_amount),0);
+  const fresh=mergeJobRecord(j,m||{},costRows,subTotal);
   const i=jobs.findIndex(x=>x.id===jobId);
   if(i>-1)Object.assign(jobs[i],fresh);
   if(cur&&cur.id===jobId)Object.assign(cur,fresh);
@@ -123,7 +128,7 @@ function drawJobs(){$("#stageChips").innerHTML=["All",...STAGES].map(s=>{const n
 const F=(k,v,cls="")=>`<div class="fld ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`,FI=(k,f,v)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" value="${v??""}" placeholder="—"></div>`;
 function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";currentUpdates=null;currentPayments=null;$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stKey[cur.stage]}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#detail").classList.remove("hidden");window.scrollTo(0,0)}
 function drawDetail(){const j=cur,p=j.marginPct,b=$("#dBody");if(st==="ov")b.innerHTML=`${j.revenue==null?`<div class="empty">No contract price yet.<br>Fills in automatically when GHL marks the opportunity won.</div>`:j.unpriced?`<p class="bignum" style="color:var(--steel)">n/a</p><p class="lbl" style="margin-top:6px">Margin — not calculable</p><div class="flagbox">Contract is ${money(j.revenue)} but no costs or hours have been entered yet. That's <b>not</b> 100% margin — it's an unpriced job, kept out of the company average until real numbers land.</div>`:`<p class="bignum" style="color:${col(p)}">${p.toFixed(1)}%</p><p class="lbl" style="margin-top:6px">Gross margin · target 50%</p><div class="gauge"><div class="fill" style="width:${Math.max(Math.min(p,100),0)}%;background:${col(p)}"></div><div class="target"></div></div><div class="gaugecap"><span>${money(j.gp)} GP</span><span>${money(j.revenue)} revenue</span></div>`}<div class="grp" style="margin-top:18px"><h5>Delivery</h5><div class="fields">${F(`Stage <span class="src mon">Monday</span>`,j.stage)}${F(`Sold date <span class="src ghl">GHL</span>`,j.sold||"—")}${F(`Completed date <span class="src mon">Monday</span>`,j.done||"—")}${F(`Crew type <span class="src man">edit</span>`,j.crew||"—")}${F(`Permit required <span class="src mon">Monday</span>`,j.permitReq)}${F(`Lead source <span class="src ghl">GHL</span>`,j.src||"—")}</div></div>`;
-if(st==="co")b.innerHTML=`<p class="note" id="coSaveStatus" style="margin:0 0 11px;min-height:14px;border:0;padding:0"></p><div class="grp"><h5>Revenue breakdown</h5><div class="fields">${F(`Contract price <span class="src ghl">GHL</span>`,money(j.contract))}${FI("Change orders +/−","co",j.co)}${FI("Discounts / credits","disc",j.disc)}${F("Total revenue",money(j.revenue),"tot")}</div></div><div class="grp"><h5>Direct costs</h5><div class="fields">${F(`Labor · ${j.hrs} hrs @ $35 <span class="src zap">from Time</span>`,money(j.laborCost))}${FI("Materials","mat",j.mat)}${FI("Subcontractors","sub",j.sub)}${FI("Equipment / rentals","equip",j.equip)}${F("Total direct cost",money(j.laborCost+j.materialCost),"tot")}</div></div><div class="grp"><h5>Additional costs</h5><div class="fields">${FI("Disposal / dumpster","disp",j.disp)}${FI("Permits / fees","permit",j.permit)}${FI("Fuel / travel","fuel",j.fuel)}${FI("Other / misc","other",j.other)}${F("Total additional",money(j.additionalCost),"tot")}</div></div><div class="grp"><h5>Overhead &amp; profit</h5><div class="fields">${FI("Overhead %","oh",j.oh)}${F("Overhead $",money(j.overheadCost))}${F("Total job cost",money(j.totalCost),"tot")}<div class="fld tot"><span class="k">Gross profit</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":money(j.gp)}</span></div><div class="fld tot"><span class="k">Margin %</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":j.unpriced?"n/a":p.toFixed(1)+"%"}</span></div></div></div>${j.unpriced?`<div class="flagbox">Margin shows <b>n/a</b>, not 100%, until at least one cost or hour is entered. A blank cost field is missing data, not free work.</div>`:""}<p class="note">Editing writes straight to Supabase — margin updates after each save reflect what's actually in the database.</p>`;
+if(st==="co")b.innerHTML=`<p class="note" id="coSaveStatus" style="margin:0 0 11px;min-height:14px;border:0;padding:0"></p><div class="grp"><h5>Revenue breakdown</h5><div class="fields">${F(`Contract price <span class="src ghl">GHL</span>`,money(j.contract))}${FI("Change orders +/−","co",j.co)}${FI("Discounts / credits","disc",j.disc)}${F("Total revenue",money(j.revenue),"tot")}</div></div><div class="grp"><h5>Direct costs</h5><div class="fields">${F(`Labor · ${j.hrs} hrs @ $35 <span class="src zap">from Time</span>`,money(j.laborCost))}${FI("Materials","mat",j.mat)}${F(`Subcontractors <span class="src zap">from Subs tab</span>`,money(j.sub))}${FI("Equipment / rentals","equip",j.equip)}${F("Total direct cost",money(j.laborCost+j.materialCost),"tot")}</div></div><div class="grp"><h5>Additional costs</h5><div class="fields">${FI("Disposal / dumpster","disp",j.disp)}${FI("Permits / fees","permit",j.permit)}${FI("Fuel / travel","fuel",j.fuel)}${FI("Other / misc","other",j.other)}${F("Total additional",money(j.additionalCost),"tot")}</div></div><div class="grp"><h5>Overhead &amp; profit</h5><div class="fields">${FI("Overhead %","oh",j.oh)}${F("Overhead $",money(j.overheadCost))}${F("Total job cost",money(j.totalCost),"tot")}<div class="fld tot"><span class="k">Gross profit</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":money(j.gp)}</span></div><div class="fld tot"><span class="k">Margin %</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":j.unpriced?"n/a":p.toFixed(1)+"%"}</span></div></div></div>${j.unpriced?`<div class="flagbox">Margin shows <b>n/a</b>, not 100%, until at least one cost or hour is entered. A blank cost field is missing data, not free work.</div>`:""}<p class="note">Editing writes straight to Supabase — margin updates after each save reflect what's actually in the database.</p>`;
 if(st==="pay"){
   const sum=currentPayments?.summary;
   const list=currentPayments===null?`<p class="note" style="border:0;padding:0">Loading…</p>`:!currentPayments.rows.length?`<div class="empty">No payments recorded yet.</div>`:currentPayments.rows.map(pmt=>`<div class="fld"><span class="k">${pmt.paid_on} · ${pmt.method||"—"}${pmt.is_deposit?" · deposit":""}${pmt.reference?" · "+escapeHtml(pmt.reference):""}</span><span class="v" style="display:flex;align-items:center;gap:7px">${money(pmt.amount)}<button data-del-payment="${pmt.payment_id}" aria-label="Delete payment" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:20px;height:20px;line-height:1;cursor:pointer;font-size:12px">×</button></span></div>`).join("");
@@ -370,6 +375,139 @@ async function drawBilling(){
     return `<button class="jrow" data-open="${r.job_id}" style="width:100%"><div class="mid"><div class="cn">${escapeHtml(r.client_name)}</div><span class="stage ${badge}">${r.payment_status}</span></div><div class="rt"><div class="rv">${money(r.balance_due)}</div><div class="mt">${money(r.collected)} collected</div></div></button>`;
   }).join("")||`<div class="empty">${error?"Couldn't load billing data.":"No priced jobs yet."}</div>`;
 }
+let subcontractors=[];
+function subBadge(s){
+  if(!s.insurance_expiry)return `<span class="stage" style="background:rgba(255,255,255,.08);color:var(--steel)">No expiry set</span>`;
+  const days=Math.floor((new Date(s.insurance_expiry+"T00:00:00")-new Date(new Date().toISOString().slice(0,10)+"T00:00:00"))/86400000);
+  if(days<0)return `<span class="stage st-pay">Expired ${s.insurance_expiry}</span>`;
+  if(days<=30)return `<span class="stage st-sched">Expires ${s.insurance_expiry}</span>`;
+  return `<span class="stage st-paid">Valid to ${s.insurance_expiry}</span>`;
+}
+async function drawSubs(){
+  const {data,error}=await sb.from("subcontractors").select("*").order("name");
+  subcontractors=data||[];
+  $("#subsList").innerHTML=subcontractors.length?subcontractors.map(s=>`<div class="fld" style="flex-wrap:wrap;align-items:flex-start;gap:8px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--navy-2);padding:11px 13px">
+    <div style="flex:1;min-width:150px">
+      <input data-sub="${s.sub_id}" data-f="name" value="${escapeHtml(s.name)}" placeholder="Name" style="width:100%;font-weight:600;margin-bottom:5px;background:var(--navy-3);border:1px solid var(--line);color:#fff;border-radius:6px;padding:6px;font:inherit">
+      <input data-sub="${s.sub_id}" data-f="trade" value="${escapeHtml(s.trade||"")}" placeholder="Trade" style="width:100%;background:var(--navy-3);border:1px solid var(--line);color:#fff;border-radius:6px;padding:6px;font:inherit;font-size:12.5px">
+    </div>
+    <div style="min-width:140px">
+      <input data-sub="${s.sub_id}" data-f="phone" value="${escapeHtml(s.phone||"")}" placeholder="Phone" style="width:100%;margin-bottom:5px;background:var(--navy-3);border:1px solid var(--line);color:#fff;border-radius:6px;padding:6px;font:inherit;font-size:12.5px">
+      <input data-sub="${s.sub_id}" data-f="email" value="${escapeHtml(s.email||"")}" placeholder="Email" style="width:100%;background:var(--navy-3);border:1px solid var(--line);color:#fff;border-radius:6px;padding:6px;font:inherit;font-size:12.5px">
+    </div>
+    <div style="min-width:150px">
+      <input type="date" data-sub="${s.sub_id}" data-f="insurance_expiry" value="${s.insurance_expiry||""}" style="width:100%;margin-bottom:5px;background:var(--navy-3);border:1px solid var(--line);color:#fff;border-radius:6px;padding:6px;font:inherit;font-size:12.5px">
+      ${subBadge(s)}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;min-width:90px">
+      <label style="font-size:11.5px;color:var(--steel);display:flex;align-items:center;gap:5px"><input type="checkbox" data-sub="${s.sub_id}" data-f="w9_on_file" ${s.w9_on_file?"checked":""}> W9 on file</label>
+      <label style="font-size:11.5px;color:var(--steel);display:flex;align-items:center;gap:5px"><input type="checkbox" data-sub="${s.sub_id}" data-f="active" ${s.active?"checked":""}> Active</label>
+    </div>
+    <button data-del-sub="${s.sub_id}" aria-label="Delete subcontractor" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:22px;height:22px;line-height:1;cursor:pointer;font-size:13px">×</button>
+  </div>`).join(""):`<div class="empty">No subcontractors yet.<br>Add one below.</div>`;
+  await drawSubPayments();
+}
+function setSubStatus(msg,isError){
+  const el=document.getElementById("subStatus");if(!el)return;
+  el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
+}
+async function updateSubField(id,field,value){
+  setSubStatus("Saving…",false);
+  const {error}=await sb.from("subcontractors").update({[field]:value}).eq("sub_id",id);
+  if(error){setSubStatus("Error: "+error.message,true);return}
+  await drawSubs();
+  setSubStatus("Saved",false);
+  setTimeout(()=>{if(document.getElementById("subStatus")?.textContent==="Saved")setSubStatus("",false)},2000);
+}
+async function createSubcontractor(){
+  const name=document.getElementById("newSubName").value.trim();
+  if(!name){setSubStatus("Name is required",true);return}
+  const trade=document.getElementById("newSubTrade").value.trim()||null;
+  const phone=document.getElementById("newSubPhone").value.trim()||null;
+  const email=document.getElementById("newSubEmail").value.trim()||null;
+  setSubStatus("Saving…",false);
+  const {error}=await sb.from("subcontractors").insert({name,trade,phone,email});
+  if(error){setSubStatus("Error: "+error.message,true);return}
+  document.getElementById("newSubName").value="";document.getElementById("newSubTrade").value="";
+  document.getElementById("newSubPhone").value="";document.getElementById("newSubEmail").value="";
+  await drawSubs();
+  setSubStatus("Added",false);
+  setTimeout(()=>{if(document.getElementById("subStatus")?.textContent==="Added")setSubStatus("",false)},2000);
+}
+async function deleteSubcontractor(id,name){
+  if(!confirm(`Delete subcontractor "${name}"? This can't be undone.`))return;
+  setSubStatus("Deleting…",false);
+  const {error}=await sb.from("subcontractors").delete().eq("sub_id",id);
+  if(error){setSubStatus("Error: "+error.message,true);return}
+  await drawSubs();
+  setSubStatus("Deleted",false);
+  setTimeout(()=>{if(document.getElementById("subStatus")?.textContent==="Deleted")setSubStatus("",false)},2000);
+}
+function spBadge(row){
+  const balance=Number(row.contract_amount)-Number(row.amount_paid);
+  const overdue=row.due_date&&balance>0&&row.due_date<new Date().toISOString().slice(0,10);
+  if(overdue)return `<span class="stage st-pay">Overdue ${row.due_date}</span>`;
+  if(balance<=0&&Number(row.contract_amount)>0)return `<span class="stage st-paid">Paid in full</span>`;
+  if(Number(row.amount_paid)===0)return `<span class="stage st-pay">Unpaid</span>`;
+  return `<span class="stage st-sched">Partially paid</span>`;
+}
+function setSpStatus(msg,isError){
+  const el=document.getElementById("spStatus");if(!el)return;
+  el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
+}
+let subPayments=[];
+async function drawSubPayments(){
+  const {data,error}=await sb.from("sub_payments").select("*,jobs(client_name),subcontractors(name)").order("created_at",{ascending:false});
+  const rows=data||[];
+  subPayments=rows;
+  $("#subPaymentsList").innerHTML=rows.length?rows.map(r=>`<div class="fld" style="flex-wrap:wrap;align-items:flex-start;gap:8px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--navy-2);padding:11px 13px">
+    <div style="flex:1;min-width:160px">
+      <b>${escapeHtml(r.jobs?.client_name||r.job_id||"—")}</b> · ${escapeHtml(r.subcontractors?.name||"—")}
+      <div style="font-size:11px;color:var(--steel)">${escapeHtml(r.scope||"")}</div>
+    </div>
+    <div style="text-align:right;min-width:110px">
+      <div>${money(r.contract_amount)} contract</div>
+      <div style="font-size:11px;color:var(--steel)">${money(r.amount_paid)} paid</div>
+    </div>
+    ${spBadge(r)}
+    <button data-del-sp="${r.contract_id}" aria-label="Delete contract" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:22px;height:22px;line-height:1;cursor:pointer;font-size:13px">×</button>
+  </div>`).join(""):`<div class="empty">No subcontractor contracts yet.<br>Add one below.</div>`;
+  const jobSel=document.getElementById("newSpJob");
+  if(jobSel)jobSel.innerHTML=`<option value="">Job…</option>`+jobs.map(j=>`<option value="${j.id}">${escapeHtml(j.client)} (${j.id})</option>`).join("");
+  const subSel=document.getElementById("newSpSub");
+  if(subSel)subSel.innerHTML=`<option value="">Subcontractor…</option>`+subcontractors.map(s=>`<option value="${s.sub_id}">${escapeHtml(s.name)}</option>`).join("");
+}
+async function addSubPayment(){
+  const jobId=document.getElementById("newSpJob").value||null;
+  const subId=document.getElementById("newSpSub").value||null;
+  const scope=document.getElementById("newSpScope").value.trim()||null;
+  const contractAmount=parseFloat(document.getElementById("newSpContract").value)||0;
+  const amountPaid=parseFloat(document.getElementById("newSpPaid").value)||0;
+  const method=document.getElementById("newSpMethod").value||null;
+  const dueDate=document.getElementById("newSpDue").value||null;
+  if(!jobId){setSpStatus("Job is required",true);return}
+  setSpStatus("Saving…",false);
+  const {error}=await sb.from("sub_payments").insert({job_id:jobId,sub_id:subId,scope,contract_amount:contractAmount,amount_paid:amountPaid,method,due_date:dueDate});
+  if(error){setSpStatus("Error: "+error.message,true);return}
+  document.getElementById("newSpScope").value="";document.getElementById("newSpContract").value="";
+  document.getElementById("newSpPaid").value="";document.getElementById("newSpDue").value="";
+  await drawSubPayments();
+  await refreshJob(jobId);
+  if(cur&&cur.id===jobId&&st==="co")drawDetail();
+  drawToday();drawJobs();
+  setSpStatus("Added",false);
+  setTimeout(()=>{if(document.getElementById("spStatus")?.textContent==="Added")setSpStatus("",false)},2000);
+}
+async function deleteSubPayment(contractId,jobId){
+  if(!confirm("Delete this subcontractor contract? This can't be undone."))return;
+  setSpStatus("Deleting…",false);
+  const {error}=await sb.from("sub_payments").delete().eq("contract_id",contractId);
+  if(error){setSpStatus("Error: "+error.message,true);return}
+  await drawSubPayments();
+  if(jobId){await refreshJob(jobId);if(cur&&cur.id===jobId&&st==="co")drawDetail();drawToday();drawJobs()}
+  setSpStatus("Deleted",false);
+  setTimeout(()=>{if(document.getElementById("spStatus")?.textContent==="Deleted")setSpStatus("",false)},2000);
+}
 let reportStart="2026-01-01",reportEnd=new Date().toISOString().slice(0,10),reportReady=false;
 const reportDateInRange=date=>date&&date>=reportStart&&date<=reportEnd;
 function drawReports(){
@@ -389,10 +527,10 @@ function drawReports(){
 	const serviceData={};jobs.filter(job=>reportDateInRange(job.sold)).forEach(job=>{serviceData[job.type]||={count:0,revenue:0};serviceData[job.type].count++;serviceData[job.type].revenue+=job.revenue||0;});
 	$("#svcTable").innerHTML=`<thead><tr><th>Job type</th><th>Jobs</th><th>Revenue</th><th>Avg price</th></tr></thead><tbody>${Object.entries(serviceData).map(([type,data])=>`<tr><td>${type}</td><td>${data.count}</td><td>${money(data.revenue)}</td><td>${money(data.revenue/data.count)}</td></tr>`).join("")||'<tr><td colspan="4">No jobs in this period.</td></tr>'}</tbody>`;
 }
-document.addEventListener("click",e=>{if(e.target.id==="backupBtn"){downloadBackup();return}if(e.target.id==="signOutBtn"){sb.auth.signOut();return}if(e.target.id==="postUpdateBtn"){postUpdate();return}if(e.target.id==="addPaymentBtn"){addPayment();return}const dp=e.target.closest("[data-del-payment]");if(dp){deletePayment(dp.dataset.delPayment);return}if(e.target.dataset.addBlock){blocksOf(e.target.dataset.addBlock).push({});drawRoster();return}if(e.target.dataset.removeBlock){const[rp,ri]=e.target.dataset.removeBlock.split(":");blocksOf(rp).splice(+ri,1);drawRoster();window.syncRoster?.();return}if(e.target.dataset.savePerson){saveRosterEntry(e.target.dataset.savePerson);return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const op=e.target.closest("[data-open-payroll]");if(op){openPayrollPeriod(op.dataset.openPayroll);return}if(e.target.id==="payrollBack"){$("#payrollDetail").classList.add("hidden");drawPayroll();return}if(e.target.id==="ppToggle"){togglePayrollPaid();return}if(e.target.id==="ppExport"){exportPayrollCsv();return}const s=e.target.closest("[data-s]");if(s){stageF=s.dataset.s;drawJobs();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest("[data-tab]");if(t){document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected",b===t));["today","jobs","time","leads","reports","payroll","billing"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab));if(t.dataset.tab==="payroll")drawPayroll();if(t.dataset.tab==="billing")drawBilling()}});
+document.addEventListener("click",e=>{if(e.target.id==="backupBtn"){downloadBackup();return}if(e.target.id==="signOutBtn"){sb.auth.signOut();return}if(e.target.id==="postUpdateBtn"){postUpdate();return}if(e.target.id==="addPaymentBtn"){addPayment();return}const dp=e.target.closest("[data-del-payment]");if(dp){deletePayment(dp.dataset.delPayment);return}if(e.target.id==="addSubBtn"){createSubcontractor();return}const ds=e.target.closest("[data-del-sub]");if(ds){const sub=subcontractors.find(s=>s.sub_id===ds.dataset.delSub);deleteSubcontractor(ds.dataset.delSub,sub?.name||"");return}if(e.target.id==="addSpBtn"){addSubPayment();return}const dsp=e.target.closest("[data-del-sp]");if(dsp){const row=subPayments.find(r=>r.contract_id===dsp.dataset.delSp);deleteSubPayment(dsp.dataset.delSp,row?.job_id||null);return}if(e.target.dataset.addBlock){blocksOf(e.target.dataset.addBlock).push({});drawRoster();return}if(e.target.dataset.removeBlock){const[rp,ri]=e.target.dataset.removeBlock.split(":");blocksOf(rp).splice(+ri,1);drawRoster();window.syncRoster?.();return}if(e.target.dataset.savePerson){saveRosterEntry(e.target.dataset.savePerson);return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const op=e.target.closest("[data-open-payroll]");if(op){openPayrollPeriod(op.dataset.openPayroll);return}if(e.target.id==="payrollBack"){$("#payrollDetail").classList.add("hidden");drawPayroll();return}if(e.target.id==="ppToggle"){togglePayrollPaid();return}if(e.target.id==="ppExport"){exportPayrollCsv();return}const s=e.target.closest("[data-s]");if(s){stageF=s.dataset.s;drawJobs();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest("[data-tab]");if(t){document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected",b===t));["today","jobs","time","leads","reports","payroll","billing","subs"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab));if(t.dataset.tab==="payroll")drawPayroll();if(t.dataset.tab==="billing")drawBilling();if(t.dataset.tab==="subs")drawSubs()}});
 document.addEventListener("click",e=>{const range=e.target.closest("[data-report-range]");if(!range)return;const today=new Date(),year=today.getFullYear(),month=String(today.getMonth()+1).padStart(2,"0");document.querySelectorAll("[data-report-range]").forEach(button=>button.setAttribute("aria-pressed",button===range));if(range.dataset.reportRange==="month"){reportStart=`${year}-${month}-01`;reportEnd=today.toISOString().slice(0,10);$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="year"){reportStart=`${year}-01-01`;reportEnd=today.toISOString().slice(0,10);$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="all"){reportStart="0000-01-01";reportEnd="9999-12-31";$("#reportCustom").style.display="none"}else{$("#reportCustom").style.display="block"}drawReports()});
 document.addEventListener("input",e=>{const t=e.target;if(t.id==="reportFrom"||t.id==="reportTo"){if($("#reportFrom").value&&$("#reportTo").value){reportStart=$("#reportFrom").value;reportEnd=$("#reportTo").value;drawReports()}return}if(t.id==="q"){query=t.value;drawJobs();return}if(t.dataset.p){const blocks=blocksOf(t.dataset.p);(blocks[+t.dataset.i]||={})[t.dataset.f]=t.value;drawRoster();return}});
-document.addEventListener("change",e=>{const t=e.target;if(t.dataset.c&&cur){saveCostField(cur.id,t.dataset.c,t.value);return}});
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset.c&&cur){saveCostField(cur.id,t.dataset.c,t.value);return}if(t.dataset.sub){updateSubField(t.dataset.sub,t.dataset.f,t.type==="checkbox"?t.checked:(t.value||null));return}});
 
 function showApp(){$("#authGate").classList.add("hidden");$("#app").classList.remove("hidden")}
 function showAuthGate(msg){$("#app").classList.add("hidden");$("#authGate").classList.remove("hidden");const e=$("#authError");if(msg){e.textContent=msg;e.style.display="block"}else{e.style.display="none"}}
