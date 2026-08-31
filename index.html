@@ -122,7 +122,31 @@ async function saveCostField(jobId,field,rawValue){
   setCoStatus("Saved",false);
   setTimeout(()=>{if(document.getElementById("coSaveStatus")?.textContent==="Saved")setCoStatus("",false)},2000);
 }
-function drawToday(){const priced=jobs.filter(j=>j.revenue!=null&&!j.unpriced),rev=jobs.filter(j=>j.revenue!=null).reduce((s,j)=>s+j.revenue,0),pRev=priced.reduce((s,j)=>s+j.revenue,0),pGp=priced.reduce((s,j)=>s+j.gp,0),avg=pRev?pGp/pRev*100:0;$("#kpis").innerHTML=[["Contract value",money(rev),jobs.filter(j=>j.revenue!=null).length+" jobs priced"],["Avg margin",avg.toFixed(1)+"%",priced.length+" jobs with real costs"],["Unpriced",jobs.filter(j=>j.unpriced).length,"revenue, zero costs entered"],["Open",jobs.filter(j=>j.stage!=="Completed").length,"not yet completed"]].map(([k,v,d])=>`<div class="kpi"><p class="k">${k}</p><p class="v">${v}</p><p class="d">${d}</p></div>`).join("");$("#attn").innerHTML=`<h4>One set of numbers now</h4><ul style="margin:0;padding-left:16px"><li>Every screen reads the same Supabase <code>job_margins</code> view — Today, Jobs, Job Costing, and Reports can no longer disagree.</li><li>Margin shows <b>n/a</b>, not 100%, wherever no cost or hour has been entered yet — that job stays out of the average until it does.</li></ul>`;const counts=STAGES.map(s=>[s,jobs.filter(j=>j.stage===s).length]),mx=Math.max(...counts.map(c=>c[1]),1);$("#stageBars").innerHTML=counts.map(([s,n])=>`<div class="bar"><div class="t"><span>${s}</span><b>${n}</b></div><div class="track"><i style="width:${n/mx*100}%"></i></div></div>`).join("")}
+const STALL_STAGES=["In Progress","Final Walk-through","Punch list / Touch-ups","Final payment due","Final payment received","Final Photos / Videos","Review requested"];
+async function drawToday(){const priced=jobs.filter(j=>j.revenue!=null&&!j.unpriced),rev=jobs.filter(j=>j.revenue!=null).reduce((s,j)=>s+j.revenue,0),pRev=priced.reduce((s,j)=>s+j.revenue,0),pGp=priced.reduce((s,j)=>s+j.gp,0),avg=pRev?pGp/pRev*100:0;$("#kpis").innerHTML=[["Contract value",money(rev),jobs.filter(j=>j.revenue!=null).length+" jobs priced"],["Avg margin",avg.toFixed(1)+"%",priced.length+" jobs with real costs"],["Unpriced",jobs.filter(j=>j.unpriced).length,"revenue, zero costs entered"],["Open",jobs.filter(j=>j.stage!=="Completed").length,"not yet completed"]].map(([k,v,d])=>`<div class="kpi"><p class="k">${k}</p><p class="v">${v}</p><p class="d">${d}</p></div>`).join("");
+  const [{data:teRows},{data:payRows}]=await Promise.all([
+    sb.from("time_entries").select("job_id,work_date").not("job_id","is",null),
+    sb.from("job_payments").select("job_id,client_name,balance_due,payment_status").gt("balance_due",0)
+  ]);
+  const lastByJob={};
+  for(const r of teRows||[]){if(!lastByJob[r.job_id]||r.work_date>lastByJob[r.job_id])lastByJob[r.job_id]=r.work_date}
+  const todayStr=new Date().toISOString().slice(0,10);
+  const stalled=jobs.filter(j=>{
+    if(!STALL_STAGES.includes(j.stage))return false;
+    const last=lastByJob[j.id];
+    if(!last)return true;
+    return (new Date(todayStr)-new Date(last))/86400000>=10;
+  });
+  const stageById=Object.fromEntries(jobs.map(j=>[j.id,j.stage]));
+  const doneById=Object.fromEntries(jobs.map(j=>[j.id,j.done]));
+  const cutoff=addDays(todayStr,-60);
+  const overdue=(payRows||[]).filter(r=>stageById[r.job_id]==="Completed"&&doneById[r.job_id]&&doneById[r.job_id]>=cutoff);
+  const alerts=[];
+  if(stalled.length)alerts.push(`<li><b>${stalled.length} job${stalled.length===1?"":"s"}</b> in active stages with no hours logged in 10+ days: ${stalled.slice(0,5).map(j=>escapeHtml(j.client)).join(", ")}${stalled.length>5?` +${stalled.length-5} more`:""}</li>`);
+  if(overdue.length)alerts.push(`<li><b>${overdue.length} job${overdue.length===1?"":"s"}</b> completed in the last 60 days still owed money: ${overdue.slice(0,5).map(r=>`${escapeHtml(r.client_name)} (${money(r.balance_due)})`).join(", ")}${overdue.length>5?` +${overdue.length-5} more`:""}</li>`);
+  if(alerts.length){$("#attn").className="attn";$("#attn").innerHTML=`<h4>Needs attention</h4><ul style="margin:0;padding-left:16px">${alerts.join("")}</ul>`}
+  else{$("#attn").className="empty";$("#attn").innerHTML=`Nothing needs attention — no stalled jobs, no overdue balances on completed jobs.`}
+  const counts=STAGES.map(s=>[s,jobs.filter(j=>j.stage===s).length]),mx=Math.max(...counts.map(c=>c[1]),1);$("#stageBars").innerHTML=counts.map(([s,n])=>`<div class="bar"><div class="t"><span>${s}</span><b>${n}</b></div><div class="track"><i style="width:${n/mx*100}%"></i></div></div>`).join("")}
 function rowHTML(j){const p=j.marginPct;return `<button class="jrow" data-open="${j.id}"><span class="id">${j.id}</span><span class="mid"><span class="cn">${j.client}</span><span class="mt">${j.type} · ${j.crew}</span></span><span class="rt"><span class="rv" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":j.unpriced?"n/a":p.toFixed(0)+"%"}</span><span class="stage ${stKey[j.stage]}">${j.stage}</span>${j.unpriced?'<span class="warn">no costs entered</span>':""}</span></button>`}
 function drawJobs(){$("#stageChips").innerHTML=["All",...STAGES].map(s=>{const n=s==="All"?jobs.length:jobs.filter(j=>j.stage===s).length;return `<button class="chip" aria-pressed="${stageF===s}" data-s="${s}">${s}<b>${n}</b></button>`}).join("");const q=query.toLowerCase(),list=jobs.filter(j=>(stageF==="All"||j.stage===stageF)&&(!q||[j.client,j.id,j.loc,j.type,j.src].join(" ").toLowerCase().includes(q)));$("#jobList").innerHTML=list.length?list.map(rowHTML).join(""):`<div class="empty">No jobs match "${query}".<br>Try a city, trade, or SLX number.</div>`;$("#jobCount").textContent=`${list.length} of ${jobs.length} jobs`}
 const F=(k,v,cls="")=>`<div class="fld ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`,FI=(k,f,v)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" value="${v??""}" placeholder="—"></div>`;
@@ -310,7 +334,6 @@ async function drawPayroll(){
   const rateOf=name=>{const p=people.find(x=>x.n===name);return p?.rate??RATE};
   const weeks={};
   for(const row of teRes.data||[]){
-    if(row.person==="Krissalyn")continue;// owner — not a payroll line
     const start=periodStartOf(row.work_date);
     weeks[start]||=({total:0,people:{}});
     const amt=row.hours*rateOf(row.person);
