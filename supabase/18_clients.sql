@@ -10,7 +10,9 @@
 --  separate job rows. Change her phone number and you'd edit three
 --  places, and nobody could answer "how much has she spent with us."
 --
---  Run AFTER 12_monday_sync.sql. Safe to re-run.
+--  Run AFTER 17_merge_duplicates.sql — after every job-linking and
+--  dedup step, so every client sees its final, correct set of jobs.
+--  Safe to re-run.
 -- ============================================================
 
 create table if not exists clients (

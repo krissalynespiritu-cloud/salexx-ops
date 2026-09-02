@@ -1,13 +1,22 @@
 -- ============================================================
 --  Salexx Ops Hub — resolve pending repeat-client matches
 --
---  From the review after 12_monday_sync.sql: 8 clients had Monday rows
+--  From the review after 13_monday_sync.sql: 8 clients had Monday rows
 --  that couldn't be auto-matched (ambiguous — multiple Monday rows,
 --  one existing job). Confirmed by hand: every one of these is a
 --  genuine separate project (same client, different trade/dates,
 --  same address) — not a duplicate. 7 link to an existing job Monday
---  also has a record for (price match); 11 are new projects with no
+--  also has a record for (price match); 10 are new projects with no
 --  existing job at all.
+--
+--  Removed: Monday item 11187519510 (Angelina Rockelman, Patio Cover)
+--  used to insert here as an 11th new project. It's the same project
+--  as the existing SLX-029 ("patio cover", same client, same address)
+--  — 15_link_pending.sql links it there instead of inserting a
+--  duplicate. Contrast with David Morton, monday_item_id 12131990514:
+--  his existing job SLX-059 is trade "Painting" while both his Monday
+--  rows are "Roofing" — a different project, correctly still inserted
+--  here rather than force-linked.
 --
 --  Explicitly NOT resolved here (left exactly as-is):
 --    - Sam Sabin, Monday item 12800089499 — blank row, no type/price/
@@ -17,9 +26,10 @@
 --      twice on Monday. On hold until confirmed which (if either) is
 --      real.
 --
---  Run AFTER 12_monday_sync.sql. Run 13_clients.sql again AFTER this
---  file, so the 11 newly-inserted jobs get linked to their client
---  record (13 is already safe to re-run).
+--  Run AFTER 13_monday_sync.sql. The 10 newly-inserted jobs get linked
+--  to their client record later, once — by 18_clients.sql and
+--  19_reconcile.sql, both of which run after every job-linking step
+--  in this folder is done. No need to run clients twice.
 --  Safe to re-run: links only apply where the target job's
 --  monday_item_id is still null; inserts only happen where that
 --  monday_item_id isn't already in jobs.
@@ -54,14 +64,13 @@ insert into pending_resolve values
 ('11484568925','SLX-077','Sarah Lyn Lawton','Completed','Painting','1985 Northwest 156th Avenue Beaverton OR 97006','In House',20415.66,'2026-03-10','2026-08-03','https://drive.google.com/drive/folders/1TrBmBGunef5OTEsA-EawRdnH3WBPA6ga',null),
 ('12825005262',null,'Sarah Lyn Lawton','Designs Sold',null,null,null,null,null,null,'https://drive.google.com/drive/folders/1BSYUEboR6666l3fQml9APGEfe2nKbMWy',null),
 ('12603385878',null,'Sarah Lyn Lawton','In Progress','Siding + Windows','1985 Northwest 156th Avenue Beaverton OR 97006','In House',24800.0,'2026-05-19',null,'https://drive.google.com/drive/folders/1sCV2R6RTQd9Uc2MC_TQWsNKYu7oV2w-n',null),
-('11187519510',null,'Angelina Rockelman','Permitting / Drawings','Patio Cover','2238 SE Thrush Avenue Hillsboro OR 97123','In House',14497.32,'2026-05-11',null,'https://drive.google.com/drive/folders/1p3d-nh21fvpFZSo3Xw_txMDFmMfCc4eT',true),
 ('12593491483',null,'Angelina Rockelman','Completed','fencing','2238 SE Thrush Avenue Hillsboro OR 97123',null,4165.45,'2026-02-03','2026-02-11','https://drive.google.com/drive/folders/12hhf5mHdvXyMouCQhFRLvoOR-qmxtkvt',true),
 ('10748790483',null,'David Morton','Completed','Roofing',null,null,5775.73,'2025-08-25','2025-09-04','https://drive.google.com/drive/folders/19DrnDdlmD7ekyxK3P0m1X_ZL7nsNgTWn',null),
 ('12131990514',null,'David Morton','Completed','Roofing','5801 Southeast Harold Street Portland OR 97206','In House',14070.25,'2026-05-28','2026-06-13','https://drive.google.com/drive/folders/1c5hdboPc1Km-6jPod8RnoNmpnNBJs6Ab',null),
 ('12130103208','SLX-069','Sam Sabin','Completed','Roofing','2809 se 75th ave Portland OR','In House',16810.56,'2026-05-28','2026-07-01','https://drive.google.com/drive/folders/1gDe4gPTxmQ6p48P-ZiE0VwDhWMWCsg2l',null);
 
 -- 1. Link: set monday_item_id + apply Monday's fields, same rule as
---    12_monday_sync.sql step 2 (Monday wins on stage/location/crew/
+--    13_monday_sync.sql step 2 (Monday wins on stage/location/crew/
 --    folder/permit; contract price only fills when the job doesn't
 --    already have one).
 update jobs j set

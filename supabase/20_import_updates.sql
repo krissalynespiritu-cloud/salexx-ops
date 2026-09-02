@@ -13,7 +13,7 @@
 --  Author names are matched to profiles where a signed-in user exists,
 --  otherwise kept as plain text so nothing is dropped.
 --
---  Run AFTER 10_reconcile.sql. Safe to re-run — the unique index below
+--  Run AFTER 19_reconcile.sql. Safe to re-run — the unique index below
 --  stops a second run duplicating anything.
 -- ============================================================
 

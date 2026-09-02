@@ -9,7 +9,19 @@
 --  name. Once linked, Monday's stage flows through and they leave
 --  "Designs Sold" — and their orphaned Updates finally attach.
 --
---  Run AFTER 11_import_updates.sql, then re-run 10 and 11.
+--  Removed: this file originally also linked monday_item_id
+--  12131990514 (David Morton, Roofing $14,070.25) to SLX-059 — a price
+--  guess this file's own comment admitted was shaky ("neither matches
+--  ... linked to the larger, closer figure"). SLX-059 is trade
+--  "Painting", not Roofing, so it isn't the same project at all.
+--  resolve_pending_matches.sql already inserts 12131990514 fresh as
+--  its own new job — kept that version, deleted the link line here.
+--  (Its Angelina Rockelman line, 11187519510 -> SLX-029, stays: trade
+--  matches exactly — "patio cover" both sides — so linking is right;
+--  resolve_pending_matches.sql's insert of that Monday item was
+--  removed instead, since it was the actual duplicate.)
+--
+--  Run AFTER 14_resolve_pending_matches.sql.
 -- ============================================================
 
 -- ---------- exact price + trade matches ----------
@@ -23,12 +35,8 @@ update jobs set monday_item_id = '11484568925' where job_id = 'SLX-077';  -- Sar
 -- ---------- matched on trade, price differs ----------
 -- App has $5,365.45 for "patio cover"; Monday's Patio Cover row says
 -- $14,497.32. Same project, different figure — Monday wins on price
--- only where the app has none, so check this one.
+-- only where the app has none.
 update jobs set monday_item_id = '11187519510' where job_id = 'SLX-029';  -- Angelina Rockelman, Patio Cover
-
--- App has $13,375.25; Monday's two Roofing rows are $5,775.73 and
--- $14,070.25. Neither matches. Linked to the larger, closer figure.
-update jobs set monday_item_id = '12131990514' where job_id = 'SLX-059';  -- David Morton, Roofing $14,070.25
 
 -- Sam Sabin's app job has no price. Monday's only real row is Roofing
 -- $16,810.56; the other is completely blank.

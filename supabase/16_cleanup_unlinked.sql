@@ -11,7 +11,14 @@
 --    DELETE  empty rows scraped from the Time Tracker's Project
 --            column. No price, no trade, no hours, no costs.
 --
---  Run AFTER 12_link_pending.sql, then re-run 10_reconcile.sql.
+--  Run AFTER 15_link_pending.sql.
+--
+--  The 8 rows this file used to DELETE (SLX-086, 089, 030, 039, 032,
+--  035, 091, 028 — empty Time Tracker placeholders with no price, no
+--  trade, no data) are no longer in 02_seed.sql at all, so on a fresh
+--  rebuild this DELETE is a guarded no-op. Left in place rather than
+--  removed: harmless, and it's still correct documentation of why
+--  those rows don't exist.
 -- ============================================================
 
 -- ---------- LINK: exact price matches to Monday ----------
@@ -23,7 +30,7 @@ update jobs set monday_item_id = '10741651039'
   where job_id = 'SLX-018' and monday_item_id is null;   -- Madeline     -> Madeline Durand  $37,370.88
 
 -- Angelina R (SLX-028) is an empty duplicate of Angelina Rockelman
--- (SLX-029), which 12_link_pending already linked. Deleted below.
+-- (SLX-029), which 15_link_pending already linked. Deleted below.
 
 
 -- ---------- DELETE: empty rows from the Time Tracker ----------

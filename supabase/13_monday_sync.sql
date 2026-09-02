@@ -18,7 +18,7 @@
 --  guessed — see the two review queries near the bottom of this file.
 --  Jobs the app has that Monday doesn't are left alone, not deleted.
 --
---  Run AFTER 06_import_leads.sql and 11_align_stages.sql. Safe to re-run.
+--  Run AFTER 06_lead_import.sql and 11_align_stages.sql. Safe to re-run.
 -- ============================================================
 
 create temporary table monday_import (

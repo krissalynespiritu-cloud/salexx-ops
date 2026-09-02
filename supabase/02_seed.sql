@@ -8,6 +8,14 @@
 --  Nothing here is invented. Where a field was never recorded in
 --  the spreadsheets, it is null — not a guess.
 --
+--  8 rows were removed from the original 93 (SLX-028, 030, 032, 035,
+--  039, 086, 089, 091): empty placeholders scraped from the Time
+--  Tracker's Project column, with no price, no trade, no dates, no
+--  hours, no costs. The cleanup pass that used to delete these after
+--  the fact (formerly cleanup_unlinked) confirmed none of them ever
+--  had anything attached — leaving them out here means a rebuild
+--  doesn't need to re-delete them.
+--
 --  Run AFTER 01_schema.sql.
 -- ============================================================
 
@@ -41,18 +49,13 @@ values
 ('SLX-025','Pepper','2901 es 2nd unit 50 Newberg Or','Multi-Trade','Completed','2026-01-23','2026-01-23',20653.41),
 ('SLX-026','Carol Rinaldi','1000 S McKern Ct Newberg Or','Multi-Trade','Completed','2026-02-02','2026-02-02',11143.88),
 ('SLX-027','Daniel Hernandez','17835 sw Galewood Dr. Sherwood Or','Multi-Trade','Completed','2026-02-05','2026-02-05',8440.0),
-('SLX-028','Angelina R',null,null,'Designs Sold','2026-02-09',null,null),
 ('SLX-029','Angelina Rockelman','2238 SE Thrush Avenue Hillsboro OR 97123','patio cover','Designs Sold','2026-02-09',null,5365.45),
-('SLX-030','Jayme',null,null,'Designs Sold','2026-02-10',null,null),
 ('SLX-031','Dana Nimz','14899 Southwest Sophia Lane Tigard','Multi-Trade','Completed','2026-02-11','2026-04-20',26945.26),
-('SLX-032','OFF',null,null,'Designs Sold','2026-02-18',null,null),
 ('SLX-033','Brenna White','15050 SW Patricia Ave Hillsboro, Oregon, 97123','Multi-Trade','Completed','2026-02-19','2026-02-24',186.55),
 ('SLX-034','Preston','14901 SW Sophia Ln Tigard Or','Multi-Trade','Completed','2026-02-24','2026-03-03',4338.82),
-('SLX-035','Sara',null,null,'Designs Sold','2026-02-26',null,null),
 ('SLX-036','Sara Dennis','2264 SE Singing Woods Dr, Hillsboro, OR 97123','Roofing','Completed','2026-02-26','2026-02-26',32395.43),
 ('SLX-037','Brad','12251 NE Dudley Rd','Multi-Trade','Completed','2026-03-10','2026-04-10',46450.0),
 ('SLX-038','Jacob Bohanam','19265 NE KENS HILL LN','Exterior stairs','Completed','2026-03-16','2026-03-16',11393.7),
-('SLX-039','Kathy',null,null,'Designs Sold','2026-03-16',null,null),
 ('SLX-040','Kena James','2415 dillow drive West Linn OR 97068','Multi-Trade','Completed','2026-03-20','2026-04-20',6320.75),
 ('SLX-041','Adriana Britton','NEWBERG OR 97132','Multi-Trade','Completed','2026-03-27','2026-04-10',78341.1),
 ('SLX-042','Cherylene','16689 SW Rubicon lane Tigard Or','Multi-Trade','Completed','2026-04-14','2026-04-14',17500.0),
@@ -99,12 +102,9 @@ values
 ('SLX-083','Tim Packard','269 15th st Lafayette OR','Roofing','Designs Sold','2026-09-03',null,19521.04),
 ('SLX-084','Doug Baldwin','1395 sw 31st st Gresham OR','Decking','Designs Sold','2026-09-18',null,32450.25),
 ('SLX-085','Joyce','1811 sw boxwood lane Dallas Or','Siding','Completed','2026-10-20','2026-10-20',32754.67),
-('SLX-086','Carol',null,null,'Designs Sold',null,null,null),
 ('SLX-087','Christina',null,null,'Designs Sold',null,null,null),
 ('SLX-088','Dan Brown',null,null,'Designs Sold',null,null,null),
-('SLX-089','Darlene',null,null,'Designs Sold',null,null,null),
 ('SLX-090','Lexi Vandomelen','9079 Southwest Waverly Drive Tigard OR 97224','Interior, Staircase','Designs Sold',null,null,3777.5),
-('SLX-091','Teresa',null,null,'Designs Sold',null,null,null),
 ('SLX-093','Jennie Clark','20539 SW Lavender Ave, Sherwood, OR 97140','Concrete / Hardscape','Designs Sold',null,null,10200.75)
 on conflict (job_id) do nothing;
 

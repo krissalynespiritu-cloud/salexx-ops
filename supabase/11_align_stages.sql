@@ -9,7 +9,7 @@
 --  After this, a stage string from Monday goes straight in.
 --
 --  Renames only. No rows change, no data is lost.
---  Run BEFORE 12_monday_sync.sql. Safe to re-run.
+--  Run BEFORE 13_monday_sync.sql. Safe to re-run.
 -- ============================================================
 
 do $$ begin
