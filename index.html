@@ -110,6 +110,21 @@
 </div>
 <p class="lbl" style="margin-top:22px">Pipeline by stage</p>
 <div id="stageBars"></div>
+
+<p class="lbl" style="margin-top:26px">Money &amp; collections <span style="font-weight:400;text-transform:none;letter-spacing:0">— all jobs, not filtered by date</span></p>
+<div class="kpis" id="kpisMoney" style="margin-top:6px"></div>
+<p class="lbl" style="margin-top:18px">Backlog <span style="font-weight:400;text-transform:none;letter-spacing:0">— signed contracts not yet completed</span></p>
+<div class="kpis" id="kpisBacklog" style="margin-top:6px"></div>
+
+<p class="lbl" style="margin-top:26px">Sales activity <span style="font-weight:400;text-transform:none;letter-spacing:0">— last 6 weeks, from Admin &amp; Closer trackers</span></p>
+<div class="scroller" style="margin-top:6px"><table id="salesActivityTable"></table></div>
+
+<p class="lbl" style="margin-top:26px">Job type breakdown <span style="font-weight:400;text-transform:none;letter-spacing:0">— sold in the selected period</span></p>
+<div class="scroller" style="margin-top:6px"><table id="jobTypeTable"></table></div>
+
+<p class="lbl" style="margin-top:26px">Lead sources <span style="font-weight:400;text-transform:none;letter-spacing:0">— all time</span></p>
+<div class="scroller" style="margin-top:6px"><table id="leadSourceTable"></table></div>
+<p class="note" id="leadSourceNote"></p>
 <style>@media(max-width:640px){#dashGrid,#dashGrid3{grid-template-columns:1fr}}</style>
 </section><section id="s-jobs" class="panel hidden"><input class="search" id="q" placeholder="Search client, job ID, city, trade, source…"><div class="chips" id="stageChips" style="position:sticky;background:var(--navy);z-index:15;flex-wrap:wrap;overflow-x:visible"></div><div id="jobList"></div><p class="count" id="jobCount"></p></section><section id="s-time" class="panel hidden"><p class="lbl">Timesheet · you enter, crew never logs in</p><p class="note" id="timeSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p><div id="roster"></div><div class="kpis" style="margin-top:13px"><div class="kpi"><p class="k">Day total</p><p class="v" id="dayHrs">0.00</p><p class="d">hours</p></div><div class="kpi"><p class="k">Labor cost</p><p class="v" id="dayCost">$0</p><p class="d">today</p></div></div><p class="note">One table for everyone — replaces 9 per-person tabs and 6 per-month tabs. Admin staff have no job field; their hours go to overhead, not job labor.</p></section><section id="s-leadstracker" class="panel hidden"><p class="lbl">Leads Tracker</p></section><section id="s-leadsourcereport" class="panel hidden"><p class="lbl">Lead Source Report</p></section><section id="s-admintracker" class="panel hidden"><p class="lbl">Admin Tracker</p><div class="scroller"><table id="adminTrackerTable"></table></div></section><section id="s-closertracker" class="panel hidden"><p class="lbl">Closer Tracker</p><div class="scroller"><table id="closerTrackerTable"></table></div></section><section id="s-clients" class="panel hidden"><p class="lbl">Clients · lifetime value</p><div id="clientsList"></div><p class="note">One client record ties together every project they've ever had — repeat clients are the point, not a data-entry problem.</p></section><section id="s-reports" class="panel hidden"><p class="lbl">Sold vs completed revenue · 2026</p><div class="scroller"><table id="soldTable"></table></div><p class="lbl" style="margin-top:22px">Top selling services</p><div class="scroller"><table id="svcTable"></table></div><p class="note">Both tables read the same job records as Job Costing, so they can't disagree with each other the way your four dashboards currently do.</p></section><section id="s-payroll" class="panel hidden"><p class="lbl">Payroll · biweekly</p><div id="payrollList"></div><p class="note">Amounts are computed live from logged hours × each person's rate — nothing here is stored twice. Marking a period Paid is just a marker so you can track what's been run.</p></section><section id="s-billing" class="panel hidden"><p class="lbl">Billing · collected vs owed</p><div id="billingList"></div><p class="note">Reads the same payment records as each job's Payments tab — recording a payment there updates this list too.</p></section><section id="s-subs" class="panel hidden"><p class="lbl">Subcontractors</p><div id="subsList"></div><div class="grp" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><h5>Add a subcontractor</h5><input id="newSubName" placeholder="Name" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSubTrade" placeholder="Trade" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSubPhone" placeholder="Phone" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSubEmail" placeholder="Email" style="width:100%;margin-bottom:8px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><div style="display:flex;justify-content:space-between;align-items:center"><span id="subStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="addSubBtn" class="chip">Add</button></div></div><div class="grp" style="margin-top:20px;border-top:1px solid var(--line);padding-top:14px"><h5>Contracts &amp; payments</h5><div id="subPaymentsList"></div></div><div class="grp" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><h5>Add a contract</h5><select id="newSpJob" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="">Job…</option></select><select id="newSpSub" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="">Subcontractor…</option></select><input id="newSpScope" placeholder="Scope of work" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSpContract" type="number" step="0.01" placeholder="Contract amount" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSpPaid" type="number" step="0.01" placeholder="Amount paid so far" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><select id="newSpMethod" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="">Method…</option><option value="Check">Check</option><option value="Card">Card</option><option value="ACH / Transfer">ACH / Transfer</option><option value="Cash">Cash</option><option value="Financing">Financing</option><option value="Other">Other</option></select><input id="newSpDue" type="date" style="width:100%;margin-bottom:8px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><div style="display:flex;justify-content:space-between;align-items:center"><span id="spStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="addSpBtn" class="chip">Add contract</button></div></div></section><section id="s-jobcosting" class="panel hidden"><p class="lbl">Job Costing · revenue, costs, and margin at a glance</p><div class="chips" id="jcStageChips" style="flex-wrap:wrap;overflow-x:visible"></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px"><input class="search" id="jcQuery" placeholder="Search client, job ID, trade…" style="flex:1 1 220px;min-width:180px"><select id="jcSort" style="background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="marginDesc">Highest Margin First</option><option value="marginAsc">Lowest Margin First</option><option value="revenueDesc">Highest Revenue First</option><option value="clientAsc">Client A→Z</option></select></div><div class="scroller"><table id="jobCostingTable"></table></div><p class="count" id="jobCostingCount"></p><p class="note">Editing writes straight to Supabase — same fields and save behavior as each job's own Job Costing subtab.</p><style>#jobCostingTable{table-layout:fixed;width:100%;min-width:0}#jobCostingTable th,#jobCostingTable td{padding:6px 4px;font-size:10.5px;white-space:normal;word-break:break-word;overflow:hidden}#jobCostingTable th:nth-child(1),#jobCostingTable td:nth-child(1){width:3%}#jobCostingTable th:nth-child(2),#jobCostingTable td:nth-child(2){width:15%}#jobCostingTable th:nth-child(3),#jobCostingTable td:nth-child(3){width:12%}#jobCostingTable th:nth-child(4),#jobCostingTable td:nth-child(4){width:11%}#jobCostingTable th:nth-child(5),#jobCostingTable td:nth-child(5){width:11%}#jobCostingTable th:nth-child(6),#jobCostingTable td:nth-child(6){width:10%}#jobCostingTable th:nth-child(7),#jobCostingTable td:nth-child(7){width:10%}#jobCostingTable th:nth-child(8),#jobCostingTable td:nth-child(8){width:10%}#jobCostingTable th:nth-child(9),#jobCostingTable td:nth-child(9){width:10%}#jobCostingTable th:nth-child(10),#jobCostingTable td:nth-child(10){width:8%;text-align:center}#jobCostingTable .stage{font-size:7.5px;padding:1px 4px;line-height:1.25;white-space:normal;display:inline-block}</style></section></div>
 </div>
@@ -380,7 +395,81 @@ async function drawToday(){$("#greeting").textContent=greetingLine();
     ["Leads with a real status",leadsWithRealStatus,leadRows?.length||0],
     ["Crew with an hourly wage set",crewWithWage,crewRows?.length||0]
   ].map(([k,n,total])=>`<div class="bar"><div class="t"><span>${k}</span><b>${n} of ${total}</b></div><div class="track"><i style="width:${total?n/total*100:0}%"></i></div></div>`).join("");
-  const counts=STAGES.map(s=>[s,jobs.filter(j=>j.stage===s).length]),mx=Math.max(...counts.map(c=>c[1]),1);$("#stageBars").innerHTML=counts.map(([s,n])=>`<div class="bar"><div class="t"><span>${s}</span><b>${n}</b></div><div class="track"><i style="width:${n/mx*100}%"></i></div></div>`).join("")}
+  const counts=STAGES.map(s=>[s,jobs.filter(j=>j.stage===s).length]),mx=Math.max(...counts.map(c=>c[1]),1);$("#stageBars").innerHTML=counts.map(([s,n])=>`<div class="bar"><div class="t"><span>${s}</span><b>${n}</b></div><div class="track"><i style="width:${n/mx*100}%"></i></div></div>`).join("");
+  drawMoneyAndBreakdowns();
+}
+const mondayOf=dateStr=>{const d=new Date(dateStr+"T00:00:00");d.setDate(d.getDate()-((d.getDay()+6)%7));return d.toISOString().slice(0,10)};
+const EARLY_STAGES=["Designs Sold","Permitting / Drawings","Ready For Scheduling","Project Scheduled"];
+async function drawMoneyAndBreakdowns(){
+  const [{data:pay},{data:adminD},{data:closerD},{data:lsp},{data:slv}]=await Promise.all([
+    sb.from("job_payments").select("job_id,revenue,collected,balance_due"),
+    sb.from("admin_daily").select("log_date,leads_assigned,appointments_set"),
+    sb.from("closer_daily").select("log_date,shows_received,closed_deals,revenue"),
+    sb.from("lead_source_performance").select("source,leads"),
+    sb.from("source_lifetime_value").select("source,total_value,repeat_rate_pct")
+  ]);
+  const stageById=Object.fromEntries(jobs.map(j=>[j.id,j.stage]));
+  // ---------- Money & collections ----------
+  const priced=(pay||[]).filter(r=>r.revenue!=null);
+  const booked=priced.reduce((s,r)=>s+Number(r.revenue),0);
+  const collected=priced.reduce((s,r)=>s+Number(r.collected||0),0);
+  const withBal=priced.filter(r=>Number(r.balance_due)>0).length;
+  const overdue=(pay||[]).filter(r=>Number(r.balance_due)>0&&stageById[r.job_id]==="Completed");
+  const overdueSum=overdue.reduce((s,r)=>s+Number(r.balance_due),0);
+  $("#kpisMoney").innerHTML=[
+    kpiCard(svgIcon("money"),"var(--hivis)","Booked revenue",money(booked),`${priced.length} priced jobs`),
+    kpiCard(svgIcon("wallet"),"var(--good)","Collected",money(collected),`${booked?(collected/booked*100).toFixed(1):0}% of booked`),
+    kpiCard(svgIcon("alert"),"var(--alert)","Outstanding A/R",money(booked-collected),`across ${withBal} jobs with a balance`),
+    kpiCard(svgIcon("clock"),"var(--amber)","Overdue · completed",money(overdueSum),`${overdue.length} finished jobs still owed`)
+  ].join("");
+  // ---------- Backlog ----------
+  const collectedByJob=Object.fromEntries((pay||[]).map(r=>[r.job_id,Number(r.collected||0)]));
+  const openPriced=jobs.filter(j=>j.revenue!=null&&j.stage!=="Completed");
+  const backlogVal=openPriced.reduce((s,j)=>s+j.revenue,0);
+  const inProgVal=openPriced.filter(j=>j.stage==="In Progress").reduce((s,j)=>s+j.revenue,0);
+  const notStarted=openPriced.filter(j=>EARLY_STAGES.includes(j.stage)).length;
+  const noDeposit=openPriced.filter(j=>!(collectedByJob[j.id]>0)).length;
+  $("#kpisBacklog").innerHTML=[
+    kpiCard(svgIcon("building"),"var(--sky)","Backlog value",money(backlogVal),`${openPriced.length} jobs signed, not completed`),
+    kpiCard(svgIcon("chart"),"var(--amber)","In progress",money(inProgVal),`contract value on the boards now`),
+    kpiCard(svgIcon("target"),"var(--violet)","Sold, not started",notStarted,`in design / permitting / scheduling`),
+    kpiCard(svgIcon("alert"),"var(--alert)","Backlog, $0 collected",noDeposit,`open jobs with no deposit logged`)
+  ].join("");
+  // ---------- Sales activity, last 6 weeks ----------
+  const wk={},ensure=w=>wk[w]||={leads:0,appts:0,shows:0,closed:0,rev:0};
+  for(const r of adminD||[]){const w=mondayOf(r.log_date);ensure(w);wk[w].leads+=r.leads_assigned||0;wk[w].appts+=r.appointments_set||0}
+  for(const r of closerD||[]){const w=mondayOf(r.log_date);ensure(w);wk[w].shows+=r.shows_received||0;wk[w].closed+=r.closed_deals||0;wk[w].rev+=Number(r.revenue||0)}
+  const weeks=Object.keys(wk).sort().slice(-6);
+  $("#salesActivityTable").innerHTML=weeks.length
+    ?`<thead><tr><th>Week of</th><th>Leads</th><th>Appts set</th><th>Shows</th><th>Closed</th><th>Revenue</th></tr></thead><tbody>${weeks.map(w=>{const d=wk[w];return `<tr><td>${w}</td><td>${d.leads}</td><td>${d.appts}</td><td>${d.shows}</td><td>${d.closed}</td><td>${d.rev?money(d.rev):"—"}</td></tr>`}).join("")}</tbody>`
+    :`<tbody><tr><td>No activity logged yet</td></tr></tbody>`;
+  // ---------- Job type breakdown ----------
+  const openByType={};
+  for(const j of jobs)if(j.revenue!=null&&j.stage!=="Completed")openByType[j.type]=(openByType[j.type]||0)+j.revenue;
+  const bt={};
+  for(const j of jobs){
+    if(j.revenue==null||!dashDateInRange(j.sold))continue;
+    const row=bt[j.type]||={sold:0,contract:0,gp:0,rev:0};
+    row.sold++;row.contract+=j.revenue;
+    if(!j.unpriced&&j.gp!=null){row.gp+=j.gp;row.rev+=j.revenue}
+  }
+  const types=Object.keys(bt).sort((a,b)=>bt[b].contract-bt[a].contract);
+  const tot={sold:0,contract:0,gp:0,rev:0,backlog:0};
+  types.forEach(k=>{tot.sold+=bt[k].sold;tot.contract+=bt[k].contract;tot.gp+=bt[k].gp;tot.rev+=bt[k].rev});
+  Object.values(openByType).forEach(v=>tot.backlog+=v);
+  const mrg=r=>r.rev?`<span style="color:${col(r.gp/r.rev*100)}">${(r.gp/r.rev*100).toFixed(1)}%</span>`:"—";
+  $("#jobTypeTable").innerHTML=types.length
+    ?`<thead><tr><th>Job type</th><th>Sold</th><th>Contract $</th><th>Avg margin</th><th>Backlog $</th></tr></thead><tbody>${types.map(k=>`<tr><td>${escapeHtml(k)}</td><td>${bt[k].sold}</td><td>${money(bt[k].contract)}</td><td>${mrg(bt[k])}</td><td>${openByType[k]?money(openByType[k]):"—"}</td></tr>`).join("")}</tbody><tfoot><tr><td>Total</td><td>${tot.sold}</td><td>${money(tot.contract)}</td><td>${mrg(tot)}</td><td>${money(tot.backlog)}</td></tr></tfoot>`
+    :`<tbody><tr><td>No jobs sold in this period</td></tr></tbody>`;
+  // ---------- Lead sources ----------
+  const slvBy=Object.fromEntries((slv||[]).map(r=>[r.source,r]));
+  const rows=(lsp||[]).filter(r=>r.leads>0).sort((a,b)=>b.leads-a.leads);
+  const totLeads=rows.reduce((s,r)=>s+r.leads,0)||1;
+  $("#leadSourceTable").innerHTML=rows.length
+    ?`<thead><tr><th>Source</th><th>Leads</th><th>% of leads</th><th>Lifetime revenue</th><th>Repeat rate</th></tr></thead><tbody>${rows.map(r=>{const s=slvBy[r.source];return `<tr><td>${escapeHtml(r.source)}</td><td>${r.leads}</td><td>${(r.leads/totLeads*100).toFixed(1)}%</td><td>${s&&s.total_value?money(s.total_value):"—"}</td><td>${s&&s.repeat_rate_pct!=null?s.repeat_rate_pct+"%":"—"}</td></tr>`}).join("")}</tbody><tfoot><tr><td>Total</td><td>${totLeads}</td><td>100%</td><td></td><td></td></tr></tfoot>`
+    :`<tbody><tr><td>No leads yet</td></tr></tbody>`;
+  $("#leadSourceNote").textContent="Close rate and revenue-per-source will fill in once leads carry a status (Won/Lost) and a sale value — every lead is currently unassigned. Lifetime revenue above is matched from completed jobs by client source, so only sources with attributed jobs show a figure.";
+}
 function jobCardHTML(j){
   const inp=(field,val,ph,width)=>`<input type="text" data-jf="${field}" data-job="${j.id}" value="${val==null?"":escapeHtml(String(val))}" placeholder="${ph}" style="width:${width};flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 7px;font:inherit;font-size:11.5px">`;
   return `<div class="jrow" style="flex-wrap:wrap;align-items:center;gap:5px;cursor:default;padding:6px 9px;margin-bottom:5px">
