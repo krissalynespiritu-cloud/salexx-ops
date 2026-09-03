@@ -2,7 +2,7 @@
 
 Run these in order against a fresh Supabase project to rebuild the database
 from nothing. Every file is safe to re-run unless its own header says
-otherwise. Run order matches filename order — 01 through 22, no gaps, no
+otherwise. Run order matches filename order — 01 through 24, no gaps, no
 duplicate numbers.
 
 | # | File | What it does |
@@ -29,6 +29,8 @@ duplicate numbers.
 | 20 | `20_import_updates.sql` | Imports the 60 Monday update notes (the "why" behind stalled jobs) onto their matching jobs. |
 | 21 | `21_avatars_storage.sql` | Storage bucket for profile photos. Independent of everything above — run any time. |
 | 22 | `22_costing_reviewed.sql` | Adds a done/not-done checkbox to each job, separate from its delivery stage. Independent — run any time. |
+| 23 | `23_admin_tracker.sql` | Admin Tracker: imports 153 real historical daily rows, adds `estimate_booked_date` so future days compute live from real leads instead. Independent — run any time. |
+| 24 | `24_closer_tracker.sql` | Closer Tracker: imports 151 real historical daily rows, adds `shown`/`shown_date` so future days compute live from real leads (`sale_date`/`closed_revenue` already existed, unused until now). Independent — run any time. |
 
 ## Why the order matters
 
