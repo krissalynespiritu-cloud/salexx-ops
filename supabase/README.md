@@ -2,7 +2,7 @@
 
 Run these in order against a fresh Supabase project to rebuild the database
 from nothing. Every file is safe to re-run unless its own header says
-otherwise. Run order matches filename order — 01 through 21, no gaps, no
+otherwise. Run order matches filename order — 01 through 22, no gaps, no
 duplicate numbers.
 
 | # | File | What it does |
@@ -28,6 +28,7 @@ duplicate numbers.
 | 19 | `19_reconcile.sql` | Final sweep: Monday wins on every linked job's fields, inserts any Monday item still missing a job, relinks clients, adds audit views. |
 | 20 | `20_import_updates.sql` | Imports the 60 Monday update notes (the "why" behind stalled jobs) onto their matching jobs. |
 | 21 | `21_avatars_storage.sql` | Storage bucket for profile photos. Independent of everything above — run any time. |
+| 22 | `22_costing_reviewed.sql` | Adds a done/not-done checkbox to each job, separate from its delivery stage. Independent — run any time. |
 
 ## Why the order matters
 

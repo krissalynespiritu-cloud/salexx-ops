@@ -29,19 +29,23 @@
 <button class="sidebarLink" data-tab="payroll">Payroll</button>
 </div></div>
 <div class="sidebarGroup"><button class="sidebarGroupHead" data-toggle-group="sales" aria-expanded="true">Sales</button><div class="sidebarGroupBody">
-<button class="sidebarLink" data-tab="leads">Leads</button>
 <button class="sidebarLink" data-tab="clients">Clients</button>
 <button class="sidebarLink disabled" disabled>Estimates<span class="src man">Soon</span></button>
-<button class="sidebarLink disabled" disabled>Closer Rate<span class="src man">Soon</span></button>
+</div></div>
+<div class="sidebarGroup"><button class="sidebarGroupHead" data-toggle-group="kpi" aria-expanded="true">KPI</button><div class="sidebarGroupBody">
+<button class="sidebarLink" data-tab="leadstracker">Leads Tracker</button>
+<button class="sidebarLink disabled" disabled>Admin Tracker<span class="src man">Soon</span></button>
+<button class="sidebarLink disabled" disabled>Closer Tracker<span class="src man">Soon</span></button>
+<button class="sidebarLink disabled" disabled>Design Sold Tracker<span class="src man">Soon</span></button>
 </div></div>
 <div class="sidebarGroup"><button class="sidebarGroupHead" data-toggle-group="money" aria-expanded="true">Money</button><div class="sidebarGroupBody">
-<button class="sidebarLink disabled" disabled>Job Costing<span class="src man">Soon</span></button>
+<button class="sidebarLink" data-tab="jobcosting">Job Costing</button>
 <button class="sidebarLink" data-tab="billing">Billing</button>
 <button class="sidebarLink disabled" disabled>Overhead<span class="src man">Soon</span></button>
 <button class="sidebarLink" data-tab="subs">Subcontractors</button>
 </div></div>
 <div class="sidebarGroup"><button class="sidebarGroupHead" data-toggle-group="reports" aria-expanded="true">Reports</button><div class="sidebarGroupBody">
-<button class="sidebarLink disabled" disabled>Lead Sources<span class="src man">Soon</span></button>
+<button class="sidebarLink" data-tab="leadsourcereport">Lead Source Report</button>
 <button class="sidebarLink disabled" disabled>FB Ads<span class="src man">Soon</span></button>
 <button class="sidebarLink disabled" disabled>Monthly KPI<span class="src man">Soon</span></button>
 <button class="sidebarLink disabled" disabled>Weekly Meeting<span class="src man">Soon</span></button>
@@ -81,7 +85,7 @@
     <div id="revenueChart"></div>
   </div>
   <div class="kpi" style="padding:16px">
-    <p class="lbl" style="margin:0 0 10px">Top Clients</p>
+    <p class="lbl" style="margin:0 0 10px">Top Clients · lifetime</p>
     <div id="topClients"></div>
   </div>
 </div>
@@ -99,7 +103,7 @@
     <p class="lbl" style="margin:0 0 10px">Quick Actions</p>
     <div id="quickActions" style="display:flex;flex-direction:column;gap:6px">
       <button class="sidebarLink" data-tab="time" style="border:1px solid var(--line);border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="12" x2="12" y2="7"/><line x1="12" y1="12" x2="16" y2="14"/></svg> Log hours</button>
-      <button class="sidebarLink" data-tab="leads" style="border:1px solid var(--line);border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg> Add a lead</button>
+      <button class="sidebarLink" data-tab="leadstracker" style="border:1px solid var(--line);border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg> Add a lead</button>
       <button class="sidebarLink" data-tab="subs" style="border:1px solid var(--line);border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 1 0 1 6.4l4.6 4.6a1.4 1.4 0 0 0 2-2l-4.6-4.6a4 4 0 0 0-3-4.4z"/><path d="M9 12l-5.3 5.3a1.4 1.4 0 0 0 2 2L11 14"/></svg> Add a subcontractor</button>
     </div>
   </div>
@@ -107,7 +111,7 @@
 <p class="lbl" style="margin-top:22px">Pipeline by stage</p>
 <div id="stageBars"></div>
 <style>@media(max-width:640px){#dashGrid,#dashGrid3{grid-template-columns:1fr}}</style>
-</section><section id="s-jobs" class="panel hidden"><input class="search" id="q" placeholder="Search client, job ID, city, trade, source…"><div class="chips" id="stageChips" style="position:sticky;background:var(--navy);z-index:15;flex-wrap:wrap;overflow-x:visible"></div><div id="jobList"></div><p class="count" id="jobCount"></p></section><section id="s-time" class="panel hidden"><p class="lbl">Timesheet · you enter, crew never logs in</p><p class="note" id="timeSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p><div id="roster"></div><div class="kpis" style="margin-top:13px"><div class="kpi"><p class="k">Day total</p><p class="v" id="dayHrs">0.00</p><p class="d">hours</p></div><div class="kpi"><p class="k">Labor cost</p><p class="v" id="dayCost">$0</p><p class="d">today</p></div></div><p class="note">One table for everyone — replaces 9 per-person tabs and 6 per-month tabs. Admin staff have no job field; their hours go to overhead, not job labor.</p></section><section id="s-leads" class="panel hidden"><p class="lbl">Lead source <span class="src ghl">Supabase</span></p><div class="attn" style="margin-top:4px"><h4>Real lead import is next</h4><ul style="margin:0;padding-left:16px"><li>The leads table is live and status now tracks New → Contacted → Estimated → Won/Lost, but it's empty — the historical GHL leads haven't been imported yet.</li><li>Once imported, this screen and the numbers below read straight from that table, same as everything else.</li></ul></div></section><section id="s-clients" class="panel hidden"><p class="lbl">Clients · lifetime value</p><div id="clientsList"></div><p class="note">One client record ties together every project they've ever had — repeat clients are the point, not a data-entry problem.</p></section><section id="s-reports" class="panel hidden"><p class="lbl">Sold vs completed revenue · 2026</p><div class="scroller"><table id="soldTable"></table></div><p class="lbl" style="margin-top:22px">Top selling services</p><div class="scroller"><table id="svcTable"></table></div><p class="note">Both tables read the same job records as Job Costing, so they can't disagree with each other the way your four dashboards currently do.</p></section><section id="s-payroll" class="panel hidden"><p class="lbl">Payroll · biweekly</p><div id="payrollList"></div><p class="note">Amounts are computed live from logged hours × each person's rate — nothing here is stored twice. Marking a period Paid is just a marker so you can track what's been run.</p></section><section id="s-billing" class="panel hidden"><p class="lbl">Billing · collected vs owed</p><div id="billingList"></div><p class="note">Reads the same payment records as each job's Payments tab — recording a payment there updates this list too.</p></section><section id="s-subs" class="panel hidden"><p class="lbl">Subcontractors</p><div id="subsList"></div><div class="grp" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><h5>Add a subcontractor</h5><input id="newSubName" placeholder="Name" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSubTrade" placeholder="Trade" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSubPhone" placeholder="Phone" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSubEmail" placeholder="Email" style="width:100%;margin-bottom:8px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><div style="display:flex;justify-content:space-between;align-items:center"><span id="subStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="addSubBtn" class="chip">Add</button></div></div><div class="grp" style="margin-top:20px;border-top:1px solid var(--line);padding-top:14px"><h5>Contracts &amp; payments</h5><div id="subPaymentsList"></div></div><div class="grp" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><h5>Add a contract</h5><select id="newSpJob" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="">Job…</option></select><select id="newSpSub" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="">Subcontractor…</option></select><input id="newSpScope" placeholder="Scope of work" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSpContract" type="number" step="0.01" placeholder="Contract amount" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSpPaid" type="number" step="0.01" placeholder="Amount paid so far" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><select id="newSpMethod" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="">Method…</option><option value="Check">Check</option><option value="Card">Card</option><option value="ACH / Transfer">ACH / Transfer</option><option value="Cash">Cash</option><option value="Financing">Financing</option><option value="Other">Other</option></select><input id="newSpDue" type="date" style="width:100%;margin-bottom:8px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><div style="display:flex;justify-content:space-between;align-items:center"><span id="spStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="addSpBtn" class="chip">Add contract</button></div></div></section></div>
+</section><section id="s-jobs" class="panel hidden"><input class="search" id="q" placeholder="Search client, job ID, city, trade, source…"><div class="chips" id="stageChips" style="position:sticky;background:var(--navy);z-index:15;flex-wrap:wrap;overflow-x:visible"></div><div id="jobList"></div><p class="count" id="jobCount"></p></section><section id="s-time" class="panel hidden"><p class="lbl">Timesheet · you enter, crew never logs in</p><p class="note" id="timeSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p><div id="roster"></div><div class="kpis" style="margin-top:13px"><div class="kpi"><p class="k">Day total</p><p class="v" id="dayHrs">0.00</p><p class="d">hours</p></div><div class="kpi"><p class="k">Labor cost</p><p class="v" id="dayCost">$0</p><p class="d">today</p></div></div><p class="note">One table for everyone — replaces 9 per-person tabs and 6 per-month tabs. Admin staff have no job field; their hours go to overhead, not job labor.</p></section><section id="s-leadstracker" class="panel hidden"><p class="lbl">Leads Tracker</p></section><section id="s-leadsourcereport" class="panel hidden"><p class="lbl">Lead Source Report</p></section><section id="s-clients" class="panel hidden"><p class="lbl">Clients · lifetime value</p><div id="clientsList"></div><p class="note">One client record ties together every project they've ever had — repeat clients are the point, not a data-entry problem.</p></section><section id="s-reports" class="panel hidden"><p class="lbl">Sold vs completed revenue · 2026</p><div class="scroller"><table id="soldTable"></table></div><p class="lbl" style="margin-top:22px">Top selling services</p><div class="scroller"><table id="svcTable"></table></div><p class="note">Both tables read the same job records as Job Costing, so they can't disagree with each other the way your four dashboards currently do.</p></section><section id="s-payroll" class="panel hidden"><p class="lbl">Payroll · biweekly</p><div id="payrollList"></div><p class="note">Amounts are computed live from logged hours × each person's rate — nothing here is stored twice. Marking a period Paid is just a marker so you can track what's been run.</p></section><section id="s-billing" class="panel hidden"><p class="lbl">Billing · collected vs owed</p><div id="billingList"></div><p class="note">Reads the same payment records as each job's Payments tab — recording a payment there updates this list too.</p></section><section id="s-subs" class="panel hidden"><p class="lbl">Subcontractors</p><div id="subsList"></div><div class="grp" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><h5>Add a subcontractor</h5><input id="newSubName" placeholder="Name" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSubTrade" placeholder="Trade" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSubPhone" placeholder="Phone" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSubEmail" placeholder="Email" style="width:100%;margin-bottom:8px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><div style="display:flex;justify-content:space-between;align-items:center"><span id="subStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="addSubBtn" class="chip">Add</button></div></div><div class="grp" style="margin-top:20px;border-top:1px solid var(--line);padding-top:14px"><h5>Contracts &amp; payments</h5><div id="subPaymentsList"></div></div><div class="grp" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><h5>Add a contract</h5><select id="newSpJob" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="">Job…</option></select><select id="newSpSub" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="">Subcontractor…</option></select><input id="newSpScope" placeholder="Scope of work" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSpContract" type="number" step="0.01" placeholder="Contract amount" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newSpPaid" type="number" step="0.01" placeholder="Amount paid so far" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><select id="newSpMethod" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="">Method…</option><option value="Check">Check</option><option value="Card">Card</option><option value="ACH / Transfer">ACH / Transfer</option><option value="Cash">Cash</option><option value="Financing">Financing</option><option value="Other">Other</option></select><input id="newSpDue" type="date" style="width:100%;margin-bottom:8px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><div style="display:flex;justify-content:space-between;align-items:center"><span id="spStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="addSpBtn" class="chip">Add contract</button></div></div></section><section id="s-jobcosting" class="panel hidden"><p class="lbl">Job Costing · revenue, costs, and margin at a glance</p><div class="chips" id="jcStageChips" style="flex-wrap:wrap;overflow-x:visible"></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px"><input class="search" id="jcQuery" placeholder="Search client, job ID, trade…" style="flex:1 1 220px;min-width:180px"><select id="jcSort" style="background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="marginDesc">Highest Margin First</option><option value="marginAsc">Lowest Margin First</option><option value="revenueDesc">Highest Revenue First</option><option value="clientAsc">Client A→Z</option></select></div><div class="scroller"><table id="jobCostingTable"></table></div><p class="count" id="jobCostingCount"></p><p class="note">Editing writes straight to Supabase — same fields and save behavior as each job's own Job Costing subtab.</p><style>#jobCostingTable{table-layout:fixed;width:100%;min-width:0}#jobCostingTable th,#jobCostingTable td{padding:6px 4px;font-size:10.5px;white-space:normal;word-break:break-word;overflow:hidden}#jobCostingTable th:nth-child(1),#jobCostingTable td:nth-child(1){width:3%}#jobCostingTable th:nth-child(2),#jobCostingTable td:nth-child(2){width:15%}#jobCostingTable th:nth-child(3),#jobCostingTable td:nth-child(3){width:12%}#jobCostingTable th:nth-child(4),#jobCostingTable td:nth-child(4){width:11%}#jobCostingTable th:nth-child(5),#jobCostingTable td:nth-child(5){width:11%}#jobCostingTable th:nth-child(6),#jobCostingTable td:nth-child(6){width:10%}#jobCostingTable th:nth-child(7),#jobCostingTable td:nth-child(7){width:10%}#jobCostingTable th:nth-child(8),#jobCostingTable td:nth-child(8){width:10%}#jobCostingTable th:nth-child(9),#jobCostingTable td:nth-child(9){width:10%}#jobCostingTable th:nth-child(10),#jobCostingTable td:nth-child(10){width:8%;text-align:center}#jobCostingTable .stage{font-size:7.5px;padding:1px 4px;line-height:1.25;white-space:normal;display:inline-block}</style></section></div>
 </div>
 </div>
 <div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="pay" aria-selected="false">Payments</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="fi" aria-selected="false">Files</button><button data-st="up" aria-selected="false">Updates</button></div><div class="panel" id="dBody"></div></div>
@@ -160,7 +164,7 @@ async function fetchCrewRates(){
   const byName=Object.fromEntries(data.map(c=>[c.name,c.hourly_wage]));
   for(const p of people)p.rate=byName[p.n]??RATE;
 }
-const $=s=>document.querySelector(s);let jobStageFilter="All",query="",day={},cur=null,st="ov",currentUserEmail=null,currentUserProfile=null,currentUpdates=null,currentPayments=null;const col=p=>p==null?"var(--steel)":p>=50?"var(--good)":p>=38?"var(--amber)":"var(--alert)";
+const $=s=>document.querySelector(s);let jobStageFilter="All",query="",day={},cur=null,st="ov",currentUserEmail=null,currentUserProfile=null,currentUpdates=null,currentPayments=null,jcQuery="",jcSort="marginDesc",jcStageFilter="All";const jcExpanded=new Set();const col=p=>p==null?"var(--steel)":p>=50?"var(--good)":p>=38?"var(--amber)":"var(--alert)";
 const COST_CATEGORY_FIELD={Materials:"mat","Equipment / Rentals":"equip","Disposal / Dumpster":"disp","Permits / Fees":"permit","Fuel / Travel":"fuel","Other / Misc":"other"};
 function costRowsToFields(costRows){
   const c={};
@@ -181,25 +185,30 @@ function mergeJobRecord(j,m,costRows,subTotal){
     revenue:m.revenue==null?null:Number(m.revenue),laborCost:Number(m.labor_cost)||0,materialCost:Number(m.material_cost)||0,
     additionalCost:Number(m.additional_cost)||0,overheadCost:Number(m.overhead_cost)||0,
     totalCost:m.total_job_cost==null?null:Number(m.total_job_cost),gp:m.gross_profit==null?null:Number(m.gross_profit),
-    marginPct:m.margin_pct==null?null:Number(m.margin_pct),unpriced:!!m.unpriced
+    marginPct:m.margin_pct==null?null:Number(m.margin_pct),unpriced:!!m.unpriced,reviewed:!!j.costing_reviewed
   };
 }
 async function fetchJobs(){
-  const [{data:jobRows,error:e1},{data:marginRows,error:e2},{data:costRows,error:e3},{data:subRows,error:e4}]=await Promise.all([
+  const [{data:jobRows,error:e1},{data:marginRows,error:e2},{data:costRows,error:e3},{data:subRows,error:e4},{data:updateRows,error:e5}]=await Promise.all([
     sb.from("jobs").select("*"),
     sb.from("job_margins").select("*"),
     sb.from("job_costs").select("*"),
-    sb.from("sub_payments").select("job_id,contract_amount")
+    sb.from("sub_payments").select("job_id,contract_amount"),
+    sb.from("job_updates").select("job_id")
   ]);
-  if(e1||e2||e3||e4){console.error(e1||e2||e3||e4);return false}
+  if(e1||e2||e3||e4||e5){console.error(e1||e2||e3||e4||e5);return false}
   const marginsById=Object.fromEntries((marginRows||[]).map(m=>[m.job_id,m]));
   const costsById={};
   for(const c of costRows||[]){(costsById[c.job_id]||=[]).push(c)}
   const subTotalsById={};
   for(const s of subRows||[]){if(!s.job_id)continue;subTotalsById[s.job_id]=(subTotalsById[s.job_id]||0)+Number(s.contract_amount)}
+  const updatesCountById={};
+  for(const u of updateRows||[]){updatesCountById[u.job_id]=(updatesCountById[u.job_id]||0)+1}
   jobs.length=0;
   for(const j of jobRows||[]){
-    jobs.push(mergeJobRecord(j,marginsById[j.job_id]||{},costsById[j.job_id],subTotalsById[j.job_id]));
+    const merged=mergeJobRecord(j,marginsById[j.job_id]||{},costsById[j.job_id],subTotalsById[j.job_id]);
+    merged.updatesCount=updatesCountById[j.job_id]||0;
+    jobs.push(merged);
   }
   return true;
 }
@@ -220,12 +229,13 @@ async function refreshJob(jobId){
   if(cur&&cur.id===jobId)Object.assign(cur,fresh);
   return true;
 }
-function setCoStatus(msg,isError){
-  const el=document.getElementById("coSaveStatus");if(!el)return;
-  el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
+function setCoStatus(msg,isError,jobId){
+  const el=document.getElementById("coSaveStatus");
+  if(el){el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)"}
+  if(jobId){const el2=document.querySelector(`[data-jc-status="${jobId}"]`);if(el2){el2.textContent=msg;el2.style.color=isError?"var(--alert)":"var(--steel)"}}
 }
 async function saveCostField(jobId,field,rawValue){
-  setCoStatus("Saving…",false);
+  setCoStatus("Saving…",false,jobId);
   const blank=rawValue===""||rawValue==null;
   let error;
   if(JOB_COLUMN[field]){
@@ -239,13 +249,13 @@ async function saveCostField(jobId,field,rawValue){
       ({error}=await sb.from("job_costs").insert({job_id:jobId,category,amount:Number(rawValue)}));
     }
   }
-  if(error){setCoStatus("Error: "+error.message,true);return}
+  if(error){setCoStatus("Error: "+error.message,true,jobId);return}
   const ok=await refreshJob(jobId);
-  if(!ok){setCoStatus("Saved, but couldn't refresh — reload to confirm.",true);return}
+  if(!ok){setCoStatus("Saved, but couldn't refresh — reload to confirm.",true,jobId);return}
   if(cur&&cur.id===jobId&&st==="co")drawDetail();
-  drawToday();drawJobs();
-  setCoStatus("Saved",false);
-  setTimeout(()=>{if(document.getElementById("coSaveStatus")?.textContent==="Saved")setCoStatus("",false)},2000);
+  drawToday();drawJobs();drawJobCosting();
+  setCoStatus("Saved",false,jobId);
+  setTimeout(()=>{const el=jobId?document.querySelector(`[data-jc-status="${jobId}"]`):document.getElementById("coSaveStatus");if(el?.textContent==="Saved")setCoStatus("",false,jobId)},2000);
 }
 const STALL_STAGES=["In Progress","Final Walk-through","Punch list / Touch-ups (if needed)","Final payment due","Final payment received","Final Photos / Videos","Review Requested"];
 const GREETINGS={
@@ -291,13 +301,23 @@ function lineChartSVG(months){
 function kpiCard(icon,color,label,value,desc,spark){
   return `<div class="kpi"><div style="display:flex;align-items:center;gap:9px;margin-bottom:8px"><span style="${badgeStyle(color)}">${icon}</span><p class="k" style="margin:0">${label}</p></div><p class="v">${value}</p><p class="d">${desc}</p>${spark?sparklineSVG(spark,color):""}</div>`;
 }
-async function drawToday(){$("#greeting").textContent=greetingLine();const priced=jobs.filter(j=>j.revenue!=null&&!j.unpriced),rev=jobs.filter(j=>j.revenue!=null).reduce((s,j)=>s+j.revenue,0),pRev=priced.reduce((s,j)=>s+j.revenue,0),pGp=priced.reduce((s,j)=>s+j.gp,0),avg=pRev?pGp/pRev*100:0;
-  const yearStart=new Date().getFullYear()+"-01-01",yearEnd=new Date().getFullYear()+"-12-31";
-  const monthData=monthlySoldCompleted(jobs,yearStart,yearEnd);
+let dashStart=new Date().getFullYear()+"-01-01",dashEnd=new Date().toISOString().slice(0,10),dashReady=false;
+const dashDateInRange=date=>date&&date>=dashStart&&date<=dashEnd;
+async function drawToday(){$("#greeting").textContent=greetingLine();
+  if(!dashReady){
+    const heading=$("#s-today .lbl");
+    const controls=document.createElement("div");
+    controls.id="dashControls";
+    controls.style.marginTop="10px";
+    controls.innerHTML=`<div style="display:flex;gap:7px;flex-wrap:wrap"><button class="chip" data-dash-range="month">This Month</button><button class="chip" data-dash-range="lastMonth">Last Month</button><button class="chip" data-dash-range="year" aria-pressed="true">This Year</button><button class="chip" data-dash-range="all">All Time</button><button class="chip" data-dash-range="custom">Custom</button></div><div id="dashCustom" style="display:none;margin-top:9px"><div class="fld"><span class="k">From</span><input type="date" id="dashFrom" value="${dashStart}"></div><div class="fld" style="margin-top:7px"><span class="k">To</span><input type="date" id="dashTo" value="${dashEnd}"></div></div>`;
+    heading.after(controls);dashReady=true;
+  }
+  const priced=jobs.filter(j=>j.revenue!=null&&!j.unpriced&&dashDateInRange(j.sold)),rev=jobs.filter(j=>j.revenue!=null&&dashDateInRange(j.sold)).reduce((s,j)=>s+j.revenue,0),pRev=priced.reduce((s,j)=>s+j.revenue,0),pGp=priced.reduce((s,j)=>s+j.gp,0),avg=pRev?pGp/pRev*100:0;
+  const monthData=monthlySoldCompleted(jobs,dashStart,dashEnd);
   const soldTrend=MONTH_NAMES.filter(m=>monthData[m]).map(m=>monthData[m].sold);
   $("#kpis").innerHTML=[
-    kpiCard(svgIcon("money"),"var(--hivis)","Contract value",money(rev),jobs.filter(j=>j.revenue!=null).length+" jobs priced",soldTrend),
-    kpiCard(svgIcon("chart"),"var(--good)","Weighted margin",avg.toFixed(1)+"%",`based on ${priced.length} of ${jobs.length} jobs`),
+    kpiCard(svgIcon("money"),"var(--hivis)","Contract value",money(rev),jobs.filter(j=>j.revenue!=null&&dashDateInRange(j.sold)).length+" jobs sold in this period",soldTrend),
+    kpiCard(svgIcon("chart"),"var(--good)","Weighted margin",avg.toFixed(1)+"%",`based on ${priced.length} jobs sold in this period`),
     kpiCard(svgIcon("alert"),"var(--alert)","Needs attention",jobs.filter(j=>j.unpriced).length,"revenue, no costs entered"),
     kpiCard(svgIcon("building"),"var(--amber)","Open",jobs.filter(j=>j.stage!=="Completed").length,"not yet completed")
   ].join("");
@@ -370,6 +390,10 @@ function jobCardHTML(j){
     <select data-jf="crew" data-job="${j.id}" style="width:78px;flex-shrink:0;border-radius:5px;padding:5px 2px;font:inherit;font-size:11px;font-weight:600;${j.crew==="In House"?"background:rgba(62,156,109,.18);color:var(--good);border:1px solid rgba(62,156,109,.4)":j.crew==="Sub out"?"background:rgba(155,140,212,.2);color:var(--violet);border:1px solid rgba(155,140,212,.4)":"background:var(--navy-3);color:var(--text);border:1px solid var(--line)"}"><option value="">Crew…</option><option value="In House" ${j.crew==="In House"?"selected":""}>In House</option><option value="Sub out" ${j.crew==="Sub out"?"selected":""}>Sub out</option></select>
     ${inp("address_city",j.loc==="—"?"":j.loc,"Location","115px")}
     <span style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:auto">
+      <button data-job-updates="${j.id}" title="${j.updatesCount?j.updatesCount+" update"+(j.updatesCount===1?"":"s"):"No updates yet"}" style="position:relative;background:none;border:1px solid var(--line);color:${j.updatesCount?"var(--hivis)":"var(--steel)"};border-radius:5px;width:22px;height:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>
+        ${j.updatesCount?`<span style="position:absolute;top:-6px;right:-6px;background:var(--hivis);color:#fff;border-radius:8px;min-width:14px;height:14px;font-size:9px;line-height:14px;text-align:center;padding:0 3px;font-weight:700">${j.updatesCount>9?"9+":j.updatesCount}</span>`:""}
+      </button>
       <select data-jf="stage" data-job="${j.id}" class="stage ${stClass(j.stage)}" style="border:0;cursor:pointer;font-family:inherit;appearance:none;-webkit-appearance:none;padding:5px 9px">${STAGES.map(s=>`<option value="${s}" ${s===j.stage?"selected":""}>${s}</option>`).join("")}</select>
       <span data-job-status="${j.id}" style="font-size:10px;color:var(--steel);min-height:12px"></span>
       <button data-open="${j.id}" class="chip" style="padding:3px 8px;font-size:10px;flex-shrink:0">Open →</button>
@@ -421,8 +445,9 @@ async function deleteJobRecord(jobId,clientName){
   if(i>-1)jobs.splice(i,1);
   drawJobs();drawToday();
 }
-const F=(k,v,cls="")=>`<div class="fld ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`,FI=(k,f,v)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" value="${v??""}" placeholder="—"></div>`;
+const F=(k,v,cls="")=>`<div class="fld ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`,FI=(k,f,v)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" value="${v??""}" placeholder="—"></div>`,FI2=(k,f,v,jobId)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" data-job="${jobId}" value="${v??""}" placeholder="—"></div>`;
 function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";currentUpdates=null;currentPayments=null;$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stClass(cur.stage)}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#clientDetail").classList.add("hidden");$("#detail").classList.remove("hidden");window.scrollTo(0,0)}
+function openJobUpdates(id){openJob(id);st="up";document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="up"));drawDetail()}
 function drawDetail(){const j=cur,p=j.marginPct,b=$("#dBody");if(st==="ov")b.innerHTML=`${j.revenue==null?`<div class="empty">No contract price yet.<br>Fills in automatically when GHL marks the opportunity won.</div>`:j.unpriced?`<p class="bignum" style="color:var(--steel)">n/a</p><p class="lbl" style="margin-top:6px">Margin — not calculable</p><div class="flagbox">Contract is ${money(j.revenue)} but no costs or hours have been entered yet. That's <b>not</b> 100% margin — it's an unpriced job, kept out of the company average until real numbers land.</div>`:`<p class="bignum" style="color:${col(p)}">${p.toFixed(1)}%</p><p class="lbl" style="margin-top:6px">Gross margin · target 50%</p><div class="gauge"><div class="fill" style="width:${Math.max(Math.min(p,100),0)}%;background:${col(p)}"></div><div class="target"></div></div><div class="gaugecap"><span>${money(j.gp)} GP</span><span>${money(j.revenue)} revenue</span></div>`}<div class="grp" style="margin-top:18px"><h5>Delivery</h5><div class="fields">${F(`Stage <span class="src mon">Monday</span>`,j.stage)}${F(`Sold date <span class="src ghl">GHL</span>`,j.sold||"—")}${F(`Completed date <span class="src mon">Monday</span>`,j.done||"—")}${F(`Crew type <span class="src man">edit</span>`,j.crew||"—")}${F(`Permit required <span class="src mon">Monday</span>`,j.permitReq)}${F(`Lead source <span class="src ghl">GHL</span>`,j.src||"—")}</div></div>${(()=>{if(!j.clientId)return"";const sibs=jobs.filter(x=>x.clientId===j.clientId).sort((a,b)=>(a.sold||"9999").localeCompare(b.sold||"9999"));if(sibs.length<2)return"";const ord=sibs.findIndex(x=>x.id===j.id)+1;const others=sibs.filter(x=>x.id!==j.id);return `<div class="grp" style="margin-top:18px"><h5>Client history</h5><div class="flagbox" style="background:#1A2C4A;border-color:var(--line);color:var(--text)">${ord===1?"1st":ord===2?"2nd":ord===3?"3rd":ord+"th"} project for this client · ${sibs.length} total<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">${others.map(o=>`<button class="jrow" data-open="${o.id}" style="width:100%"><span class="id">${o.id}</span><span class="mid"><span class="cn">${o.type}</span><span class="mt">${o.sold||"—"}</span></span><span class="rt"><span class="stage ${stClass(o.stage)}">${o.stage}</span></span></button>`).join("")}</div></div></div>`})()}`;
 if(st==="co")b.innerHTML=`<p class="note" id="coSaveStatus" style="margin:0 0 11px;min-height:14px;border:0;padding:0"></p><div class="grp"><h5>Revenue breakdown</h5><div class="fields">${F(`Contract price <span class="src ghl">GHL</span>`,money(j.contract))}${FI("Change orders +/−","co",j.co)}${FI("Discounts / credits","disc",j.disc)}${F("Total revenue",money(j.revenue),"tot")}</div></div><div class="grp"><h5>Direct costs</h5><div class="fields">${F(`Labor · ${j.hrs} hrs @ $35 <span class="src zap">from Time</span>`,money(j.laborCost))}${FI("Materials","mat",j.mat)}${F(`Subcontractors <span class="src zap">from Subs tab</span>`,money(j.sub))}${FI("Equipment / rentals","equip",j.equip)}${F("Total direct cost",money(j.laborCost+j.materialCost),"tot")}</div></div><div class="grp"><h5>Additional costs</h5><div class="fields">${FI("Disposal / dumpster","disp",j.disp)}${FI("Permits / fees","permit",j.permit)}${FI("Fuel / travel","fuel",j.fuel)}${FI("Other / misc","other",j.other)}${F("Total additional",money(j.additionalCost),"tot")}</div></div><div class="grp"><h5>Overhead &amp; profit</h5><div class="fields">${FI("Overhead %","oh",j.oh)}${F("Overhead $",money(j.overheadCost))}${F("Total job cost",money(j.totalCost),"tot")}<div class="fld tot"><span class="k">Gross profit</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":money(j.gp)}</span></div><div class="fld tot"><span class="k">Margin %</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":j.unpriced?"n/a":p.toFixed(1)+"%"}</span></div></div></div>${j.unpriced?`<div class="flagbox">Margin shows <b>n/a</b>, not 100%, until at least one cost or hour is entered. A blank cost field is missing data, not free work.</div>`:""}<p class="note">Editing writes straight to Supabase — margin updates after each save reflect what's actually in the database.</p>`;
 if(st==="pay"){
@@ -504,6 +529,7 @@ async function postUpdate(){
   const author=currentUserProfile?.full_name||currentUserEmail||"Unknown";
   const {error}=await sb.from("job_updates").insert({job_id:jobId,author_id:user.id,author,body});
   if(error){setUpdateStatus("Error: "+error.message,true);return}
+  const jrec=jobs.find(x=>x.id===jobId);if(jrec)jrec.updatesCount=(jrec.updatesCount||0)+1;
   await loadUpdates();
   setUpdateStatus("Posted",false);
   setTimeout(()=>{if(document.getElementById("updateStatus")?.textContent==="Posted")setUpdateStatus("",false)},2000);
@@ -820,6 +846,67 @@ function openClient(clientId){
   $("#clJobsList").innerHTML=clientJobs.length?clientJobs.map(j=>`<button class="jrow" data-open="${j.id}" style="width:100%"><span class="id">${j.id}</span><span class="mid"><span class="cn">${j.type}</span><span class="mt">${j.sold||"—"}</span></span><span class="rt"><span class="rv" style="color:${col(j.unpriced?null:j.marginPct)}">${j.revenue==null?"—":j.unpriced?"n/a":j.marginPct.toFixed(0)+"%"}</span><span class="stage ${stClass(j.stage)}">${j.stage}</span></span></button>`).join(""):`<div class="empty">No linked jobs.</div>`;
   $("#clientDetail").classList.remove("hidden");
 }
+function jobCostRowDetail(j){
+  const heading=t=>`<h5 style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--steel);margin:0 0 9px">${t}</h5>`;
+  const row=(label,value)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--steel)">${label}</span><span style="font-family:'IBM Plex Mono',monospace">${value}</span></div>`;
+  const rowInput=(label,field,value)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px"><span style="color:var(--steel)">${label}</span><input type="number" data-c="${field}" data-job="${j.id}" value="${value??""}" placeholder="—" style="border:0;background:none;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right;width:90px;padding:2px"></div>`;
+  return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
+    <div>${heading("Revenue Breakdown")}${rowInput("Change Orders:","co",j.co)}${rowInput("Discounts/Credits:","disc",j.disc)}</div>
+    <div>${heading("Direct Costs")}${rowInput("Materials:","mat",j.mat)}${row("Labor (In-House):",money(j.laborCost))}${row("Labor (Subcontractor):",money(j.sub))}${rowInput("Equipment Rentals:","equip",j.equip)}</div>
+    <div>${heading("Additional Costs")}${rowInput("Disposal/Dumpster:","disp",j.disp)}${rowInput("Permits/Fees:","permit",j.permit)}${rowInput("Fuel/Travel:","fuel",j.fuel)}${rowInput("Other/Misc:","other",j.other)}</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:22px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap">
+    <span style="font-size:12.5px;color:var(--steel)">Overhead %: <input type="number" data-c="oh" data-job="${j.id}" value="${j.oh??""}" style="border:0;background:none;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12.5px;width:40px"></span>
+    <span style="font-size:12.5px;color:var(--steel)">Overhead $: <b style="color:var(--text);font-family:'IBM Plex Mono',monospace">${money(j.overheadCost)}</b></span>
+    <span data-jc-status="${j.id}" style="font-size:11px;color:var(--steel);flex:1;min-width:60px"></span>
+    <span class="stage" style="background:var(--navy-3);color:var(--steel)">${escapeHtml(j.type)}</span>
+  </div>${j.unpriced?`<div class="flagbox" style="margin-top:10px">Margin shows <b>n/a</b>, not 100%, until at least one cost or hour is entered.</div>`:""}`;
+}
+async function toggleCostingReviewed(jobId,checked){
+  const jrec=jobs.find(x=>x.id===jobId);
+  if(jrec)jrec.reviewed=checked;
+  const {error}=await sb.from("jobs").update({costing_reviewed:checked}).eq("job_id",jobId);
+  if(error){console.error(error);if(jrec)jrec.reviewed=!checked;drawJobCosting()}
+}
+function drawJobCosting(){
+  $("#jcStageChips").innerHTML=["All",...STAGES].map(s=>{
+    const n=s==="All"?jobs.length:jobs.filter(j=>j.stage===s).length;
+    return `<button class="chip ${s==="All"?"":stClass(s)}" aria-pressed="${jcStageFilter===s}" data-jcs="${escapeHtml(s)}">${escapeHtml(s)}<b>${n}</b></button>`;
+  }).join("");
+  const q=(jcQuery||"").toLowerCase();
+  let list=jobs.filter(j=>(jcStageFilter==="All"||j.stage===jcStageFilter)&&(!q||[j.client,j.id,j.type].join(" ").toLowerCase().includes(q)));
+  const hasMargin=j=>j.revenue!=null&&!j.unpriced;
+  list=[...list].sort((a,b)=>{
+    if(jcSort==="clientAsc")return (a.client||"").localeCompare(b.client||"");
+    if(jcSort==="revenueDesc"){
+      if((a.revenue==null)!==(b.revenue==null))return a.revenue==null?1:-1;
+      return (b.revenue||0)-(a.revenue||0);
+    }
+    const am=hasMargin(a),bm=hasMargin(b);
+    if(am!==bm)return am?-1:1;
+    if(!am)return (a.client||"").localeCompare(b.client||"");
+    return jcSort==="marginAsc"?a.marginPct-b.marginPct:b.marginPct-a.marginPct;
+  });
+  const rows=list.map(j=>{
+    const expanded=jcExpanded.has(j.id);
+    const directCost=j.laborCost+j.materialCost+(j.sub||0)+(j.equip||0);
+    const marginColor=col(j.unpriced?null:j.marginPct);
+    return `<tr>
+      <td style="width:20px"><button data-jc-expand="${j.id}" aria-label="Expand" style="background:none;border:0;color:var(--steel);cursor:pointer;font-size:13px">${expanded?"▾":"▸"}</button></td>
+      <td style="text-align:left;font-family:'IBM Plex Sans';font-weight:500">${escapeHtml(j.client)}</td>
+      <td><span class="stage ${stClass(j.stage)}">${j.stage}</span></td>
+      <td>${money(j.contract)}</td>
+      <td>${money(j.revenue)}</td>
+      <td>${money(directCost)}</td>
+      <td>${j.totalCost==null?"—":money(j.totalCost)}</td>
+      <td style="color:${marginColor}">${j.revenue==null?"—":j.unpriced?"n/a":money(j.gp)}</td>
+      <td style="color:${marginColor}">${j.revenue==null?"—":j.unpriced?"n/a":j.marginPct.toFixed(1)+"%"}</td>
+      <td><input type="checkbox" data-jc-reviewed="${j.id}" ${j.reviewed?"checked":""} title="Costing reviewed"></td>
+    </tr><tr data-jc-row="${j.id}" class="${expanded?"":"hidden"}"><td colspan="10" style="padding:12px 16px;background:var(--navy-3)">${jobCostRowDetail(j)}</td></tr>`;
+  }).join("");
+  $("#jobCostingTable").innerHTML=`<thead><tr><th></th><th style="text-align:left">Client Name</th><th>Status</th><th>Contract Price</th><th>Total Revenue</th><th>Direct Cost</th><th>Job Cost</th><th>Gross Profit</th><th>Margin %</th><th>Reviewed</th></tr></thead><tbody>${rows||'<tr><td colspan="10">No jobs match.</td></tr>'}</tbody>`;
+  $("#jobCostingCount").textContent=`${list.length} of ${jobs.length} jobs`;
+}
 let reportStart="2026-01-01",reportEnd=new Date().toISOString().slice(0,10),reportReady=false,reportSort="chrono";
 const reportDateInRange=date=>date&&date>=reportStart&&date<=reportEnd;
 function drawReports(){
@@ -840,12 +927,13 @@ function drawReports(){
 	const serviceData={};jobs.filter(job=>reportDateInRange(job.sold)).forEach(job=>{serviceData[job.type]||={count:0,revenue:0};serviceData[job.type].count++;serviceData[job.type].revenue+=job.revenue||0;});
 	$("#svcTable").innerHTML=`<thead><tr><th>Job type</th><th>Jobs</th><th>Revenue</th><th>Avg price</th></tr></thead><tbody>${Object.entries(serviceData).map(([type,data])=>`<tr><td>${type}</td><td>${data.count}</td><td>${money(data.revenue)}</td><td>${money(data.revenue/data.count)}</td></tr>`).join("")||'<tr><td colspan="4">No jobs in this period.</td></tr>'}</tbody>`;
 }
-document.addEventListener("click",e=>{if(e.target.id==="profileBtn"){renderProfilePanel();document.getElementById("profilePanel").classList.toggle("hidden");return}const pc=e.target.closest("[data-pf-color]");if(pc){saveProfileField("avatar_color",pc.dataset.pfColor);return}if(e.target.id==="pfAvatarBtn"||e.target.closest("#pfAvatarBtn")){document.getElementById("pfPhotoInput").click();return}if(e.target.id==="pfSaveBtn"){saveProfileFields();return}if(!e.target.closest("#profilePanel")&&e.target.id!=="profileBtn"){document.getElementById("profilePanel")?.classList.add("hidden")}if(e.target.id==="themeToggle"){applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");return}if(e.target.id==="backupBtn"){downloadBackup();return}if(e.target.id==="signOutBtn"){sb.auth.signOut();return}if(e.target.id==="postUpdateBtn"){postUpdate();return}if(e.target.id==="addPaymentBtn"){addPayment();return}const dp=e.target.closest("[data-del-payment]");if(dp){deletePayment(dp.dataset.delPayment);return}if(e.target.id==="addSubBtn"){createSubcontractor();return}const ds=e.target.closest("[data-del-sub]");if(ds){const sub=subcontractors.find(s=>s.sub_id===ds.dataset.delSub);deleteSubcontractor(ds.dataset.delSub,sub?.name||"");return}if(e.target.id==="addSpBtn"){addSubPayment();return}const dsp=e.target.closest("[data-del-sp]");if(dsp){const row=subPayments.find(r=>r.contract_id===dsp.dataset.delSp);deleteSubPayment(dsp.dataset.delSp,row?.job_id||null);return}if(e.target.dataset.addBlock){blocksOf(e.target.dataset.addBlock).push({});drawRoster();return}if(e.target.dataset.removeBlock){const[rp,ri]=e.target.dataset.removeBlock.split(":");blocksOf(rp).splice(+ri,1);drawRoster();window.syncRoster?.();return}if(e.target.dataset.savePerson){saveRosterEntry(e.target.dataset.savePerson);return}const s=e.target.closest("[data-s]");if(s){jobStageFilter=s.dataset.s;drawJobs();return}const jm=e.target.closest("[data-job-menu]");if(jm){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>{if(p.dataset.jobMenuPanel!==jm.dataset.jobMenu)p.classList.add("hidden")});document.querySelector(`[data-job-menu-panel="${jm.dataset.jobMenu}"]`)?.classList.toggle("hidden");return}const dj=e.target.closest("[data-delete-job]");if(dj){const jb=jobs.find(x=>x.id===dj.dataset.deleteJob);deleteJobRecord(dj.dataset.deleteJob,jb?.client||"this job");return}if(!e.target.closest("[data-job-menu-panel]")&&!e.target.closest("[data-job-menu]")){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>p.classList.add("hidden"))}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const op=e.target.closest("[data-open-payroll]");if(op){openPayrollPeriod(op.dataset.openPayroll);return}if(e.target.id==="payrollBack"){$("#payrollDetail").classList.add("hidden");drawPayroll();return}const oc=e.target.closest("[data-open-client]");if(oc){openClient(oc.dataset.openClient);return}if(e.target.id==="clientBack"){$("#clientDetail").classList.add("hidden");return}if(e.target.id==="ppToggle"){togglePayrollPaid();return}if(e.target.id==="ppExport"){exportPayrollCsv();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest(".sidebarLink[data-tab]");if(t){document.querySelectorAll(".sidebarLink[data-tab]").forEach(b=>b.setAttribute("aria-current",b===t));["today","jobs","time","leads","reports","payroll","billing","subs","clients"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab));if(t.dataset.tab==="payroll")drawPayroll();if(t.dataset.tab==="billing")drawBilling();if(t.dataset.tab==="subs")drawSubs();if(t.dataset.tab==="clients")drawClients();$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}const tg=e.target.closest("[data-toggle-group]");if(tg){const body=tg.nextElementSibling;const willOpen=tg.getAttribute("aria-expanded")!=="true";tg.setAttribute("aria-expanded",String(willOpen));body.classList.toggle("collapsed",!willOpen);localStorage.setItem("sidebarGroup:"+tg.dataset.toggleGroup,String(willOpen));return}if(e.target.id==="hamburgerBtn"){$("#sidebar").classList.toggle("open");$("#sidebarBackdrop").classList.toggle("show");return}if(e.target.id==="sidebarBackdrop"){$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}});
+document.addEventListener("click",e=>{if(e.target.id==="profileBtn"){renderProfilePanel();document.getElementById("profilePanel").classList.toggle("hidden");return}const pc=e.target.closest("[data-pf-color]");if(pc){saveProfileField("avatar_color",pc.dataset.pfColor);return}if(e.target.id==="pfAvatarBtn"||e.target.closest("#pfAvatarBtn")){document.getElementById("pfPhotoInput").click();return}if(e.target.id==="pfSaveBtn"){saveProfileFields();return}if(!e.target.closest("#profilePanel")&&e.target.id!=="profileBtn"){document.getElementById("profilePanel")?.classList.add("hidden")}if(e.target.id==="themeToggle"){applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");return}if(e.target.id==="backupBtn"){downloadBackup();return}if(e.target.id==="signOutBtn"){sb.auth.signOut();return}if(e.target.id==="postUpdateBtn"){postUpdate();return}if(e.target.id==="addPaymentBtn"){addPayment();return}const dp=e.target.closest("[data-del-payment]");if(dp){deletePayment(dp.dataset.delPayment);return}if(e.target.id==="addSubBtn"){createSubcontractor();return}const ds=e.target.closest("[data-del-sub]");if(ds){const sub=subcontractors.find(s=>s.sub_id===ds.dataset.delSub);deleteSubcontractor(ds.dataset.delSub,sub?.name||"");return}if(e.target.id==="addSpBtn"){addSubPayment();return}const dsp=e.target.closest("[data-del-sp]");if(dsp){const row=subPayments.find(r=>r.contract_id===dsp.dataset.delSp);deleteSubPayment(dsp.dataset.delSp,row?.job_id||null);return}if(e.target.dataset.addBlock){blocksOf(e.target.dataset.addBlock).push({});drawRoster();return}if(e.target.dataset.removeBlock){const[rp,ri]=e.target.dataset.removeBlock.split(":");blocksOf(rp).splice(+ri,1);drawRoster();window.syncRoster?.();return}if(e.target.dataset.savePerson){saveRosterEntry(e.target.dataset.savePerson);return}const s=e.target.closest("[data-s]");if(s){jobStageFilter=s.dataset.s;drawJobs();return}const jcs=e.target.closest("[data-jcs]");if(jcs){jcStageFilter=jcs.dataset.jcs;drawJobCosting();return}const jce=e.target.closest("[data-jc-expand]");if(jce){const id=jce.dataset.jcExpand;jcExpanded.has(id)?jcExpanded.delete(id):jcExpanded.add(id);drawJobCosting();return}const jm=e.target.closest("[data-job-menu]");if(jm){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>{if(p.dataset.jobMenuPanel!==jm.dataset.jobMenu)p.classList.add("hidden")});document.querySelector(`[data-job-menu-panel="${jm.dataset.jobMenu}"]`)?.classList.toggle("hidden");return}const dj=e.target.closest("[data-delete-job]");if(dj){const jb=jobs.find(x=>x.id===dj.dataset.deleteJob);deleteJobRecord(dj.dataset.deleteJob,jb?.client||"this job");return}if(!e.target.closest("[data-job-menu-panel]")&&!e.target.closest("[data-job-menu]")){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>p.classList.add("hidden"))}const ju=e.target.closest("[data-job-updates]");if(ju){openJobUpdates(ju.dataset.jobUpdates);return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const op=e.target.closest("[data-open-payroll]");if(op){openPayrollPeriod(op.dataset.openPayroll);return}if(e.target.id==="payrollBack"){$("#payrollDetail").classList.add("hidden");drawPayroll();return}const oc=e.target.closest("[data-open-client]");if(oc){openClient(oc.dataset.openClient);return}if(e.target.id==="clientBack"){$("#clientDetail").classList.add("hidden");return}if(e.target.id==="ppToggle"){togglePayrollPaid();return}if(e.target.id==="ppExport"){exportPayrollCsv();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest(".sidebarLink[data-tab]");if(t){document.querySelectorAll(".sidebarLink[data-tab]").forEach(b=>b.setAttribute("aria-current",b===t));["today","jobs","time","leadstracker","leadsourcereport","reports","payroll","billing","subs","clients","jobcosting"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab));if(t.dataset.tab==="payroll")drawPayroll();if(t.dataset.tab==="billing")drawBilling();if(t.dataset.tab==="subs")drawSubs();if(t.dataset.tab==="clients")drawClients();if(t.dataset.tab==="jobcosting")drawJobCosting();$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}const tg=e.target.closest("[data-toggle-group]");if(tg){const body=tg.nextElementSibling;const willOpen=tg.getAttribute("aria-expanded")!=="true";tg.setAttribute("aria-expanded",String(willOpen));body.classList.toggle("collapsed",!willOpen);localStorage.setItem("sidebarGroup:"+tg.dataset.toggleGroup,String(willOpen));return}if(e.target.id==="hamburgerBtn"){$("#sidebar").classList.toggle("open");$("#sidebarBackdrop").classList.toggle("show");return}if(e.target.id==="sidebarBackdrop"){$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}});
 document.addEventListener("click",e=>{const rs=e.target.closest("[data-report-sort]");if(rs){reportSort=rs.dataset.reportSort;document.querySelectorAll("[data-report-sort]").forEach(b=>b.setAttribute("aria-pressed",b===rs));drawReports();return}});
 document.addEventListener("click",e=>{const range=e.target.closest("[data-report-range]");if(!range)return;const today=new Date(),year=today.getFullYear(),month=String(today.getMonth()+1).padStart(2,"0");document.querySelectorAll("[data-report-range]").forEach(button=>button.setAttribute("aria-pressed",button===range));if(range.dataset.reportRange==="month"){reportStart=`${year}-${month}-01`;reportEnd=today.toISOString().slice(0,10);$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="year"){reportStart=`${year}-01-01`;reportEnd=today.toISOString().slice(0,10);$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="all"){reportStart="0000-01-01";reportEnd="9999-12-31";$("#reportCustom").style.display="none"}else{$("#reportCustom").style.display="block"}drawReports()});
 document.querySelectorAll("[data-toggle-group]").forEach(head=>{const key=head.dataset.toggleGroup;if(localStorage.getItem("sidebarGroup:"+key)==="false"){head.setAttribute("aria-expanded","false");head.nextElementSibling.classList.add("collapsed")}});
-document.addEventListener("input",e=>{const t=e.target;if(t.id==="reportFrom"||t.id==="reportTo"){if($("#reportFrom").value&&$("#reportTo").value){reportStart=$("#reportFrom").value;reportEnd=$("#reportTo").value;drawReports()}return}if(t.id==="q"){query=t.value;drawJobs();return}if(t.dataset.p){const blocks=blocksOf(t.dataset.p);(blocks[+t.dataset.i]||={})[t.dataset.f]=t.value;drawRoster();return}});
-document.addEventListener("change",e=>{const t=e.target;if(t.dataset.c&&cur){saveCostField(cur.id,t.dataset.c,t.value);return}if(t.dataset.sub){updateSubField(t.dataset.sub,t.dataset.f,t.type==="checkbox"?t.checked:(t.value||null));return}if(t.dataset.jf){saveJobField(t.dataset.job,t.dataset.jf,t.value);return}if(t.id==="pfPhotoInput"){uploadAvatarPhoto(t.files[0]);return}});
+document.addEventListener("click",e=>{const range=e.target.closest("[data-dash-range]");if(!range)return;const today=new Date(),year=today.getFullYear(),month=String(today.getMonth()+1).padStart(2,"0");document.querySelectorAll("[data-dash-range]").forEach(button=>button.setAttribute("aria-pressed",button===range));if(range.dataset.dashRange==="month"){dashStart=`${year}-${month}-01`;dashEnd=today.toISOString().slice(0,10);$("#dashCustom").style.display="none"}else if(range.dataset.dashRange==="lastMonth"){const lm=new Date(year,today.getMonth()-1,1),lmY=lm.getFullYear(),lmM=String(lm.getMonth()+1).padStart(2,"0"),lmDays=new Date(lm.getFullYear(),lm.getMonth()+1,0).getDate();dashStart=`${lmY}-${lmM}-01`;dashEnd=`${lmY}-${lmM}-${String(lmDays).padStart(2,"0")}`;$("#dashCustom").style.display="none"}else if(range.dataset.dashRange==="year"){dashStart=`${year}-01-01`;dashEnd=today.toISOString().slice(0,10);$("#dashCustom").style.display="none"}else if(range.dataset.dashRange==="all"){dashStart="0000-01-01";dashEnd="9999-12-31";$("#dashCustom").style.display="none"}else{if(dashStart==="0000-01-01")dashStart=`${year}-01-01`;if(dashEnd==="9999-12-31")dashEnd=today.toISOString().slice(0,10);$("#dashFrom").value=dashStart;$("#dashTo").value=dashEnd;$("#dashCustom").style.display="block"}drawToday()});
+document.addEventListener("input",e=>{const t=e.target;if(t.id==="reportFrom"||t.id==="reportTo"){if($("#reportFrom").value&&$("#reportTo").value){reportStart=$("#reportFrom").value;reportEnd=$("#reportTo").value;drawReports()}return}if(t.id==="dashFrom"||t.id==="dashTo"){if($("#dashFrom").value&&$("#dashTo").value){dashStart=$("#dashFrom").value;dashEnd=$("#dashTo").value;drawToday()}return}if(t.id==="q"){query=t.value;drawJobs();return}if(t.id==="jcQuery"){jcQuery=t.value;drawJobCosting();return}if(t.dataset.p){const blocks=blocksOf(t.dataset.p);(blocks[+t.dataset.i]||={})[t.dataset.f]=t.value;drawRoster();return}});
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset.c){saveCostField(t.dataset.job||cur?.id,t.dataset.c,t.value);return}if(t.id==="jcSort"){jcSort=t.value;drawJobCosting();return}if(t.dataset.jcReviewed){toggleCostingReviewed(t.dataset.jcReviewed,t.checked);return}if(t.dataset.sub){updateSubField(t.dataset.sub,t.dataset.f,t.type==="checkbox"?t.checked:(t.value||null));return}if(t.dataset.jf){saveJobField(t.dataset.job,t.dataset.jf,t.value);return}if(t.id==="pfPhotoInput"){uploadAvatarPhoto(t.files[0]);return}});
 document.addEventListener("focusin",e=>{if(e.target.dataset.jf==="contract_price")e.target.value=e.target.value.replace(/[^0-9.-]/g,"")});
 document.addEventListener("focusout",e=>{if(e.target.dataset.jf==="contract_price"){const clean=e.target.value.replace(/[^0-9.-]/g,"");e.target.value=clean===""?"":moneyPrecise(Number(clean))}});
 
@@ -995,20 +1083,20 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 	async function fetchLeads(){
 		const {data,error}=await sb.from("leads").select("*").order("lead_date",{ascending:false});
 		if(error){console.error(error);return}
-		leadRecords=(data||[]).map(l=>({id:l.lead_id,name:l.name,source:l.source||"",status:l.status,leadDate:l.lead_date,value:Number(l.est_value)||0}));
+		leadRecords=(data||[]).map(l=>({id:l.lead_id,name:l.name,phone:l.phone||"",email:l.email||"",source:l.source||"",status:l.status,leadDate:l.lead_date,value:Number(l.est_value)||0,notes:l.notes||""}));
 	}
 	function setLeadStatus(msg,isError){
 		const el=document.getElementById("leadSaveStatus");if(!el)return;
 		el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
 	}
-	const LEAD_COLUMN={source:"source",status:"status",leadDate:"lead_date",value:"est_value"};
+	const LEAD_COLUMN={source:"source",status:"status",leadDate:"lead_date",value:"est_value",phone:"phone",email:"email",notes:"notes"};
 	async function updateLeadField(leadId,field,rawValue){
 		const column=LEAD_COLUMN[field];if(!column)return;
 		setLeadStatus("Saving…",false);
-		const value=field==="value"?(rawValue===""?0:Number(rawValue)):rawValue;
+		const value=field==="value"?(rawValue===""?0:Number(rawValue)):(rawValue===""?null:rawValue);
 		const {error}=await sb.from("leads").update({[column]:value}).eq("lead_id",leadId);
 		if(error){setLeadStatus("Error: "+error.message,true);return}
-		await fetchLeads();drawLeadReport();drawLeadList();
+		await fetchLeads();drawLeadList();drawLeadReport();
 		setLeadStatus("Saved",false);
 		setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Saved")setLeadStatus("",false)},2000);
 	}
@@ -1020,7 +1108,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			lead_date:fields.leadDate,est_value:fields.value===""?null:Number(fields.value)
 		});
 		if(error){setLeadStatus("Error: "+error.message,true);return}
-		await fetchLeads();drawLeadReport();drawLeadList();
+		await fetchLeads();drawLeadList();drawLeadReport();
 		setLeadStatus("Saved",false);
 		setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Saved")setLeadStatus("",false)},2000);
 	}
@@ -1029,18 +1117,47 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		setLeadStatus("Deleting…",false);
 		const {error}=await sb.from("leads").delete().eq("lead_id",leadId);
 		if(error){setLeadStatus("Error: "+error.message,true);return}
-		await fetchLeads();drawLeadReport();drawLeadList();
+		await fetchLeads();drawLeadList();drawLeadReport();
 		setLeadStatus("Deleted",false);
 		setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Deleted")setLeadStatus("",false)},2000);
 	}
 	const sourceOptions = ["Facebook", "Website", "Facebook Ads", "Alex Reached out", "Instagram", "Referral", "Nextdoor", "Google"];
 	const statusOptions = ["New", "Contacted", "Estimated", "Won", "Lost"];
+
+	// ---------- Leads Tracker page: flat editable log, no date filter (matches the spreadsheet) ----------
+	const trackerPanel = $("#s-leadstracker");
+	const trackerHTML = document.createElement("div");
+	trackerHTML.innerHTML = `<p class="lbl">New lead</p>
+	<p class="note" id="leadSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p>
+	<div class="fields" style="margin-bottom:18px">
+		<div class="fld"><span class="k">Name</span><input type="text" id="newLeadName" placeholder="Lead name" style="width:170px"></div>
+		<div class="fld"><span class="k">Source</span><select id="newLeadSource" style="width:170px"><option value="">Source…</option>${sourceOptions.map(s=>`<option>${s}</option>`).join("")}</select></div>
+		<div class="fld"><span class="k">Lead date</span><input type="date" id="newLeadDate" style="width:170px"></div>
+		<div class="fld"><span class="k">Value</span><input type="number" id="newLeadValue" placeholder="—" style="width:170px"></div>
+	</div>
+	<button id="addLeadBtn" class="chip" style="margin-bottom:22px">Add lead</button>
+	<p class="lbl">All leads · <span id="totalLeadsCount">0</span> total</p>
+	<input class="search" id="leadSearch" placeholder="Search lead name…">
+	<div id="leadList"></div>`;
+	trackerPanel.append(trackerHTML);
+	document.getElementById("newLeadDate").value = new Date().toISOString().slice(0,10);
+
+	const drawLeadList = () => {
+		const query = ($("#leadSearch")?.value||"").toLowerCase();
+		const filtered = leadRecords.filter(lead => lead.name.toLowerCase().includes(query));
+		$("#totalLeadsCount").textContent = filtered.length;
+		$("#leadList").innerHTML = filtered.length ? filtered.map(lead => {
+			const statusColor = lead.status==="Won"?"var(--good)":lead.status==="Lost"?"var(--alert)":lead.status==="Estimated"?"var(--amber)":lead.status==="Contacted"?"var(--sky)":"var(--steel)";
+			return `<div class="fld" style="margin-bottom:7px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><span class="k" style="flex-basis:100%"><b style="color:var(--text);font-size:14px">${escapeHtml(lead.name)}</b></span><input type="date" data-lead-id="${lead.id}" data-field="leadDate" value="${lead.leadDate||""}" style="width:110px" aria-label="Lead date"><input type="text" data-lead-id="${lead.id}" data-field="phone" value="${escapeHtml(lead.phone)}" placeholder="Phone" style="width:110px" aria-label="Phone"><input type="text" data-lead-id="${lead.id}" data-field="email" value="${escapeHtml(lead.email)}" placeholder="Email" style="width:160px" aria-label="Email"><select data-lead-id="${lead.id}" data-field="source" aria-label="Source" style="width:120px"><option value="">Source</option>${sourceOptions.map(s=>`<option ${lead.source===s?"selected":""}>${s}</option>`).join("")}</select><select data-lead-id="${lead.id}" data-field="status" aria-label="Status" style="width:100px;color:${statusColor}">${statusOptions.map(s=>`<option ${lead.status===s?"selected":""}>${s}</option>`).join("")}</select><input type="text" data-lead-id="${lead.id}" data-field="notes" value="${escapeHtml(lead.notes)}" placeholder="Notes" style="width:160px" aria-label="Notes"><button data-lead-delete="${lead.id}" aria-label="Delete lead" title="Delete lead" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:26px;height:26px;line-height:1;cursor:pointer;font-size:15px">×</button></div>`;
+		}).join("") : '<div class="empty">No leads yet.</div>';
+	};
+
+	// ---------- Lead Source Report page: by-source funnel table, its own date filter ----------
+	const reportPanel = $("#s-leadsourcereport");
 	let filterStart = new Date();
 	let filterEnd = new Date();
 	filterStart.setDate(1);
-	const today = new Date();
-	const leadsPanel = $("#s-leads");
-	
+
 	const getDateRange = (preset) => {
 		const now = new Date();
 		const start = new Date(now), end = new Date(now);
@@ -1057,38 +1174,25 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)];
 	};
 
-	const sourceList = document.createElement("div");
-	sourceList.innerHTML = `<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap">
-		<button id="rangeWeek" class="chip" aria-pressed="false">This Week</button>
-		<button id="rangeMonth" class="chip" aria-pressed="true">This Month</button>
-		<button id="rangeYear" class="chip" aria-pressed="false">This Year</button>
-		<button id="rangeCustom" class="chip" aria-pressed="false">Custom</button>
-		<button id="rangeAll" class="chip" aria-pressed="false">All</button>
+	const reportHTML = document.createElement("div");
+	reportHTML.innerHTML = `<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap">
+		<button id="lsrRangeWeek" class="chip" aria-pressed="false">This Week</button>
+		<button id="lsrRangeMonth" class="chip" aria-pressed="true">This Month</button>
+		<button id="lsrRangeYear" class="chip" aria-pressed="false">This Year</button>
+		<button id="lsrRangeCustom" class="chip" aria-pressed="false">Custom</button>
+		<button id="lsrRangeAll" class="chip" aria-pressed="false">All</button>
 	</div>
-	<div id="customRange" style="display:none;margin-bottom:12px">
+	<div id="lsrCustomRange" style="display:none;margin-bottom:12px">
 		<div class="fld" style="border:1px solid var(--line);border-radius:10px">
-			<span class="k">From</span><input type="date" id="rangeFrom" style="width:110px">
+			<span class="k">From</span><input type="date" id="lsrRangeFrom" style="width:110px">
 		</div>
 		<div class="fld" style="border:1px solid var(--line);border-radius:10px;margin-top:7px">
-			<span class="k">To</span><input type="date" id="rangeTo" style="width:110px">
+			<span class="k">To</span><input type="date" id="lsrRangeTo" style="width:110px">
 		</div>
 	</div>
-	<p class="lbl">New lead</p>
-	<p class="note" id="leadSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p>
-	<div class="fields" style="margin-bottom:18px">
-		<div class="fld"><span class="k">Name</span><input type="text" id="newLeadName" placeholder="Lead name" style="width:170px"></div>
-		<div class="fld"><span class="k">Source</span><select id="newLeadSource" style="width:170px"><option value="">Source…</option>${sourceOptions.map(s=>`<option>${s}</option>`).join("")}</select></div>
-		<div class="fld"><span class="k">Lead date</span><input type="date" id="newLeadDate" style="width:170px"></div>
-		<div class="fld"><span class="k">Value</span><input type="number" id="newLeadValue" placeholder="—" style="width:170px"></div>
-	</div>
-	<button id="addLeadBtn" class="chip" style="margin-bottom:22px">Add lead</button>
-	<p class="lbl">Dashboard <span id="dashboardMonth" style="color:var(--hivis)"></span></p>
-	<div id="leadReport"></div>
-	<p class="lbl" style="margin-top:22px">Leads this period · <span id="totalLeadsCount">0</span> total</p>
-	<input class="search" id="leadSearch" placeholder="Search lead name…">
-	<div id="leadList"></div>`;
-	leadsPanel.append(sourceList);
-	document.getElementById("newLeadDate").value = new Date().toISOString().slice(0,10);
+	<p class="lbl">By source <span id="lsrMonth" style="color:var(--hivis)"></span></p>
+	<div id="leadReport"></div>`;
+	reportPanel.append(reportHTML);
 
 	const [start, end] = getDateRange("month");
 	filterStart = new Date(start);
@@ -1104,7 +1208,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			return leadD >= filterStart && leadD <= filterEnd;
 		});
 		const monthYear = filterStart.toLocaleString("en-US", {month: "long", year: "numeric"});
-		$("#dashboardMonth").textContent = `· ${monthYear}`;
+		$("#lsrMonth").textContent = `· ${monthYear}`;
 		filtered.forEach(lead => {
 			if (!bySource[lead.source]) bySource[lead.source] = {new: 0, contacted: 0, estimated: 0, won: 0, lost: 0, total: 0, wonValue: 0};
 			const key = (lead.status || "New").toLowerCase();
@@ -1119,27 +1223,13 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		$("#leadReport").innerHTML = `<div class="scroller"><table><thead><tr><th>Source</th><th>Total</th><th>New</th><th>Contacted</th><th>Est</th><th>Won</th><th>Lost</th><th>Close %</th><th>Won value</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
 	};
 
-	const drawLeadList = () => {
-		const query = $("#leadSearch").value.toLowerCase();
-		const filtered = leadRecords.filter(lead => {
-			const leadD = new Date(lead.leadDate);
-			return (leadD >= filterStart && leadD <= filterEnd) && lead.name.toLowerCase().includes(query);
-		});
-		$("#totalLeadsCount").textContent = filtered.length;
-		$("#leadList").innerHTML = filtered.length ? filtered.map(lead => {
-			const statusColor = lead.status==="Won"?"var(--good)":lead.status==="Lost"?"var(--alert)":lead.status==="Estimated"?"var(--amber)":lead.status==="Contacted"?"var(--sky)":"var(--steel)";
-			return `<div class="fld" style="margin-bottom:7px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><span class="k" style="flex-basis:100%"><b style="color:var(--text);font-size:14px">${lead.name}</b></span><select data-lead-id="${lead.id}" data-field="source" aria-label="Source" style="width:120px"><option value="">Source</option>${sourceOptions.map(s=>`<option ${lead.source===s?"selected":""}>${s}</option>`).join("")}</select><select data-lead-id="${lead.id}" data-field="status" aria-label="Status" style="width:100px;color:${statusColor}">${statusOptions.map(s=>`<option ${lead.status===s?"selected":""}>${s}</option>`).join("")}</select><input type="date" data-lead-id="${lead.id}" data-field="leadDate" value="${lead.leadDate||""}" style="width:110px" aria-label="Lead date"><input type="number" data-lead-id="${lead.id}" data-field="value" value="${lead.value}" placeholder="Value" style="width:90px" aria-label="Deal value"><button data-lead-delete="${lead.id}" aria-label="Delete lead" title="Delete lead" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:26px;height:26px;line-height:1;cursor:pointer;font-size:15px">×</button></div>`;
-		}).join("") : '<div class="empty">No leads in this period.</div>';
-	};
-
 	document.addEventListener("input", event => {
 		if (event.target.id === "leadSearch") drawLeadList();
-		if (event.target.id === "rangeFrom" || event.target.id === "rangeTo") {
-			if (document.getElementById("rangeFrom").value && document.getElementById("rangeTo").value) {
-				filterStart = new Date(document.getElementById("rangeFrom").value);
-				filterEnd = new Date(document.getElementById("rangeTo").value);
+		if (event.target.id === "lsrRangeFrom" || event.target.id === "lsrRangeTo") {
+			if (document.getElementById("lsrRangeFrom").value && document.getElementById("lsrRangeTo").value) {
+				filterStart = new Date(document.getElementById("lsrRangeFrom").value);
+				filterEnd = new Date(document.getElementById("lsrRangeTo").value);
 				drawLeadReport();
-				drawLeadList();
 			}
 			return;
 		}
@@ -1152,19 +1242,18 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			return;
 		}
 		const preset = event.target.id;
-		if (preset === "rangeWeek" || preset === "rangeMonth" || preset === "rangeYear" || preset === "rangeAll") {
-			document.getElementById("customRange").style.display = "none";
-			document.querySelectorAll("#s-leads .chip").forEach(btn => btn.setAttribute("aria-pressed", "false"));
+		if (preset === "lsrRangeWeek" || preset === "lsrRangeMonth" || preset === "lsrRangeYear" || preset === "lsrRangeAll") {
+			document.getElementById("lsrCustomRange").style.display = "none";
+			document.querySelectorAll("#s-leadsourcereport .chip").forEach(btn => btn.setAttribute("aria-pressed", "false"));
 			event.target.setAttribute("aria-pressed", "true");
-			const [start, end] = getDateRange(preset.replace("range", "").toLowerCase());
+			const [start, end] = getDateRange(preset.replace("lsrRange", "").toLowerCase());
 			filterStart = new Date(start);
 			filterEnd = new Date(end);
 			drawLeadReport();
-			drawLeadList();
 		}
-		if (preset === "rangeCustom") {
-			document.getElementById("customRange").style.display = "block";
-			document.querySelectorAll("#s-leads .chip").forEach(btn => btn.setAttribute("aria-pressed", "false"));
+		if (preset === "lsrRangeCustom") {
+			document.getElementById("lsrCustomRange").style.display = "block";
+			document.querySelectorAll("#s-leadsourcereport .chip").forEach(btn => btn.setAttribute("aria-pressed", "false"));
 			event.target.setAttribute("aria-pressed", "true");
 		}
 		if (preset === "addLeadBtn") {
@@ -1186,9 +1275,9 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		const leadId = event.target.dataset.leadId;
 		if (leadId) updateLeadField(leadId, event.target.dataset.field, event.target.value);
 	});
-	drawLeadReport();
 	drawLeadList();
-	window.refreshLeads = async () => { await fetchLeads(); drawLeadReport(); drawLeadList(); };
+	drawLeadReport();
+	window.refreshLeads = async () => { await fetchLeads(); drawLeadList(); drawLeadReport(); };
 })();
 </script>
 </body>
