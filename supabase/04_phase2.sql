@@ -108,7 +108,8 @@ order by sum(yearly_cost) desc;
 -- ============================================================
 --  What the job overhead % SHOULD be, from real numbers.
 --
---  Compare this against jobs.overhead_pct (currently 12). If the
+--  Compare this against jobs.overhead_pct (12 by default in
+--  01_schema.sql, raised to 18 in 28_overhead_18pct.sql). If the
 --  suggested rate drifts far from what jobs are charged, margins
 --  are quietly wrong.
 -- ============================================================
