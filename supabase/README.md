@@ -2,8 +2,14 @@
 
 Run these in order against a fresh Supabase project to rebuild the database
 from nothing. Every file is safe to re-run unless its own header says
-otherwise. Run order matches filename order — 01 through 24, no gaps, no
+otherwise. Run order matches filename order — 01 through 27, no gaps, no
 duplicate numbers.
+
+**One exception to "just run them in order":** `26_add_labor_category.sql`
+must be run on its own, in its own transaction, before
+`27_import_real_costs.sql`. Postgres will not let a newly added enum value
+be used in the same transaction that created it, and 27 inserts cost rows
+using the `Labor` category that 26 adds. Run 26, let it commit, then run 27.
 
 | # | File | What it does |
 |---|------|---------------|
@@ -31,6 +37,9 @@ duplicate numbers.
 | 22 | `22_costing_reviewed.sql` | Adds a done/not-done checkbox to each job, separate from its delivery stage. Independent — run any time. |
 | 23 | `23_admin_tracker.sql` | Admin Tracker: imports 153 real historical daily rows, adds `estimate_booked_date` so future days compute live from real leads instead. Independent — run any time. |
 | 24 | `24_closer_tracker.sql` | Closer Tracker: imports 151 real historical daily rows, adds `shown`/`shown_date` so future days compute live from real leads (`sale_date`/`closed_revenue` already existed, unused until now). Independent — run any time. |
+| 25 | `25_fix_cost_attribution.sql` | Reattaches four seed cost rows that kept old SLX ids after the seed was regenerated — moving Adriana Britton's $14,214 off Elda Hernandez's job (the −186% margin), and three smaller ones. Matched by client name and exact amount. Adds `jobs_costing_more_than_revenue` and `seeded_cost_check` verify views. Run AFTER 24. Safe to re-run. |
+| 26 | `26_add_labor_category.sql` | Adds a `Labor` value to the `cost_category` enum, for historical jobs whose only labor record is the Job Costing sheet (no time entries). **Run on its own, before 27** — see the note above. Safe to re-run. |
+| 27 | `27_import_real_costs.sql` | Imports the real Job Costing sheet: 95 cost rows across 69 jobs, $341,230 total, Materials and Labor per job. Matched by client name; Labor is skipped for any job that already has logged hours so nothing double-counts. Unmatched rows surface in `costing_import_unmatched`. Run AFTER 26. Safe to re-run. |
 
 ## Why the order matters
 
