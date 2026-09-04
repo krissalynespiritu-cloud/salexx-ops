@@ -2,7 +2,7 @@
 
 Run these in order against a fresh Supabase project to rebuild the database
 from nothing. Every file is safe to re-run unless its own header says
-otherwise. Run order matches filename order — 01 through 30, no gaps, no
+otherwise. Run order matches filename order — 01 through 31, no gaps, no
 duplicate numbers.
 
 **One exception to "just run them in order":** `26_add_labor_category.sql`
@@ -43,6 +43,7 @@ using the `Labor` category that 26 adds. Run 26, let it commit, then run 27.
 | 28 | `28_overhead_18pct.sql` | Raises the company overhead rate from 12% to 18%: new column defaults on `jobs` and `settings`, plus every existing job still at exactly 12.00. Deliberate per-job overrides are left alone. Weighted margin on the dashboard drops a few points afterward — the old rate under-charged overhead. Run AFTER 27. Safe to re-run. |
 | 29 | `29_editable_job_costing.sql` | Adds `jobs.manual_hours` and redefines `job_financials` so a `Labor` cost row counts as in-house labor and a `Subcontractors` cost row counts as subcontractor cost (both were previously mishandled). Logged crew time still wins over the typed figures. Backs the editable contract price / in-house labor / sub labor / hours fields on the Job Costing page. Run AFTER 28. Safe to re-run. |
 | 30 | `30_reconcile_from_sheet.sql` | Makes the database match the Job Costing sheet. Changes two formulas in `job_financials`: revenue = contract + change orders + discounts (discounts stored negative, as the sheet enters them), and overhead = 18% of **direct cost** rather than of revenue. Sets `overhead_pct` to 18 on every job. Reconciles contract price / change orders / discounts / Materials / Labor / Subcontractor cost for 83 jobs from the sheet, and creates two jobs that were sheet-only (Robyn Bryant, Angelina Rockelman patio cover). Skips SLX-143. Run AFTER 29. Safe to re-run. This supersedes 28. |
+| 31 | `31_design_tracker.sql` | Design Sold Tracker: adds `leads.design_sent_date` / `design_sold_date`, imports the 123 daily rows from the Design Sold Tracker sheet, and adds the `design_daily` view (import + live). Read-only page in the app, same as Admin/Closer trackers. Run AFTER 30 (independent, but keeps the numbering order). Safe to re-run. |
 
 ## Why the order matters
 
