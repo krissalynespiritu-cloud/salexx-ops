@@ -5,31 +5,32 @@
 --  Kris's Financial Performance Dashboard "Job Costing" tab is the
 --  source of truth. This migration makes the database agree with it.
 --
---  FORMULA CHANGES (in job_financials):
+--  FORMULA CHANGES (job_financials):
 --    1. revenue = contract_price + change_orders + discounts
---       Discounts/credits are stored as ENTERED — negative reduces
+--       Discounts are stored AS ENTERED — a negative number reduces
 --       revenue, matching the sheet's "Discounts/Credits (NEG)" column.
---       (was: contract + change_orders - discounts, which turned a
---        typed -1,409.87 into +1,409.87.)
 --    2. overhead_cost = total direct cost * overhead_pct/100
---       Overhead is a markup on cost, like the sheet — NOT a percent
---       of revenue. On a low-cost job this is far smaller than before.
+--       Overhead is a markup on cost, like the sheet — not a percent
+--       of revenue.
 --
 --  DATA CHANGES:
---    - overhead_pct = 18 on every job (Kris: "18% overhead for all")
---    - existing discounts normalised to negative
---    - for 83 jobs matched to the sheet: contract_price, change_orders,
---      discounts set exactly; Materials / Labor / Subcontractors cost
---      rows replaced with the sheet's figures. Equipment, disposal,
---      permits, fuel and misc rows are left untouched.
---    - 2 new jobs created that were only on the sheet:
---      Robyn Bryant and Angelina Rockelman (patio cover).
+--    - overhead_pct = 18 on every job
+--    - existing positive discounts flipped to negative
+--    - 83 jobs: contract_price / change_orders / discounts set from the
+--      sheet; Materials / Labor / Subcontractors cost rows replaced with
+--      the sheet's figures (Equipment, disposal, permits, fuel, misc
+--      are left untouched)
+--    - 2 sheet-only jobs created: Robyn Bryant (SLX-165),
+--      Angelina Rockelman patio cover (SLX-166)
 --
---  NOT TOUCHED — needs a human look (see notes at bottom):
---    - SLX-143 "Jenni Bee": the sheet's "Jenni B" row is a $90 stub
---      and would wipe a $10k job. Left as-is.
+--  NOT TOUCHED: SLX-143 "Jenni Bee" — the sheet's "Jenni B" row is a
+--  $90 stub that would wipe a real job. Reconcile it by hand.
 --
---  Run AFTER 29. Safe to re-run.
+--  Uses a real staging table (costing_recon), same pattern as 27 —
+--  an earlier version used a temp table and the reconcile step was
+--  silently skipped in the Supabase SQL editor.
+--
+--  Run AFTER 29. Safe to re-run. Supersedes 28.
 -- ============================================================
 
 
@@ -95,18 +96,23 @@ from base b;
 
 
 -- ---------- 2. overhead 18% everywhere, discounts normalised negative ----------
-update jobs set overhead_pct = 18.00 where overhead_pct <> 18.00;
+update jobs set overhead_pct = 18.00 where overhead_pct is distinct from 18.00;
 update jobs set discounts = -abs(discounts) where discounts > 0;
 
 
 -- ---------- 3. reconcile matched jobs to the sheet ----------
-create temp table sheet_recon (
-  job_id text primary key,
-  contract numeric, co numeric, disc numeric,
-  materials numeric, labor numeric, subs numeric
-) on commit drop;
+create table if not exists costing_recon (
+  job_id   text primary key,
+  contract numeric(12,2),
+  co       numeric(12,2) not null default 0,
+  disc     numeric(12,2) not null default 0,
+  materials numeric(12,2) not null default 0,
+  labor    numeric(12,2) not null default 0,
+  subs     numeric(12,2) not null default 0
+);
+truncate costing_recon;
 
-insert into sheet_recon (job_id, contract, co, disc, materials, labor, subs) values
+insert into costing_recon (job_id, contract, co, disc, materials, labor, subs) values
   ('SLX-001', 248.54, 0.00, 0.00, 0.00, 0.00, 0.00),
   ('SLX-002', 40299.00, 0.00, 0.00, 0.00, 0.00, 0.00),
   ('SLX-003', 23073.87, 0.00, 0.00, 0.00, 0.00, 0.00),
@@ -197,28 +203,28 @@ update jobs j set
   change_orders  = r.co,
   discounts      = r.disc,
   overhead_pct   = 18.00
-from sheet_recon r
+from costing_recon r
 where r.job_id = j.job_id;
 
 delete from job_costs c
-using sheet_recon r
+using costing_recon r
 where c.job_id = r.job_id
   and c.category in ('Materials','Labor','Subcontractors');
 
 insert into job_costs (job_id, category, amount, notes)
-select job_id, 'Materials'::cost_category, materials, 'Job Costing sheet' from sheet_recon where materials > 0
+select job_id, 'Materials'::cost_category, materials, 'Job Costing sheet'
+  from costing_recon where materials > 0
 union all
-select job_id, 'Labor'::cost_category, labor, 'Job Costing sheet' from sheet_recon where labor > 0
+select job_id, 'Labor'::cost_category, labor, 'Job Costing sheet'
+  from costing_recon where labor > 0
 union all
-select job_id, 'Subcontractors'::cost_category, subs, 'Job Costing sheet' from sheet_recon where subs > 0;
+select job_id, 'Subcontractors'::cost_category, subs, 'Job Costing sheet'
+  from costing_recon where subs > 0;
 
 
 -- ---------- 4. two jobs that were only on the sheet ----------
--- Re-run safe: clear any cost rows we previously added for these two.
 delete from job_costs where job_id in ('SLX-165', 'SLX-166');
 
--- Robyn Bryant — a separate painting job from Robyn Brant (SLX-058).
--- No base contract on the sheet, only a $3,310 change order less $129.99.
 insert into jobs (job_id, client_name, job_type, stage, contract_price, change_orders, discounts, overhead_pct)
 values ('SLX-165', 'Robyn Bryant', 'Painting', 'Completed', null, 3310.00, -129.99, 18.00)
 on conflict (job_id) do nothing;
@@ -226,8 +232,6 @@ insert into job_costs (job_id, category, amount, notes) values
   ('SLX-165', 'Materials', 5238.43, 'Job Costing sheet'),
   ('SLX-165', 'Labor', 730.50, 'Job Costing sheet');
 
--- Angelina Rockelman — the patio-cover job (separate from the painting
--- job already in the app as SLX-158 / "Angelina R").
 insert into jobs (job_id, client_name, address_city, job_type, stage, contract_price, change_orders, discounts, overhead_pct)
 values ('SLX-166', 'Angelina Rockelman', '2238 SE Thrush Avenue Hillsboro OR 97123', 'patio cover', 'Designs Sold', 5365.45, 0.00, -62.00, 18.00)
 on conflict (job_id) do nothing;
@@ -236,11 +240,6 @@ insert into job_costs (job_id, category, amount, notes) values
 
 
 -- ---------- verify ----------
--- Jobs whose margin still disagrees with the sheet after this runs
--- should be investigated one by one, not batch-fixed again.
 --   select job_id, client_name, revenue, total_job_cost, margin_pct
 --   from job_margins order by margin_pct nulls last;
---
--- SLX-143 (Jenni Bee) was deliberately skipped — reconcile it by hand
--- once you've confirmed whether the sheet's "Jenni B" row belongs to
--- that job or a different one.
+-- SLX-143 (Jenni Bee) skipped on purpose — reconcile by hand.
