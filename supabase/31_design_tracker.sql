@@ -177,3 +177,13 @@ select log_date, design_sent, design_sold from design_daily_import
 union all
 select log_date, design_sent, design_sold from live
 order by 1 desc;
+
+
+-- ---------- verify ----------
+-- One row in the results panel. imported_rows should read 123.
+select
+  (select count(*) from design_daily_import) as imported_rows_expect_123,
+  case when (select count(*) from design_daily_import) = 123
+  then 'PASS — Design Sold Tracker ready'
+  else 'FAIL — re-run this file'
+  end as result;

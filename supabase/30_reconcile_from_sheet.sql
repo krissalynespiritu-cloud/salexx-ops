@@ -240,6 +240,23 @@ insert into job_costs (job_id, category, amount, notes) values
 
 
 -- ---------- verify ----------
---   select job_id, client_name, revenue, total_job_cost, margin_pct
---   from job_margins order by margin_pct nulls last;
+-- This runs automatically as the last statement — the SQL editor's
+-- results panel will show one row. If result <> 'PASS', something
+-- above did not apply (a partial run, a stray error you scrolled past,
+-- a stale copy of this file) — screenshot this row back to Claude.
+select
+  (select count(*) from costing_recon)                                as staged_rows_expect_83,
+  (select count(*) from jobs j join costing_recon r on r.job_id = j.job_id
+     where j.change_orders = r.co and j.discounts = r.disc)           as jobs_matching_sheet_expect_83,
+  (select count(*) from jobs where job_id in ('SLX-165','SLX-166'))   as new_jobs_expect_2,
+  (select material_cost from job_margins where job_id = 'SLX-005')    as kolene_materials_expect_7942_10,
+  case when (select count(*) from costing_recon) = 83
+    and (select count(*) from jobs j join costing_recon r on r.job_id = j.job_id
+           where j.change_orders = r.co and j.discounts = r.disc) = 83
+    and (select count(*) from jobs where job_id in ('SLX-165','SLX-166')) = 2
+    and (select material_cost from job_margins where job_id = 'SLX-005') = 7942.10
+  then 'PASS — migration 30 fully applied'
+  else 'FAIL — re-run this file top to bottom in a fresh SQL editor tab, or send this row to Claude'
+  end as result;
+
 -- SLX-143 (Jenni Bee) skipped on purpose — reconcile by hand.
