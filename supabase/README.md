@@ -2,7 +2,7 @@
 
 Run these in order against a fresh Supabase project to rebuild the database
 from nothing. Every file is safe to re-run unless its own header says
-otherwise. Run order matches filename order — 01 through 28, no gaps, no
+otherwise. Run order matches filename order — 01 through 29, no gaps, no
 duplicate numbers.
 
 **One exception to "just run them in order":** `26_add_labor_category.sql`
@@ -41,6 +41,7 @@ using the `Labor` category that 26 adds. Run 26, let it commit, then run 27.
 | 26 | `26_add_labor_category.sql` | Adds a `Labor` value to the `cost_category` enum, for historical jobs whose only labor record is the Job Costing sheet (no time entries). **Run on its own, before 27** — see the note above. Safe to re-run. |
 | 27 | `27_import_real_costs.sql` | Imports the real Job Costing sheet: 95 cost rows across 69 jobs, $341,230 total, Materials and Labor per job. Matched by client name; Labor is skipped for any job that already has logged hours so nothing double-counts. Unmatched rows surface in `costing_import_unmatched`. Run AFTER 26. Safe to re-run. |
 | 28 | `28_overhead_18pct.sql` | Raises the company overhead rate from 12% to 18%: new column defaults on `jobs` and `settings`, plus every existing job still at exactly 12.00. Deliberate per-job overrides are left alone. Weighted margin on the dashboard drops a few points afterward — the old rate under-charged overhead. Run AFTER 27. Safe to re-run. |
+| 29 | `29_editable_job_costing.sql` | Adds `jobs.manual_hours` and redefines `job_financials` so a `Labor` cost row counts as in-house labor and a `Subcontractors` cost row counts as subcontractor cost (both were previously mishandled). Logged crew time still wins over the typed figures. Backs the editable contract price / in-house labor / sub labor / hours fields on the Job Costing page. Run AFTER 28. Safe to re-run. |
 
 ## Why the order matters
 
