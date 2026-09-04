@@ -339,9 +339,17 @@ async function drawToday(){$("#greeting").textContent=greetingLine();
     kpiCard(svgIcon("building"),"var(--amber)","Open",jobs.filter(j=>j.stage!=="Completed").length,"not yet completed")
   ].join("");
   $("#revenueChart").innerHTML=lineChartSVG(monthData);
-  const [{data:teRows},{data:payRows}]=await Promise.all([
+  const [{data:teRows},{data:payRows},{data:allPay},{data:leadRows},{count:adSpendCount},{data:crewRows},{data:jcRows},{data:spRows},{data:weekRows},{data:topClients}]=await Promise.all([
     sb.from("time_entries").select("job_id,work_date").not("job_id","is",null),
-    sb.from("job_payments").select("job_id,client_name,balance_due,payment_status").gt("balance_due",0)
+    sb.from("job_payments").select("job_id,client_name,balance_due,payment_status").gt("balance_due",0),
+    sb.from("job_payments").select("job_id,revenue,collected,payment_count"),
+    sb.from("leads").select("status,lead_date"),
+    sb.from("ad_spend").select("*",{count:"exact",head:true}),
+    sb.from("crew").select("hourly_wage"),
+    sb.from("job_costs").select("job_id"),
+    sb.from("sub_payments").select("job_id"),
+    (()=>{const now=new Date(),d=now.getDay(),mon=new Date(now);mon.setDate(now.getDate()-(d===0?6:d-1));const sun=new Date(mon);sun.setDate(mon.getDate()+6);return sb.from("time_entries").select("hours").gte("work_date",mon.toISOString().slice(0,10)).lte("work_date",sun.toISOString().slice(0,10))})(),
+    sb.from("client_value").select("name,lifetime_value,projects").order("lifetime_value",{ascending:false,nullsFirst:false}).limit(5)
   ]);
   const lastByJob={};
   for(const r of teRows||[]){if(!lastByJob[r.job_id]||r.work_date>lastByJob[r.job_id])lastByJob[r.job_id]=r.work_date}
@@ -361,16 +369,6 @@ async function drawToday(){$("#greeting").textContent=greetingLine();
   if(overdue.length)alerts.push(`<li><b>${overdue.length} job${overdue.length===1?"":"s"}</b> completed in the last 60 days still owed money: ${overdue.slice(0,5).map(r=>`${escapeHtml(r.client_name)} (${money(r.balance_due)})`).join(", ")}${overdue.length>5?` +${overdue.length-5} more`:""}</li>`);
   if(alerts.length){$("#attn").className="attn";$("#attn").innerHTML=`<h4>Needs attention</h4><ul style="margin:0;padding-left:16px">${alerts.join("")}</ul>`}
   else{$("#attn").className="empty";$("#attn").innerHTML=`Nothing needs attention — no stalled jobs, no overdue balances on completed jobs.`}
-  const [{data:allPay},{data:leadRows},{count:adSpendCount},{data:crewRows},{data:jcRows},{data:spRows},{data:weekRows},{data:topClients}]=await Promise.all([
-    sb.from("job_payments").select("job_id,revenue,collected,payment_count"),
-    sb.from("leads").select("status,lead_date"),
-    sb.from("ad_spend").select("*",{count:"exact",head:true}),
-    sb.from("crew").select("hourly_wage"),
-    sb.from("job_costs").select("job_id"),
-    sb.from("sub_payments").select("job_id"),
-    (()=>{const now=new Date(),d=now.getDay(),mon=new Date(now);mon.setDate(now.getDate()-(d===0?6:d-1));const sun=new Date(mon);sun.setDate(mon.getDate()+6);return sb.from("time_entries").select("hours").gte("work_date",mon.toISOString().slice(0,10)).lte("work_date",sun.toISOString().slice(0,10))})(),
-    sb.from("client_value").select("name,lifetime_value,projects").order("lifetime_value",{ascending:false,nullsFirst:false}).limit(5)
-  ]);
   const topClientMax=Math.max(...(topClients||[]).map(c=>c.lifetime_value||0),1);
   $("#topClients").innerHTML=(topClients||[]).length?topClients.map(c=>`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span>${escapeHtml(c.name)}</span><b style="font-family:'IBM Plex Mono',monospace">${money(c.lifetime_value)}</b></div><div class="track"><i style="width:${(c.lifetime_value||0)/topClientMax*100}%;background:var(--hivis)"></i></div></div>`).join(""):`<div class="empty">No clients yet.</div>`;
   const pricedPay=(allPay||[]).filter(r=>r.revenue!=null);
@@ -730,6 +728,7 @@ function periodStartOf(dateStr){const idx=Math.floor((dateToEpochDay(dateStr)-PA
 function addDays(dateStr,n){const d=new Date(dateStr+"T00:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
 function fmtRange(start){const end=addDays(start,13),opts={month:"short",day:"2-digit"};return `${new Date(start+"T00:00:00").toLocaleDateString("en-US",opts)} – ${new Date(end+"T00:00:00").toLocaleDateString("en-US",opts)}`}
 async function drawPayroll(){
+  $("#payrollList").innerHTML=`<div class="empty">Loading…</div>`;
   const [teRes,ppRes]=await Promise.all([sb.from("time_entries").select("person,work_date,hours"),sb.from("payroll_periods").select("*")]);
   payrollPaid=Object.fromEntries((ppRes.data||[]).map(r=>[r.period_start,r]));
   const rateOf=name=>{const p=people.find(x=>x.n===name);return p?.rate??RATE};
@@ -792,6 +791,7 @@ function exportPayrollCsv(){
   URL.revokeObjectURL(url);
 }
 async function drawBilling(){
+  $("#billingList").innerHTML=`<div class="empty">Loading…</div>`;
   const {data,error}=await sb.from("job_payments").select("*").neq("payment_status","No contract").order("balance_due",{ascending:false});
   const rows=data||[];
   $("#billingList").innerHTML=rows.map(r=>{
@@ -808,7 +808,11 @@ function subBadge(s){
   return `<span class="stage st-paid">Valid to ${s.insurance_expiry}</span>`;
 }
 async function drawSubs(){
-  const {data,error}=await sb.from("subcontractors").select("*").order("name");
+  $("#subsList").innerHTML=`<div class="empty">Loading…</div>`;
+  const [{data,error},spRes]=await Promise.all([
+    sb.from("subcontractors").select("*").order("name"),
+    sb.from("sub_payments").select("*,jobs(client_name),subcontractors(name)").order("created_at",{ascending:false})
+  ]);
   subcontractors=data||[];
   $("#subsList").innerHTML=subcontractors.length?subcontractors.map(s=>`<div class="fld" style="flex-wrap:wrap;align-items:flex-start;gap:8px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--navy-2);padding:11px 13px">
     <div style="flex:1;min-width:150px">
@@ -829,7 +833,7 @@ async function drawSubs(){
     </div>
     <button data-del-sub="${s.sub_id}" aria-label="Delete subcontractor" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:22px;height:22px;line-height:1;cursor:pointer;font-size:13px">×</button>
   </div>`).join(""):`<div class="empty">No subcontractors yet.<br>Add one below.</div>`;
-  await drawSubPayments();
+  renderSubPayments(spRes.data||[]);
 }
 function setSubStatus(msg,isError){
   const el=document.getElementById("subStatus");if(!el)return;
@@ -881,8 +885,10 @@ function setSpStatus(msg,isError){
 }
 let subPayments=[];
 async function drawSubPayments(){
-  const {data,error}=await sb.from("sub_payments").select("*,jobs(client_name),subcontractors(name)").order("created_at",{ascending:false});
-  const rows=data||[];
+  const {data}=await sb.from("sub_payments").select("*,jobs(client_name),subcontractors(name)").order("created_at",{ascending:false});
+  renderSubPayments(data||[]);
+}
+function renderSubPayments(rows){
   subPayments=rows;
   $("#subPaymentsList").innerHTML=rows.length?rows.map(r=>`<div class="fld" style="flex-wrap:wrap;align-items:flex-start;gap:8px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--navy-2);padding:11px 13px">
     <div style="flex:1;min-width:160px">
@@ -934,6 +940,7 @@ async function deleteSubPayment(contractId,jobId){
 }
 let clientValues=[];
 async function drawClients(){
+  $("#clientsList").innerHTML=`<div class="empty">Loading…</div>`;
   const {data,error}=await sb.from("client_value").select("*").order("lifetime_value",{ascending:false,nullsFirst:false});
   clientValues=data||[];
   $("#clientsList").innerHTML=clientValues.length?clientValues.map(c=>`<button class="jrow" data-open-client="${c.client_id}" style="width:100%"><div class="mid"><div class="cn">${escapeHtml(c.name)}${c.is_repeat?` <span class="stage st-paid">Repeat</span>`:""}</div><div class="mt">${c.projects} project${c.projects===1?"":"s"}${c.trades?" · "+escapeHtml(c.trades):""}</div></div><div class="rt"><div class="rv">${money(c.lifetime_value)}</div></div></button>`).join(""):`<div class="empty">${error?"Couldn't load clients — has 13_clients.sql been run yet?":"No clients yet."}</div>`;
@@ -1011,6 +1018,7 @@ function drawJobCosting(){
   $("#jobCostingCount").textContent=`${list.length} of ${jobs.length} jobs`;
 }
 async function drawAdminTracker(){
+  $("#adminTrackerTable").innerHTML=`<tr><td>Loading…</td></tr>`;
   const {data,error}=await sb.from("admin_daily").select("*").order("log_date",{ascending:false});
   if(error){$("#adminTrackerTable").innerHTML=`<tr><td>Couldn't load — has 23_admin_tracker.sql been run yet?</td></tr>`;console.error(error);return}
   const rateColor=r=>r==null?"var(--steel)":r>=66?"var(--good)":r>=33?"var(--amber)":"var(--alert)";
@@ -1021,6 +1029,7 @@ async function drawAdminTracker(){
   $("#adminTrackerTable").innerHTML=`<thead><tr><th style="text-align:left">Date</th><th>Leads Assigned</th><th>Appointments Set</th><th>Set Rate</th></tr></thead><tbody>${rows||'<tr><td colspan="4">No data yet.</td></tr>'}</tbody>`;
 }
 async function drawCloserTracker(){
+  $("#closerTrackerTable").innerHTML=`<tr><td>Loading…</td></tr>`;
   const {data,error}=await sb.from("closer_daily").select("*").order("log_date",{ascending:false});
   if(error){$("#closerTrackerTable").innerHTML=`<tr><td>Couldn't load — has 24_closer_tracker.sql been run yet?</td></tr>`;console.error(error);return}
   const rateColor=r=>r==null?"var(--steel)":r>=66?"var(--good)":r>=33?"var(--amber)":"var(--alert)";
@@ -1032,6 +1041,7 @@ async function drawCloserTracker(){
   $("#closerTrackerTable").innerHTML=`<thead><tr><th style="text-align:left">Date</th><th>Shows Received</th><th>Closed Deals</th><th>Revenue</th><th>Close Rate</th><th>Avg Deal Size</th></tr></thead><tbody>${rows||'<tr><td colspan="6">No data yet.</td></tr>'}</tbody>`;
 }
 async function drawDesignTracker(){
+  $("#designTrackerTable").innerHTML=`<tr><td>Loading…</td></tr>`;
   const {data,error}=await sb.from("design_daily").select("*").order("log_date",{ascending:false});
   if(error){$("#designTrackerTable").innerHTML=`<tr><td>Couldn't load — has 31_design_tracker.sql been run yet?</td></tr>`;console.error(error);return}
   const rateColor=r=>r==null?"var(--steel)":r>=66?"var(--good)":r>=33?"var(--amber)":"var(--alert)";
