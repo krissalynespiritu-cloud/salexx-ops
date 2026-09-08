@@ -1811,11 +1811,12 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		const el=document.getElementById("leadSaveStatus");if(!el)return;
 		el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
 	}
-	const LEAD_COLUMN={source:"source",status:"status",leadDate:"lead_date",value:"est_value",phone:"phone",email:"email",notes:"notes",estimateBooked:"estimate_booked",shown:"shown",closedRevenue:"closed_revenue",manager:"manager",lossReason:"loss_reason",designSent:"design_sent_date",designSold:"design_sold_date"};
+	const LEAD_COLUMN={name:"name",source:"source",status:"status",leadDate:"lead_date",value:"est_value",phone:"phone",email:"email",notes:"notes",estimateBooked:"estimate_booked",shown:"shown",closedRevenue:"closed_revenue",manager:"manager",lossReason:"loss_reason",designSent:"design_sent_date",designSold:"design_sold_date"};
 	const CLOSERS=["Alex","Luke"];
 	const LOSS_REASONS=["Price","Timing","Went with competitor","No response","Not qualified","Other"];
 	async function updateLeadField(leadId,field,rawValue){
 		const column=LEAD_COLUMN[field];if(!column)return;
+		if(field==="name"&&!String(rawValue).trim())return;
 		setLeadStatus("Saving…",false);
 		const lead=leadRecords.find(r=>r.id===leadId);
 		let update;
@@ -1833,7 +1834,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		}else if(field==="designSold"){
 			update={design_sold_date:rawValue?new Date().toISOString().slice(0,10):null};
 		}else{
-			const value=field==="value"?(rawValue===""?0:Number(rawValue)):(rawValue===""?null:rawValue);
+			const value=field==="value"?(rawValue===""?0:Number(rawValue)):field==="name"?String(rawValue).trim():(rawValue===""?null:rawValue);
 			update={[column]:value};
 			if(field==="status"&&rawValue==="Won"&&(!lead||!lead.saleDate))update.sale_date=new Date().toISOString().slice(0,10);
 		}
@@ -1924,10 +1925,26 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		$("#totalLeadsCount").textContent = filtered.length;
 		drawLeadSummary();
 		drawLeadStatusChips();
-		const chk = (lead, field, label) => `<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--steel)"><input type="checkbox" data-lead-id="${lead.id}" data-field="${field}" ${lead[field]?"checked":""} aria-label="${label}">${label}</label>`;
+		const F = "flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 7px;font:inherit;font-size:11.5px";
 		$("#leadList").innerHTML = filtered.length ? filtered.map(lead => {
 			const statusColor = lead.status==="Won"?"var(--good)":lead.status==="Lost"?"var(--alert)":lead.status==="Estimated"?"var(--amber)":lead.status==="Contacted"?"var(--sky)":"var(--steel)";
-			return `<div class="fld" style="margin-bottom:7px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><span class="k" style="flex-basis:100%"><b style="color:var(--text);font-size:14px">${escapeHtml(lead.name)}</b></span><input type="date" data-lead-id="${lead.id}" data-field="leadDate" value="${lead.leadDate||""}" style="width:110px" aria-label="Lead date"><input type="text" data-lead-id="${lead.id}" data-field="phone" value="${escapeHtml(lead.phone)}" placeholder="Phone" style="width:110px" aria-label="Phone"><input type="text" data-lead-id="${lead.id}" data-field="email" value="${escapeHtml(lead.email)}" placeholder="Email" style="width:150px" aria-label="Email"><select data-lead-id="${lead.id}" data-field="source" aria-label="Source" style="width:115px"><option value="">Source</option>${sourceOptions.map(s=>`<option ${lead.source===s?"selected":""}>${s}</option>`).join("")}</select><select data-lead-id="${lead.id}" data-field="manager" aria-label="Owner" style="width:90px"><option value="">Owner</option>${CLOSERS.map(c=>`<option ${lead.manager===c?"selected":""}>${c}</option>`).join("")}</select><select data-lead-id="${lead.id}" data-field="status" aria-label="Status" style="width:100px;color:${statusColor}">${statusOptions.map(s=>`<option ${lead.status===s?"selected":""}>${s}</option>`).join("")}</select>${chk(lead,"estimateBooked","Appt")}${chk(lead,"shown","Shown")}${chk(lead,"designSent","Dsgn sent")}${chk(lead,"designSold","Dsgn sold")}${lead.status==="Won"?`<input type="number" data-lead-id="${lead.id}" data-field="closedRevenue" value="${lead.closedRevenue}" placeholder="Revenue" style="width:100px" aria-label="Closed revenue">`:""}${lead.status==="Lost"?`<select data-lead-id="${lead.id}" data-field="lossReason" aria-label="Loss reason" style="width:130px"><option value="">Why lost…</option>${LOSS_REASONS.map(r=>`<option ${lead.lossReason===r?"selected":""}>${r}</option>`).join("")}</select>`:""}<input type="text" data-lead-id="${lead.id}" data-field="notes" value="${escapeHtml(lead.notes)}" placeholder="Notes" style="width:150px" aria-label="Notes"><button data-lead-delete="${lead.id}" aria-label="Delete lead" title="Delete lead" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:26px;height:26px;line-height:1;cursor:pointer;font-size:15px">×</button></div>`;
+			const li = (field,val,ph,w,type="text") => `<input type="${type}" data-lead-id="${lead.id}" data-field="${field}" value="${val==null?"":escapeHtml(String(val))}" placeholder="${ph}" aria-label="${ph||field}" style="${w};${F}">`;
+			const sel = (field,ph,opts,w,extra="") => `<select data-lead-id="${lead.id}" data-field="${field}" aria-label="${ph}" style="width:${w};flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 2px;font:inherit;font-size:11px;${extra}"><option value="">${ph}</option>${opts}</select>`;
+			const tog = (field,label) => `<label title="${label}" style="display:flex;align-items:center;gap:3px;font-size:10px;color:${lead[field]?"var(--good)":"var(--steel)"};flex-shrink:0"><input type="checkbox" data-lead-id="${lead.id}" data-field="${field}" ${lead[field]?"checked":""} style="width:13px;height:13px">${label}</label>`;
+			return `<div class="jrow" style="flex-wrap:wrap;align-items:center;gap:5px;cursor:default;padding:6px 9px;margin-bottom:5px">
+				<input type="text" data-lead-id="${lead.id}" data-field="name" value="${escapeHtml(lead.name)}" placeholder="Lead name" aria-label="Lead name" style="flex:1 1 110px;min-width:100px;font-weight:600;font-size:12px;${F}">
+				${li("leadDate",lead.leadDate,"","118px","date")}
+				${sel("source","Source",sourceOptions.map(o=>`<option ${lead.source===o?"selected":""}>${o}</option>`).join(""),"106px")}
+				${sel("manager","Owner",CLOSERS.map(o=>`<option ${lead.manager===o?"selected":""}>${o}</option>`).join(""),"74px")}
+				${sel("status","Status",statusOptions.map(o=>`<option ${lead.status===o?"selected":""}>${o}</option>`).join(""),"96px",`color:${statusColor};font-weight:600`)}
+				<span style="display:flex;gap:7px;flex-shrink:0;padding:0 2px">${tog("estimateBooked","Appt")}${tog("shown","Shown")}${tog("designSent","D→")}${tog("designSold","D✓")}</span>
+				${li("phone",lead.phone,"Phone","width:104px")}
+				${li("email",lead.email,"Email","width:150px")}
+				${lead.status==="Won"?li("closedRevenue",lead.closedRevenue,"Revenue $","width:96px","number"):""}
+				${lead.status==="Lost"?sel("lossReason","Why lost…",LOSS_REASONS.map(o=>`<option ${lead.lossReason===o?"selected":""}>${o}</option>`).join(""),"120px"):""}
+				${li("notes",lead.notes,"Notes","flex:1 1 110px;min-width:90px")}
+				<button data-lead-delete="${lead.id}" aria-label="Delete lead" title="Delete lead" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:5px;width:22px;height:22px;line-height:1;cursor:pointer;font-size:13px;flex-shrink:0">×</button>
+			</div>`;
 		}).join("") : '<div class="empty">No leads match.</div>';
 	};
 
