@@ -1,34 +1,27 @@
 -- ============================================================
---  Salexx Ops Hub — reconcile every job to the Job Costing sheet
+--  Salexx Ops Hub - reconcile every job to the Job Costing sheet
 --  and match the sheet's two formulas
 --
---  Kris's Financial Performance Dashboard "Job Costing" tab is the
---  source of truth. This migration makes the database agree with it.
+--  The Financial Performance Dashboard "Job Costing" tab is the source
+--  of truth. This migration makes the database agree with it.
 --
 --  FORMULA CHANGES (job_financials):
 --    1. revenue = contract_price + change_orders + discounts
---       Discounts are stored AS ENTERED — a negative number reduces
---       revenue, matching the sheet's "Discounts/Credits (NEG)" column.
+--       (discounts stored negative, as the sheet enters them)
 --    2. overhead_cost = total direct cost * overhead_pct/100
---       Overhead is a markup on cost, like the sheet — not a percent
---       of revenue.
+--       (a markup on cost, like the sheet, not a percent of revenue)
 --
 --  DATA CHANGES:
 --    - overhead_pct = 18 on every job
---    - existing positive discounts flipped to negative
---    - 83 jobs: contract_price / change_orders / discounts set from the
---      sheet; Materials / Labor / Subcontractors cost rows replaced with
---      the sheet's figures (Equipment, disposal, permits, fuel, misc
---      are left untouched)
+--    - existing positive discounts flipped negative
+--    - 83 jobs: contract / change orders / discounts set from the sheet,
+--      Materials / Labor / Subcontractor cost rows replaced with the
+--      sheet's figures
 --    - 2 sheet-only jobs created: Robyn Bryant (SLX-165),
 --      Angelina Rockelman patio cover (SLX-166)
 --
---  NOT TOUCHED: SLX-143 "Jenni Bee" — the sheet's "Jenni B" row is a
---  $90 stub that would wipe a real job. Reconcile it by hand.
---
---  Uses a real staging table (costing_recon), same pattern as 27 —
---  an earlier version used a temp table and the reconcile step was
---  silently skipped in the Supabase SQL editor.
+--  NOT TOUCHED: SLX-143 "Jenni Bee" - the sheet "Jenni B" row is a
+--  $90 stub that would wipe a real job.
 --
 --  Run AFTER 29. Safe to re-run. Supersedes 28.
 -- ============================================================
@@ -101,125 +94,204 @@ update jobs set discounts = -abs(discounts) where discounts > 0;
 
 
 -- ---------- 3. reconcile matched jobs to the sheet ----------
-create table if not exists costing_recon (
-  job_id   text primary key,
-  contract numeric(12,2),
-  co       numeric(12,2) not null default 0,
-  disc     numeric(12,2) not null default 0,
-  materials numeric(12,2) not null default 0,
-  labor    numeric(12,2) not null default 0,
-  subs     numeric(12,2) not null default 0
-);
-truncate costing_recon;
+-- Pure DML, no staging table. Each statement runs on its own and either
+-- succeeds or throws a visible error.
 
-insert into costing_recon (job_id, contract, co, disc, materials, labor, subs) values
-  ('SLX-001', 248.54, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-002', 40299.00, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-003', 23073.87, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-004', 25833.55, 0.00, 0.00, 10630.98, 0.00, 0.00),
-  ('SLX-005', 30664.88, 0.00, 0.00, 7942.10, 0.00, 0.00),
-  ('SLX-006', 8798.78, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-007', 3575.69, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-008', 35250.32, 0.00, 0.00, 13870.60, 0.00, 0.00),
-  ('SLX-009', 12598.78, 0.00, 0.00, 4793.14, 0.00, 0.00),
-  ('SLX-010', 92000.00, 0.00, 0.00, 13670.40, 0.00, 0.00),
-  ('SLX-011', 3398.78, 0.00, 0.00, 74.36, 0.00, 0.00),
-  ('SLX-012', 29600.98, 0.00, 0.00, 4197.00, 0.00, 0.00),
-  ('SLX-013', 375.00, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-014', 30250.65, 0.00, 0.00, 573.61, 0.00, 0.00),
-  ('SLX-015', 21822.77, 0.00, 0.00, 6380.44, 0.00, 0.00),
-  ('SLX-016', 33060.00, 0.00, 0.00, 1898.09, 0.00, 0.00),
-  ('SLX-017', 27578.00, 0.00, 0.00, 5388.64, 0.00, 0.00),
-  ('SLX-018', 37370.88, 0.00, 0.00, 2762.01, 0.00, 0.00),
-  ('SLX-019', 3950.00, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-020', 4707.06, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-021', 20260.67, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-022', 20450.56, 0.00, 0.00, 987.20, 0.00, 0.00),
-  ('SLX-023', 2661.38, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-024', 44869.82, 0.00, 0.00, 1203.55, 0.00, 0.00),
-  ('SLX-026', 11143.88, 0.00, 0.00, 1813.78, 0.00, 0.00),
-  ('SLX-027', 8440.00, 0.00, 0.00, 1702.47, 0.00, 0.00),
-  ('SLX-031', 26945.26, 0.00, 0.00, 7091.32, 2672.50, 0.00),
-  ('SLX-033', 13381.25, 0.00, -278.69, 0.00, 3424.50, 0.00),
-  ('SLX-034', 4338.82, 0.00, 0.00, 0.00, 2601.00, 0.00),
-  ('SLX-036', 32395.43, 0.00, 0.00, 6466.44, 2855.00, 0.00),
-  ('SLX-037', 46450.00, 0.00, 0.00, 949.07, 0.00, 0.00),
-  ('SLX-038', 11393.70, 0.00, 0.00, 555.11, 730.00, 0.00),
-  ('SLX-040', 6320.75, 0.00, 0.00, 398.64, 1114.67, 0.00),
-  ('SLX-041', 78341.10, 0.00, -119.90, 10713.50, 14388.00, 0.00),
-  ('SLX-042', 17500.00, 0.00, 0.00, 6607.07, 973.00, 0.00),
-  ('SLX-043', 13496.12, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-046', 12505.00, 0.00, 0.00, 1657.49, 3843.50, 0.00),
-  ('SLX-047', 8415.90, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-048', 34730.45, 0.00, 0.00, 4301.67, 4209.00, 0.00),
-  ('SLX-049', 5897.32, 0.00, 0.00, 0.00, 595.25, 0.00),
-  ('SLX-050', 8800.78, 0.00, 0.00, 1361.39, 0.00, 0.00),
-  ('SLX-051', 44375.99, 875.00, -353.83, 2457.65, 10235.00, 0.00),
-  ('SLX-052', 5175.43, 0.00, -54.00, 756.54, 504.00, 0.00),
-  ('SLX-053', 21723.74, 0.00, 0.00, 0.00, 3500.00, 0.00),
-  ('SLX-054', 11995.45, 2205.00, 0.00, 384.39, 2996.00, 0.00),
-  ('SLX-055', 3900.54, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-056', 6075.31, 0.00, 0.00, 1112.00, 572.00, 0.00),
-  ('SLX-057', 20151.09, 0.00, -251.60, 4058.58, 4733.50, 0.00),
-  ('SLX-058', 10450.65, 3375.00, 0.00, 6123.49, 0.00, 0.00),
-  ('SLX-059', 13375.25, 0.00, 0.00, 0.00, 2089.50, 0.00),
-  ('SLX-060', 20858.99, 0.00, -205.58, 735.58, 1607.00, 0.00),
-  ('SLX-061', 4075.54, 0.00, -40.00, 979.22, 1221.50, 0.00),
-  ('SLX-062', 17275.23, 0.00, 0.00, 7541.94, 3087.00, 0.00),
-  ('SLX-063', 1265.00, 0.00, 0.00, 0.00, 280.00, 0.00),
-  ('SLX-065', 8875.45, 0.00, 0.00, 0.00, 2747.50, 0.00),
-  ('SLX-066', 7500.65, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-067', 8874.00, 200.00, 0.00, 3343.08, 1242.00, 0.00),
-  ('SLX-068', 15000.00, 2620.00, -59.36, 732.69, 3276.00, 0.00),
-  ('SLX-069', 16810.56, 0.00, 0.00, 0.00, 3418.00, 0.00),
-  ('SLX-070', 4450.54, 0.00, 0.00, 0.00, 560.00, 0.00),
-  ('SLX-071', 14625.56, 0.00, -120.22, 0.00, 1675.25, 0.00),
-  ('SLX-072', 10450.46, 0.00, -765.75, 11371.70, 1620.00, 0.00),
-  ('SLX-073', 12885.34, 500.00, 0.00, 0.00, 2029.00, 0.00),
-  ('SLX-074', 40000.00, 0.00, 0.00, 0.00, 7994.00, 0.00),
-  ('SLX-075', 3295.54, 0.00, 0.00, 0.00, 560.00, 0.00),
-  ('SLX-076', 4000.00, 0.00, 0.00, 0.00, 845.50, 0.00),
-  ('SLX-077', 20415.66, 1700.00, -1409.87, 10321.20, 7130.50, 0.00),
-  ('SLX-080', 8497.75, 11846.00, 0.00, 346.08, 908.50, 0.00),
-  ('SLX-082', 14275.00, 0.00, 0.00, 364.97, 875.50, 0.00),
-  ('SLX-083', 19521.04, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-084', 32450.25, 0.00, 0.00, 317.50, 0.00, 0.00),
-  ('SLX-085', 32754.67, 0.00, 0.00, 3637.49, 0.00, 0.00),
-  ('SLX-123', 31865.00, 0.00, 0.00, 408.22, 0.00, 0.00),
-  ('SLX-124', 4997.00, 1375.00, 0.00, 1507.50, 0.00, 0.00),
-  ('SLX-129', 66100.00, 2405.00, 0.00, 10860.00, 18314.00, 0.00),
-  ('SLX-136', 8293.11, 0.00, 0.00, 0.00, 189.00, 0.00),
-  ('SLX-144', 13700.00, 0.00, 0.00, 0.00, 399.00, 0.00),
-  ('SLX-147', 48000.00, 0.00, 0.00, 12357.50, 7698.23, 0.00),
-  ('SLX-148', 19779.25, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-152', 1497.54, 0.00, 0.00, 0.00, 0.00, 0.00),
-  ('SLX-154', 8497.75, 925.00, 0.00, 0.00, 1121.00, 0.00),
-  ('SLX-158', 4165.45, 0.00, 0.00, 0.00, 811.00, 0.00),
-  ('SLX-161', null, 0.00, 0.00, 1121.65, 4150.50, 0.00);
-
-
+-- 3a. revenue fields + overhead, straight from the sheet
 update jobs j set
-  contract_price = r.contract,
-  change_orders  = r.co,
-  discounts      = r.disc,
+  contract_price = v.contract,
+  change_orders  = v.co,
+  discounts      = v.disc,
   overhead_pct   = 18.00
-from costing_recon r
-where r.job_id = j.job_id;
+from (values
+  ('SLX-001'::text, 248.54::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-002'::text, 40299.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-003'::text, 23073.87::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-004'::text, 25833.55::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-005'::text, 30664.88::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-006'::text, 8798.78::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-007'::text, 3575.69::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-008'::text, 35250.32::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-009'::text, 12598.78::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-010'::text, 92000.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-011'::text, 3398.78::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-012'::text, 29600.98::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-013'::text, 375.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-014'::text, 30250.65::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-015'::text, 21822.77::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-016'::text, 33060.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-017'::text, 27578.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-018'::text, 37370.88::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-019'::text, 3950.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-020'::text, 4707.06::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-021'::text, 20260.67::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-022'::text, 20450.56::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-023'::text, 2661.38::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-024'::text, 44869.82::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-026'::text, 11143.88::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-027'::text, 8440.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-031'::text, 26945.26::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-033'::text, 13381.25::numeric, 0.00::numeric, -278.69::numeric),
+  ('SLX-034'::text, 4338.82::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-036'::text, 32395.43::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-037'::text, 46450.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-038'::text, 11393.70::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-040'::text, 6320.75::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-041'::text, 78341.10::numeric, 0.00::numeric, -119.90::numeric),
+  ('SLX-042'::text, 17500.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-043'::text, 13496.12::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-046'::text, 12505.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-047'::text, 8415.90::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-048'::text, 34730.45::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-049'::text, 5897.32::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-050'::text, 8800.78::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-051'::text, 44375.99::numeric, 875.00::numeric, -353.83::numeric),
+  ('SLX-052'::text, 5175.43::numeric, 0.00::numeric, -54.00::numeric),
+  ('SLX-053'::text, 21723.74::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-054'::text, 11995.45::numeric, 2205.00::numeric, 0.00::numeric),
+  ('SLX-055'::text, 3900.54::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-056'::text, 6075.31::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-057'::text, 20151.09::numeric, 0.00::numeric, -251.60::numeric),
+  ('SLX-058'::text, 10450.65::numeric, 3375.00::numeric, 0.00::numeric),
+  ('SLX-059'::text, 13375.25::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-060'::text, 20858.99::numeric, 0.00::numeric, -205.58::numeric),
+  ('SLX-061'::text, 4075.54::numeric, 0.00::numeric, -40.00::numeric),
+  ('SLX-062'::text, 17275.23::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-063'::text, 1265.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-065'::text, 8875.45::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-066'::text, 7500.65::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-067'::text, 8874.00::numeric, 200.00::numeric, 0.00::numeric),
+  ('SLX-068'::text, 15000.00::numeric, 2620.00::numeric, -59.36::numeric),
+  ('SLX-069'::text, 16810.56::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-070'::text, 4450.54::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-071'::text, 14625.56::numeric, 0.00::numeric, -120.22::numeric),
+  ('SLX-072'::text, 10450.46::numeric, 0.00::numeric, -765.75::numeric),
+  ('SLX-073'::text, 12885.34::numeric, 500.00::numeric, 0.00::numeric),
+  ('SLX-074'::text, 40000.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-075'::text, 3295.54::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-076'::text, 4000.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-077'::text, 20415.66::numeric, 1700.00::numeric, -1409.87::numeric),
+  ('SLX-080'::text, 8497.75::numeric, 11846.00::numeric, 0.00::numeric),
+  ('SLX-082'::text, 14275.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-083'::text, 19521.04::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-084'::text, 32450.25::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-085'::text, 32754.67::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-123'::text, 31865.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-124'::text, 4997.00::numeric, 1375.00::numeric, 0.00::numeric),
+  ('SLX-129'::text, 66100.00::numeric, 2405.00::numeric, 0.00::numeric),
+  ('SLX-136'::text, 8293.11::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-144'::text, 13700.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-147'::text, 48000.00::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-148'::text, 19779.25::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-152'::text, 1497.54::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-154'::text, 8497.75::numeric, 925.00::numeric, 0.00::numeric),
+  ('SLX-158'::text, 4165.45::numeric, 0.00::numeric, 0.00::numeric),
+  ('SLX-161'::text, null::numeric, 0.00::numeric, 0.00::numeric)
+) as v(job_id, contract, co, disc)
+where v.job_id = j.job_id;
 
+-- 3b. clear the cost rows we are about to replace
 delete from job_costs c
-using costing_recon r
-where c.job_id = r.job_id
+using (values ('SLX-001'), ('SLX-002'), ('SLX-003'), ('SLX-004'), ('SLX-005'), ('SLX-006'), ('SLX-007'), ('SLX-008'), ('SLX-009'), ('SLX-010'), ('SLX-011'), ('SLX-012'), ('SLX-013'), ('SLX-014'), ('SLX-015'), ('SLX-016'), ('SLX-017'), ('SLX-018'), ('SLX-019'), ('SLX-020'), ('SLX-021'), ('SLX-022'), ('SLX-023'), ('SLX-024'), ('SLX-026'), ('SLX-027'), ('SLX-031'), ('SLX-033'), ('SLX-034'), ('SLX-036'), ('SLX-037'), ('SLX-038'), ('SLX-040'), ('SLX-041'), ('SLX-042'), ('SLX-043'), ('SLX-046'), ('SLX-047'), ('SLX-048'), ('SLX-049'), ('SLX-050'), ('SLX-051'), ('SLX-052'), ('SLX-053'), ('SLX-054'), ('SLX-055'), ('SLX-056'), ('SLX-057'), ('SLX-058'), ('SLX-059'), ('SLX-060'), ('SLX-061'), ('SLX-062'), ('SLX-063'), ('SLX-065'), ('SLX-066'), ('SLX-067'), ('SLX-068'), ('SLX-069'), ('SLX-070'), ('SLX-071'), ('SLX-072'), ('SLX-073'), ('SLX-074'), ('SLX-075'), ('SLX-076'), ('SLX-077'), ('SLX-080'), ('SLX-082'), ('SLX-083'), ('SLX-084'), ('SLX-085'), ('SLX-123'), ('SLX-124'), ('SLX-129'), ('SLX-136'), ('SLX-144'), ('SLX-147'), ('SLX-148'), ('SLX-152'), ('SLX-154'), ('SLX-158'), ('SLX-161')) as v(job_id)
+where c.job_id = v.job_id
   and c.category in ('Materials','Labor','Subcontractors');
 
+-- 3c. reinsert Materials / Labor / Subcontractor cost from the sheet
 insert into job_costs (job_id, category, amount, notes)
-select job_id, 'Materials'::cost_category, materials, 'Job Costing sheet'
-  from costing_recon where materials > 0
-union all
-select job_id, 'Labor'::cost_category, labor, 'Job Costing sheet'
-  from costing_recon where labor > 0
-union all
-select job_id, 'Subcontractors'::cost_category, subs, 'Job Costing sheet'
-  from costing_recon where subs > 0;
+select job_id, category, amount, 'Job Costing sheet'
+from (values
+  ('SLX-004'::text, 'Materials'::cost_category, 10630.98::numeric),
+  ('SLX-005'::text, 'Materials'::cost_category, 7942.10::numeric),
+  ('SLX-008'::text, 'Materials'::cost_category, 13870.60::numeric),
+  ('SLX-009'::text, 'Materials'::cost_category, 4793.14::numeric),
+  ('SLX-010'::text, 'Materials'::cost_category, 13670.40::numeric),
+  ('SLX-011'::text, 'Materials'::cost_category, 74.36::numeric),
+  ('SLX-012'::text, 'Materials'::cost_category, 4197.00::numeric),
+  ('SLX-014'::text, 'Materials'::cost_category, 573.61::numeric),
+  ('SLX-015'::text, 'Materials'::cost_category, 6380.44::numeric),
+  ('SLX-016'::text, 'Materials'::cost_category, 1898.09::numeric),
+  ('SLX-017'::text, 'Materials'::cost_category, 5388.64::numeric),
+  ('SLX-018'::text, 'Materials'::cost_category, 2762.01::numeric),
+  ('SLX-022'::text, 'Materials'::cost_category, 987.20::numeric),
+  ('SLX-024'::text, 'Materials'::cost_category, 1203.55::numeric),
+  ('SLX-026'::text, 'Materials'::cost_category, 1813.78::numeric),
+  ('SLX-027'::text, 'Materials'::cost_category, 1702.47::numeric),
+  ('SLX-031'::text, 'Materials'::cost_category, 7091.32::numeric),
+  ('SLX-031'::text, 'Labor'::cost_category, 2672.50::numeric),
+  ('SLX-033'::text, 'Labor'::cost_category, 3424.50::numeric),
+  ('SLX-034'::text, 'Labor'::cost_category, 2601.00::numeric),
+  ('SLX-036'::text, 'Materials'::cost_category, 6466.44::numeric),
+  ('SLX-036'::text, 'Labor'::cost_category, 2855.00::numeric),
+  ('SLX-037'::text, 'Materials'::cost_category, 949.07::numeric),
+  ('SLX-038'::text, 'Materials'::cost_category, 555.11::numeric),
+  ('SLX-038'::text, 'Labor'::cost_category, 730.00::numeric),
+  ('SLX-040'::text, 'Materials'::cost_category, 398.64::numeric),
+  ('SLX-040'::text, 'Labor'::cost_category, 1114.67::numeric),
+  ('SLX-041'::text, 'Materials'::cost_category, 10713.50::numeric),
+  ('SLX-041'::text, 'Labor'::cost_category, 14388.00::numeric),
+  ('SLX-042'::text, 'Materials'::cost_category, 6607.07::numeric),
+  ('SLX-042'::text, 'Labor'::cost_category, 973.00::numeric),
+  ('SLX-046'::text, 'Materials'::cost_category, 1657.49::numeric),
+  ('SLX-046'::text, 'Labor'::cost_category, 3843.50::numeric),
+  ('SLX-048'::text, 'Materials'::cost_category, 4301.67::numeric),
+  ('SLX-048'::text, 'Labor'::cost_category, 4209.00::numeric),
+  ('SLX-049'::text, 'Labor'::cost_category, 595.25::numeric),
+  ('SLX-050'::text, 'Materials'::cost_category, 1361.39::numeric),
+  ('SLX-051'::text, 'Materials'::cost_category, 2457.65::numeric),
+  ('SLX-051'::text, 'Labor'::cost_category, 10235.00::numeric),
+  ('SLX-052'::text, 'Materials'::cost_category, 756.54::numeric),
+  ('SLX-052'::text, 'Labor'::cost_category, 504.00::numeric),
+  ('SLX-053'::text, 'Labor'::cost_category, 3500.00::numeric),
+  ('SLX-054'::text, 'Materials'::cost_category, 384.39::numeric),
+  ('SLX-054'::text, 'Labor'::cost_category, 2996.00::numeric),
+  ('SLX-056'::text, 'Materials'::cost_category, 1112.00::numeric),
+  ('SLX-056'::text, 'Labor'::cost_category, 572.00::numeric),
+  ('SLX-057'::text, 'Materials'::cost_category, 4058.58::numeric),
+  ('SLX-057'::text, 'Labor'::cost_category, 4733.50::numeric),
+  ('SLX-058'::text, 'Materials'::cost_category, 6123.49::numeric),
+  ('SLX-059'::text, 'Labor'::cost_category, 2089.50::numeric),
+  ('SLX-060'::text, 'Materials'::cost_category, 735.58::numeric),
+  ('SLX-060'::text, 'Labor'::cost_category, 1607.00::numeric),
+  ('SLX-061'::text, 'Materials'::cost_category, 979.22::numeric),
+  ('SLX-061'::text, 'Labor'::cost_category, 1221.50::numeric),
+  ('SLX-062'::text, 'Materials'::cost_category, 7541.94::numeric),
+  ('SLX-062'::text, 'Labor'::cost_category, 3087.00::numeric),
+  ('SLX-063'::text, 'Labor'::cost_category, 280.00::numeric),
+  ('SLX-065'::text, 'Labor'::cost_category, 2747.50::numeric),
+  ('SLX-067'::text, 'Materials'::cost_category, 3343.08::numeric),
+  ('SLX-067'::text, 'Labor'::cost_category, 1242.00::numeric),
+  ('SLX-068'::text, 'Materials'::cost_category, 732.69::numeric),
+  ('SLX-068'::text, 'Labor'::cost_category, 3276.00::numeric),
+  ('SLX-069'::text, 'Labor'::cost_category, 3418.00::numeric),
+  ('SLX-070'::text, 'Labor'::cost_category, 560.00::numeric),
+  ('SLX-071'::text, 'Labor'::cost_category, 1675.25::numeric),
+  ('SLX-072'::text, 'Materials'::cost_category, 11371.70::numeric),
+  ('SLX-072'::text, 'Labor'::cost_category, 1620.00::numeric),
+  ('SLX-073'::text, 'Labor'::cost_category, 2029.00::numeric),
+  ('SLX-074'::text, 'Labor'::cost_category, 7994.00::numeric),
+  ('SLX-075'::text, 'Labor'::cost_category, 560.00::numeric),
+  ('SLX-076'::text, 'Labor'::cost_category, 845.50::numeric),
+  ('SLX-077'::text, 'Materials'::cost_category, 10321.20::numeric),
+  ('SLX-077'::text, 'Labor'::cost_category, 7130.50::numeric),
+  ('SLX-080'::text, 'Materials'::cost_category, 346.08::numeric),
+  ('SLX-080'::text, 'Labor'::cost_category, 908.50::numeric),
+  ('SLX-082'::text, 'Materials'::cost_category, 364.97::numeric),
+  ('SLX-082'::text, 'Labor'::cost_category, 875.50::numeric),
+  ('SLX-084'::text, 'Materials'::cost_category, 317.50::numeric),
+  ('SLX-085'::text, 'Materials'::cost_category, 3637.49::numeric),
+  ('SLX-123'::text, 'Materials'::cost_category, 408.22::numeric),
+  ('SLX-124'::text, 'Materials'::cost_category, 1507.50::numeric),
+  ('SLX-129'::text, 'Materials'::cost_category, 10860.00::numeric),
+  ('SLX-129'::text, 'Labor'::cost_category, 18314.00::numeric),
+  ('SLX-136'::text, 'Labor'::cost_category, 189.00::numeric),
+  ('SLX-144'::text, 'Labor'::cost_category, 399.00::numeric),
+  ('SLX-147'::text, 'Materials'::cost_category, 12357.50::numeric),
+  ('SLX-147'::text, 'Labor'::cost_category, 7698.23::numeric),
+  ('SLX-154'::text, 'Labor'::cost_category, 1121.00::numeric),
+  ('SLX-158'::text, 'Labor'::cost_category, 811.00::numeric),
+  ('SLX-161'::text, 'Materials'::cost_category, 1121.65::numeric),
+  ('SLX-161'::text, 'Labor'::cost_category, 4150.50::numeric)
+) as v(job_id, category, amount);
 
 
 -- ---------- 4. two jobs that were only on the sheet ----------
@@ -239,24 +311,14 @@ insert into job_costs (job_id, category, amount, notes) values
   ('SLX-166', 'Materials', 684.88, 'Job Costing sheet');
 
 
--- ---------- verify ----------
--- This runs automatically as the last statement — the SQL editor's
--- results panel will show one row. If result <> 'PASS', something
--- above did not apply (a partial run, a stray error you scrolled past,
--- a stale copy of this file) — screenshot this row back to Claude.
+-- ---------- verify (runs as the final statement) ----------
 select
-  (select count(*) from costing_recon)                                as staged_rows_expect_83,
-  (select count(*) from jobs j join costing_recon r on r.job_id = j.job_id
-     where j.change_orders = r.co and j.discounts = r.disc)           as jobs_matching_sheet_expect_83,
   (select count(*) from jobs where job_id in ('SLX-165','SLX-166'))   as new_jobs_expect_2,
   (select material_cost from job_margins where job_id = 'SLX-005')    as kolene_materials_expect_7942_10,
-  case when (select count(*) from costing_recon) = 83
-    and (select count(*) from jobs j join costing_recon r on r.job_id = j.job_id
-           where j.change_orders = r.co and j.discounts = r.disc) = 83
-    and (select count(*) from jobs where job_id in ('SLX-165','SLX-166')) = 2
+  (select revenue from job_margins where job_id = 'SLX-052')          as elda_revenue_expect_5121_43,
+  case when (select count(*) from jobs where job_id in ('SLX-165','SLX-166')) = 2
     and (select material_cost from job_margins where job_id = 'SLX-005') = 7942.10
-  then 'PASS — migration 30 fully applied'
-  else 'FAIL — re-run this file top to bottom in a fresh SQL editor tab, or send this row to Claude'
+    and (select revenue from job_margins where job_id = 'SLX-052') = 5121.43
+  then 'PASS'
+  else 'FAIL - send this row to Claude'
   end as result;
-
--- SLX-143 (Jenni Bee) skipped on purpose — reconcile by hand.
