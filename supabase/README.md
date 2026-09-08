@@ -2,7 +2,7 @@
 
 Run these in order against a fresh Supabase project to rebuild the database
 from nothing. Every file is safe to re-run unless its own header says
-otherwise. Run order matches filename order — 01 through 31, no gaps, no
+otherwise. Run order matches filename order — 01 through 32, no gaps, no
 duplicate numbers.
 
 **One exception to "just run them in order":** `26_add_labor_category.sql`
