@@ -553,6 +553,17 @@ async function createJob(){
   const created=jobs.find(j=>j.id===nextId);
   if(created)openJob(nextId);
 }
+async function createJobFromFields(f){
+  const nums=jobs.map(j=>parseInt(String(j.id).replace(/\D/g,""),10)).filter(n=>!Number.isNaN(n));
+  const nextId="SLX-"+String((nums.length?Math.max(...nums):0)+1).padStart(3,"0");
+  const {error}=await sb.from("jobs").insert({job_id:nextId,client_name:f.client_name,
+    job_type:f.job_type||null,contract_price:f.contract_price==null||f.contract_price===""?null:Number(f.contract_price),
+    manager:f.manager||null,stage:f.stage||"Designs Sold"});
+  if(error){alert("Couldn't create the job: "+error.message);return null}
+  await fetchJobs();drawJobs();drawToday();
+  return nextId;
+}
+window.createJobFromFields=createJobFromFields;
 const F=(k,v,cls="")=>`<div class="fld ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`,FI=(k,f,v)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" value="${v??""}" placeholder="—"></div>`,FI2=(k,f,v,jobId)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" data-job="${jobId}" value="${v??""}" placeholder="—"></div>`;
 function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";currentUpdates=null;currentPayments=null;$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stClass(cur.stage)}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#clientDetail").classList.add("hidden");$("#detail").classList.remove("hidden");window.scrollTo(0,0)}
 function openJobUpdates(id){openJob(id);st="up";document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="up"));drawDetail()}
@@ -1289,6 +1300,10 @@ async function updateEstField(id,field,rawValue){
   if(error){setEst("Error: "+error.message,true);return}
   const r=estRows.find(x=>x.estimate_id===id);if(r)r[field]=val;
   setEst("Saved",false);setTimeout(()=>{if($("#estStatus").textContent==="Saved")setEst("",false)},1200);
+  if(field==="status"&&val==="Accepted"&&r&&!r.job_id&&confirm(`Estimate accepted. Create a job for ${r.client_name}?`)){
+    const jid=await createJobFromFields({client_name:r.client_name,job_type:r.job_type,contract_price:r.amount});
+    if(jid){await sb.from("estimates").update({job_id:jid}).eq("estimate_id",id);r.job_id=jid;setEst(`Created job ${jid}`,false);setTimeout(()=>setEst("",false),2500);}
+  }
   if(field==="status"||field==="amount")drawEstimates();
 }
 async function deleteEstimate(id){
@@ -1474,7 +1489,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 	async function fetchLeads(){
 		const {data,error}=await sb.from("leads").select("*").order("lead_date",{ascending:false});
 		if(error){console.error(error);return}
-		leadRecords=(data||[]).map(l=>({id:l.lead_id,name:l.name,phone:l.phone||"",email:l.email||"",source:l.source||"",status:l.status,leadDate:l.lead_date,value:Number(l.est_value)||0,notes:l.notes||"",estimateBooked:!!l.estimate_booked,estimateBookedDate:l.estimate_booked_date||null,shown:!!l.shown,shownDate:l.shown_date||null,closedRevenue:l.closed_revenue==null?"":Number(l.closed_revenue),saleDate:l.sale_date||null,manager:l.manager||"",lossReason:l.loss_reason||"",designSent:!!l.design_sent_date,designSold:!!l.design_sold_date}));
+		leadRecords=(data||[]).map(l=>({id:l.lead_id,name:l.name,phone:l.phone||"",email:l.email||"",source:l.source||"",status:l.status,leadDate:l.lead_date,value:Number(l.est_value)||0,notes:l.notes||"",estimateBooked:!!l.estimate_booked,estimateBookedDate:l.estimate_booked_date||null,shown:!!l.shown,shownDate:l.shown_date||null,closedRevenue:l.closed_revenue==null?"":Number(l.closed_revenue),saleDate:l.sale_date||null,manager:l.manager||"",lossReason:l.loss_reason||"",designSent:!!l.design_sent_date,designSold:!!l.design_sold_date,jobId:l.job_id||null}));
 	}
 	function setLeadStatus(msg,isError){
 		const el=document.getElementById("leadSaveStatus");if(!el)return;
@@ -1504,12 +1519,19 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		}else{
 			const value=field==="value"?(rawValue===""?0:Number(rawValue)):(rawValue===""?null:rawValue);
 			update={[column]:value};
+			if(field==="status"&&rawValue==="Won"&&(!lead||!lead.saleDate))update.sale_date=new Date().toISOString().slice(0,10);
 		}
 		const {error}=await sb.from("leads").update(update).eq("lead_id",leadId);
 		if(error){setLeadStatus("Error: "+error.message,true);return}
+		if(field==="status"&&rawValue==="Won"&&lead&&!lead.jobId&&typeof window.createJobFromFields==="function"
+			&&confirm(`Lead won. Create a job for ${lead.name}?`)){
+			const jid=await window.createJobFromFields({client_name:lead.name,
+				contract_price:lead.closedRevenue||lead.value||null,manager:lead.manager});
+			if(jid){await sb.from("leads").update({job_id:jid}).eq("lead_id",leadId);setLeadStatus(`Created job ${jid}`,false);}
+		}
 		await fetchLeads();drawLeadList();drawLeadReport();
-		setLeadStatus("Saved",false);
-		setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Saved")setLeadStatus("",false)},2000);
+		if(document.getElementById("leadSaveStatus")?.textContent.startsWith("Created"))setTimeout(()=>setLeadStatus("",false),2500);
+		else{setLeadStatus("Saved",false);setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Saved")setLeadStatus("",false)},2000);}
 	}
 	async function createLead(fields){
 		if(!fields.name){setLeadStatus("Error: name is required",true);return}
