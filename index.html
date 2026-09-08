@@ -343,7 +343,7 @@ async function drawToday(){$("#greeting").textContent=greetingLine();
     sb.from("time_entries").select("job_id,work_date").not("job_id","is",null),
     sb.from("job_payments").select("job_id,client_name,balance_due,payment_status").gt("balance_due",0),
     sb.from("job_payments").select("job_id,revenue,collected,payment_count"),
-    sb.from("leads").select("status,lead_date"),
+    sb.from("leads").select("status,lead_date,manager"),
     sb.from("ad_performance").select("spend,leads,revenue"),
     sb.from("crew").select("hourly_wage"),
     sb.from("job_costs").select("job_id"),
@@ -390,11 +390,14 @@ async function drawToday(){$("#greeting").textContent=greetingLine();
   const jobsWithCosts=new Set([...(jcRows||[]).map(r=>r.job_id),...(spRows||[]).map(r=>r.job_id),...(teRows||[]).map(r=>r.job_id)]).size;
   const crewWithWage=(crewRows||[]).filter(c=>c.hourly_wage!=null).length;
   const leadsWithRealStatus=(leadRows||[]).filter(l=>l.status!=="New").length;
+  const leadsWithOwner=(leadRows||[]).filter(l=>l.manager).length;
   $("#dataHealthBars").innerHTML=[
-    ["Jobs with cost data logged",jobsWithCosts,jobs.length],
+    ["Priced jobs with a payment logged",jobsWithPayments,pricedPay.length],
     ["Leads with a real status",leadsWithRealStatus,leadRows?.length||0],
+    ["Leads assigned to an owner",leadsWithOwner,leadRows?.length||0],
+    ["Jobs with cost data logged",jobsWithCosts,jobs.length],
     ["Crew with an hourly wage set",crewWithWage,crewRows?.length||0]
-  ].map(([k,n,total])=>`<div class="bar"><div class="t"><span>${k}</span><b>${n} of ${total}</b></div><div class="track"><i style="width:${total?n/total*100:0}%"></i></div></div>`).join("");
+  ].map(([k,n,total])=>{const p=total?n/total*100:0,c=p>=80?"var(--good)":p>=40?"var(--amber)":"var(--alert)";return `<div class="bar"><div class="t"><span>${k}</span><b>${n} of ${total}</b></div><div class="track"><i style="width:${p}%;background:${c}"></i></div></div>`}).join("");
   const counts=STAGES.map(s=>[s,jobs.filter(j=>j.stage===s).length]),mx=Math.max(...counts.map(c=>c[1]),1);$("#stageBars").innerHTML=counts.map(([s,n])=>`<div class="bar"><div class="t"><span>${s}</span><b>${n}</b></div><div class="track"><i style="width:${n/mx*100}%"></i></div></div>`).join("");
   drawMoneyAndBreakdowns();
 }
