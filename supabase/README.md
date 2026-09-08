@@ -2,7 +2,7 @@
 
 Run these in order against a fresh Supabase project to rebuild the database
 from nothing. Every file is safe to re-run unless its own header says
-otherwise. Run order matches filename order — 01 through 34, no gaps, no
+otherwise. Run order matches filename order — 01 through 35, no gaps, no
 duplicate numbers.
 
 **One exception to "just run them in order":** `26_add_labor_category.sql`
@@ -47,6 +47,7 @@ using the `Labor` category that 26 adds. Run 26, let it commit, then run 27.
 | 32 | `32_finish_reconcile.sql` | Cleanup: the ~20 jobs that migration 30 did not fully apply because the Supabase SQL editor mangled the large paste. Standalone one-line revenue and cost-row statements for just those jobs. Run AFTER 30. Safe to re-run. |
 | 33 | `33_drop_phantom_subs.sql` | Removes two `sub_payments` rows (Adriana Britton $3,500, Jacob Bohanam $730) that migration 25 moved from misfiled jobs. The sheet already counts those as Labor, so they were double-counting in `material_cost`. Run AFTER 32. Safe to re-run. |
 | 34 | `34_normalize_job_types.sql` | Maps the 45 free-text job types to a fixed list (Roofing, Siding, Painting, Decking, Windows/Doors, Gutters, Concrete/Hardscape, Patio Cover, Fencing, Flooring, Multi-Trade, Other). Multi-trade combos go to Multi-Trade. The job type field in the app is a dropdown now. Run any time. Safe to re-run. |
+| 35 | `35_dedupe_overhead.sql` | `04_phase2.sql` had no unique key on `overhead_expenses`, so re-runs inserted the whole seed list again (the table holds ~3x the real line items and `overhead_summary` / `overhead_rate_check` are inflated). Keeps one row per (item, category) and adds the unique key. Backs the new Overhead page. Run any time. Safe to re-run. |
 
 ## Why the order matters
 
