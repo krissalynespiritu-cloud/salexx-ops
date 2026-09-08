@@ -1227,13 +1227,15 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 	async function fetchLeads(){
 		const {data,error}=await sb.from("leads").select("*").order("lead_date",{ascending:false});
 		if(error){console.error(error);return}
-		leadRecords=(data||[]).map(l=>({id:l.lead_id,name:l.name,phone:l.phone||"",email:l.email||"",source:l.source||"",status:l.status,leadDate:l.lead_date,value:Number(l.est_value)||0,notes:l.notes||"",estimateBooked:!!l.estimate_booked,estimateBookedDate:l.estimate_booked_date||null,shown:!!l.shown,shownDate:l.shown_date||null,closedRevenue:l.closed_revenue==null?"":Number(l.closed_revenue),saleDate:l.sale_date||null}));
+		leadRecords=(data||[]).map(l=>({id:l.lead_id,name:l.name,phone:l.phone||"",email:l.email||"",source:l.source||"",status:l.status,leadDate:l.lead_date,value:Number(l.est_value)||0,notes:l.notes||"",estimateBooked:!!l.estimate_booked,estimateBookedDate:l.estimate_booked_date||null,shown:!!l.shown,shownDate:l.shown_date||null,closedRevenue:l.closed_revenue==null?"":Number(l.closed_revenue),saleDate:l.sale_date||null,manager:l.manager||"",lossReason:l.loss_reason||"",designSent:!!l.design_sent_date,designSold:!!l.design_sold_date}));
 	}
 	function setLeadStatus(msg,isError){
 		const el=document.getElementById("leadSaveStatus");if(!el)return;
 		el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
 	}
-	const LEAD_COLUMN={source:"source",status:"status",leadDate:"lead_date",value:"est_value",phone:"phone",email:"email",notes:"notes",estimateBooked:"estimate_booked",shown:"shown",closedRevenue:"closed_revenue"};
+	const LEAD_COLUMN={source:"source",status:"status",leadDate:"lead_date",value:"est_value",phone:"phone",email:"email",notes:"notes",estimateBooked:"estimate_booked",shown:"shown",closedRevenue:"closed_revenue",manager:"manager",lossReason:"loss_reason",designSent:"design_sent_date",designSold:"design_sold_date"};
+	const CLOSERS=["Alex","Luke"];
+	const LOSS_REASONS=["Price","Timing","Went with competitor","No response","Not qualified","Other"];
 	async function updateLeadField(leadId,field,rawValue){
 		const column=LEAD_COLUMN[field];if(!column)return;
 		setLeadStatus("Saving…",false);
@@ -1248,6 +1250,10 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		}else if(field==="closedRevenue"){
 			update={closed_revenue:rawValue===""?null:Number(rawValue)};
 			if(rawValue!==""&&(!lead||!lead.saleDate))update.sale_date=new Date().toISOString().slice(0,10);
+		}else if(field==="designSent"){
+			update={design_sent_date:rawValue?new Date().toISOString().slice(0,10):null};
+		}else if(field==="designSold"){
+			update={design_sold_date:rawValue?new Date().toISOString().slice(0,10):null};
 		}else{
 			const value=field==="value"?(rawValue===""?0:Number(rawValue)):(rawValue===""?null:rawValue);
 			update={[column]:value};
@@ -1263,7 +1269,8 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		setLeadStatus("Saving…",false);
 		const {error}=await sb.from("leads").insert({
 			name:fields.name,source:fields.source||null,status:fields.status||"New",
-			lead_date:fields.leadDate,est_value:fields.value===""?null:Number(fields.value)
+			lead_date:fields.leadDate,est_value:fields.value===""?null:Number(fields.value),
+			manager:fields.manager||null
 		});
 		if(error){setLeadStatus("Error: "+error.message,true);return}
 		await fetchLeads();drawLeadList();drawLeadReport();
@@ -1279,35 +1286,64 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		setLeadStatus("Deleted",false);
 		setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Deleted")setLeadStatus("",false)},2000);
 	}
-	const sourceOptions = ["Facebook", "Website", "Facebook Ads", "Alex Reached out", "Instagram", "Referral", "Nextdoor", "Google"];
+	const sourceOptions = ["Facebook", "Website", "Facebook Ads", "Alex Reached out", "Instagram", "Referral", "Nextdoor", "Google", "Phone Call", "Yard Sign", "Door Hanger"];
 	const statusOptions = ["New", "Contacted", "Estimated", "Won", "Lost"];
 
 	// ---------- Leads Tracker page: flat editable log, no date filter (matches the spreadsheet) ----------
 	const trackerPanel = $("#s-leadstracker");
 	const trackerHTML = document.createElement("div");
-	trackerHTML.innerHTML = `<p class="lbl">New lead</p>
+	trackerHTML.innerHTML = `<div class="kpis" id="leadSummary" style="margin-bottom:16px"></div>
+	<p class="lbl">New lead</p>
 	<p class="note" id="leadSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p>
 	<div class="fields" style="margin-bottom:18px">
 		<div class="fld"><span class="k">Name</span><input type="text" id="newLeadName" placeholder="Lead name" style="width:170px"></div>
 		<div class="fld"><span class="k">Source</span><select id="newLeadSource" style="width:170px"><option value="">Source…</option>${sourceOptions.map(s=>`<option>${s}</option>`).join("")}</select></div>
+		<div class="fld"><span class="k">Owner</span><select id="newLeadOwner" style="width:170px"><option value="">Owner…</option>${CLOSERS.map(c=>`<option>${c}</option>`).join("")}</select></div>
 		<div class="fld"><span class="k">Lead date</span><input type="date" id="newLeadDate" style="width:170px"></div>
 		<div class="fld"><span class="k">Value</span><input type="number" id="newLeadValue" placeholder="—" style="width:170px"></div>
 	</div>
 	<button id="addLeadBtn" class="chip" style="margin-bottom:22px">Add lead</button>
-	<p class="lbl">All leads · <span id="totalLeadsCount">0</span> total</p>
+	<p class="lbl">All leads · <span id="totalLeadsCount">0</span> shown</p>
+	<div class="chips" id="leadStatusChips" style="margin-bottom:10px"></div>
 	<input class="search" id="leadSearch" placeholder="Search lead name…">
 	<div id="leadList"></div>`;
 	trackerPanel.append(trackerHTML);
 	document.getElementById("newLeadDate").value = new Date().toISOString().slice(0,10);
 
+	let leadStatusFilter = "All";
+	const drawLeadSummary = () => {
+		const el = $("#leadSummary"); if (!el) return;
+		const won = leadRecords.filter(l => l.status === "Won").length;
+		const lost = leadRecords.filter(l => l.status === "Lost").length;
+		const closeRate = won + lost > 0 ? Math.round(won / (won + lost) * 100) + "%" : "—";
+		const mp = new Date().toISOString().slice(0, 7);
+		const thisMonth = leadRecords.filter(l => (l.leadDate || "").startsWith(mp)).length;
+		const wonValue = leadRecords.filter(l => l.status === "Won").reduce((s, l) => s + (Number(l.closedRevenue) || l.value || 0), 0);
+		const working = leadRecords.filter(l => l.status === "New" || l.status === "Contacted").length;
+		const card = (k, v, d) => `<div class="kpi"><p class="k">${k}</p><p class="v">${v}</p><p class="d">${d}</p></div>`;
+		el.innerHTML = card("Total leads", leadRecords.length, thisMonth + " added this month")
+			+ card("Close rate", closeRate, won + " won, " + lost + " lost")
+			+ card("Won value", money(wonValue), won + " deals")
+			+ card("Working", working, "New + Contacted");
+	};
+	const drawLeadStatusChips = () => {
+		const el = $("#leadStatusChips"); if (!el) return;
+		const count = s => s === "All" ? leadRecords.length : leadRecords.filter(l => l.status === s).length;
+		el.innerHTML = ["All", ...statusOptions].map(s =>
+			`<button class="chip" data-lead-status-filter="${s}" aria-pressed="${leadStatusFilter === s}">${s}<b>${count(s)}</b></button>`
+		).join("");
+	};
 	const drawLeadList = () => {
 		const query = ($("#leadSearch")?.value||"").toLowerCase();
-		const filtered = leadRecords.filter(lead => lead.name.toLowerCase().includes(query));
+		const filtered = leadRecords.filter(lead => lead.name.toLowerCase().includes(query) && (leadStatusFilter === "All" || lead.status === leadStatusFilter));
 		$("#totalLeadsCount").textContent = filtered.length;
+		drawLeadSummary();
+		drawLeadStatusChips();
+		const chk = (lead, field, label) => `<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--steel)"><input type="checkbox" data-lead-id="${lead.id}" data-field="${field}" ${lead[field]?"checked":""} aria-label="${label}">${label}</label>`;
 		$("#leadList").innerHTML = filtered.length ? filtered.map(lead => {
 			const statusColor = lead.status==="Won"?"var(--good)":lead.status==="Lost"?"var(--alert)":lead.status==="Estimated"?"var(--amber)":lead.status==="Contacted"?"var(--sky)":"var(--steel)";
-			return `<div class="fld" style="margin-bottom:7px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><span class="k" style="flex-basis:100%"><b style="color:var(--text);font-size:14px">${escapeHtml(lead.name)}</b></span><input type="date" data-lead-id="${lead.id}" data-field="leadDate" value="${lead.leadDate||""}" style="width:110px" aria-label="Lead date"><input type="text" data-lead-id="${lead.id}" data-field="phone" value="${escapeHtml(lead.phone)}" placeholder="Phone" style="width:110px" aria-label="Phone"><input type="text" data-lead-id="${lead.id}" data-field="email" value="${escapeHtml(lead.email)}" placeholder="Email" style="width:160px" aria-label="Email"><select data-lead-id="${lead.id}" data-field="source" aria-label="Source" style="width:120px"><option value="">Source</option>${sourceOptions.map(s=>`<option ${lead.source===s?"selected":""}>${s}</option>`).join("")}</select><select data-lead-id="${lead.id}" data-field="status" aria-label="Status" style="width:100px;color:${statusColor}">${statusOptions.map(s=>`<option ${lead.status===s?"selected":""}>${s}</option>`).join("")}</select><label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--steel)"><input type="checkbox" data-lead-id="${lead.id}" data-field="estimateBooked" ${lead.estimateBooked?"checked":""} aria-label="Appointment set">Appt set</label><label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--steel)"><input type="checkbox" data-lead-id="${lead.id}" data-field="shown" ${lead.shown?"checked":""} aria-label="Showed up">Shown</label>${lead.status==="Won"?`<input type="number" data-lead-id="${lead.id}" data-field="closedRevenue" value="${lead.closedRevenue}" placeholder="Revenue" style="width:100px" aria-label="Closed revenue">`:""}<input type="text" data-lead-id="${lead.id}" data-field="notes" value="${escapeHtml(lead.notes)}" placeholder="Notes" style="width:160px" aria-label="Notes"><button data-lead-delete="${lead.id}" aria-label="Delete lead" title="Delete lead" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:26px;height:26px;line-height:1;cursor:pointer;font-size:15px">×</button></div>`;
-		}).join("") : '<div class="empty">No leads yet.</div>';
+			return `<div class="fld" style="margin-bottom:7px;border:1px solid var(--line);border-radius:10px;flex-wrap:wrap"><span class="k" style="flex-basis:100%"><b style="color:var(--text);font-size:14px">${escapeHtml(lead.name)}</b></span><input type="date" data-lead-id="${lead.id}" data-field="leadDate" value="${lead.leadDate||""}" style="width:110px" aria-label="Lead date"><input type="text" data-lead-id="${lead.id}" data-field="phone" value="${escapeHtml(lead.phone)}" placeholder="Phone" style="width:110px" aria-label="Phone"><input type="text" data-lead-id="${lead.id}" data-field="email" value="${escapeHtml(lead.email)}" placeholder="Email" style="width:150px" aria-label="Email"><select data-lead-id="${lead.id}" data-field="source" aria-label="Source" style="width:115px"><option value="">Source</option>${sourceOptions.map(s=>`<option ${lead.source===s?"selected":""}>${s}</option>`).join("")}</select><select data-lead-id="${lead.id}" data-field="manager" aria-label="Owner" style="width:90px"><option value="">Owner</option>${CLOSERS.map(c=>`<option ${lead.manager===c?"selected":""}>${c}</option>`).join("")}</select><select data-lead-id="${lead.id}" data-field="status" aria-label="Status" style="width:100px;color:${statusColor}">${statusOptions.map(s=>`<option ${lead.status===s?"selected":""}>${s}</option>`).join("")}</select>${chk(lead,"estimateBooked","Appt")}${chk(lead,"shown","Shown")}${chk(lead,"designSent","Dsgn sent")}${chk(lead,"designSold","Dsgn sold")}${lead.status==="Won"?`<input type="number" data-lead-id="${lead.id}" data-field="closedRevenue" value="${lead.closedRevenue}" placeholder="Revenue" style="width:100px" aria-label="Closed revenue">`:""}${lead.status==="Lost"?`<select data-lead-id="${lead.id}" data-field="lossReason" aria-label="Loss reason" style="width:130px"><option value="">Why lost…</option>${LOSS_REASONS.map(r=>`<option ${lead.lossReason===r?"selected":""}>${r}</option>`).join("")}</select>`:""}<input type="text" data-lead-id="${lead.id}" data-field="notes" value="${escapeHtml(lead.notes)}" placeholder="Notes" style="width:150px" aria-label="Notes"><button data-lead-delete="${lead.id}" aria-label="Delete lead" title="Delete lead" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:26px;height:26px;line-height:1;cursor:pointer;font-size:15px">×</button></div>`;
+		}).join("") : '<div class="empty">No leads match.</div>';
 	};
 
 	// ---------- Lead Source Report page: by-source funnel table, its own date filter ----------
@@ -1372,7 +1408,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			const key = (lead.status || "New").toLowerCase();
 			bySource[lead.source][key] = (bySource[lead.source][key] || 0) + 1;
 			bySource[lead.source].total++;
-			if (lead.status==="Won") bySource[lead.source].wonValue += lead.value;
+			if (lead.status==="Won") bySource[lead.source].wonValue += (Number(lead.closedRevenue) || lead.value || 0);
 		});
 		const rows = Object.entries(bySource).map(([source, data]) => {
 			const rate = data.total ? ((data.won / data.total) * 100).toFixed(0) : "—";
@@ -1399,6 +1435,8 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			deleteLead(delId, lead ? lead.name : "this lead");
 			return;
 		}
+		const sf = event.target.closest("[data-lead-status-filter]");
+		if (sf) { leadStatusFilter = sf.dataset.leadStatusFilter; drawLeadList(); return; }
 		const preset = event.target.id;
 		if (preset === "lsrRangeWeek" || preset === "lsrRangeMonth" || preset === "lsrRangeYear" || preset === "lsrRangeAll") {
 			document.getElementById("lsrCustomRange").style.display = "none";
@@ -1418,6 +1456,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			const fields = {
 				name: document.getElementById("newLeadName").value.trim(),
 				source: document.getElementById("newLeadSource").value,
+				manager: document.getElementById("newLeadOwner").value,
 				leadDate: document.getElementById("newLeadDate").value || new Date().toISOString().slice(0,10),
 				status: "New",
 				value: document.getElementById("newLeadValue").value
@@ -1425,6 +1464,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			createLead(fields).then(() => {
 				document.getElementById("newLeadName").value = "";
 				document.getElementById("newLeadSource").value = "";
+				document.getElementById("newLeadOwner").value = "";
 				document.getElementById("newLeadValue").value = "";
 			});
 		}
