@@ -1,1 +1,5 @@
 .DS_Store
+
+# raw source images (optimized copies live in assets/)
+/IMG_*.jpg
+/Salexx Logo Transparent.png
