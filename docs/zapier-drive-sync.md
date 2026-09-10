@@ -1,162 +1,79 @@
-# Phase 2 — copy app uploads into Google Drive (Zapier)
+# App file → Google Drive (Zapier) — BUILT
 
-When someone uploads a file on a job's **Files** tab, it's stored in Supabase
-and the app shows it as **"syncing…"**. This zap copies that file into the
-matching subfolder of the job's Google Drive folder and flips the badge to
-**"in Drive ✓"**.
+When a file is uploaded on a job's **Files** tab it's stored in Supabase and
+shows as **"syncing…"**. This Zap copies it into the matching subfolder of
+that job's Google Drive folder and flips the badge to **"in Drive ✓"**.
 
-You only build this once. New projects keep getting their folders from your
-existing Monday/Zapier automation — this doesn't touch that.
+**Status: built and published, Sept 2026.** It polls Supabase about every
+2 minutes, so a real upload syncs within a couple of minutes.
 
----
-
-## Before you start
-
-1. **Run migration `46_project_files_sync_fields.sql`** in the Supabase SQL
-   editor (adds `job_drive_url` and `download_url` to `project_files`).
-2. **Each job needs its Google Drive folder link in the app.** Open a job →
-   **Files** tab → paste the folder link into the box (or click *edit* next
-   to an existing one). The link looks like
-   `https://drive.google.com/drive/folders/1AbCdEf...`. A file uploaded
-   before the link is set will stay "syncing…" — re-upload it after, or
-   we can add a "resync" button later.
-3. **Get your Supabase service key:** Supabase → *Project Settings* → *API*
-   → copy the **`service_role`** secret. ⚠️ This key ignores all row
-   security. Paste it **only** into the Zapier webhook step below — never
-   into the app or anywhere public.
-
-Your Supabase project URL: `https://jrewbkwbbwpwflkqectk.supabase.co`
+This does not touch the separate "new client → create folder tree" zap.
 
 ---
 
-## Step 1 — Supabase sends new files to Zapier
+## Why polling instead of a Supabase webhook
 
-**In Zapier:** create a new Zap. Trigger = **Webhooks by Zapier → Catch
-Hook**. Copy the custom webhook URL it gives you.
-
-**In Supabase:** *Database* → *Webhooks* → *Create a new hook*
-- Name: `project_files_to_zapier`
-- Table: `project_files`
-- Events: **Insert** only
-- Type: **HTTP Request**, Method: **POST**
-- URL: *(paste the Zapier catch-hook URL)*
-- HTTP Headers: `Content-Type` = `application/json`
-
-Then upload one test file in the app and click **Test trigger** in Zapier so
-it learns the fields. You'll see fields like `record__job_id`,
-`record__category`, `record__download_url`, `record__file_name`,
-`record__file_id`, `record__job_drive_url`, `record__drive_status`.
+Supabase **Database Webhooks** could not be used — this project is missing
+the internal `supabase_functions` schema and creating a hook fails with
+`ERROR: 3F000: schema "supabase_functions" does not exist`. So the trigger
+polls PostgREST directly instead. No Supabase-side setup is needed.
 
 ---
 
-## Step 2 — only act on files that need syncing
+## The Zap, step by step
 
-Add **Filter by Zapier**:
-- `record__drive_status`  **(Text) Exactly matches**  `pending`
-- AND `record__job_drive_url`  **(Text) Does not contain** *(leave the value box empty — this means "is not empty")*
-
----
-
-## Step 3 — pull the folder ID out of the job's Drive link
-
-Add **Formatter by Zapier → Text → Split Text**
-- Input: `record__job_drive_url`
-- Separator: `folders/`
-- Segment: **Second**
-
-Add another **Formatter by Zapier → Text → Split Text**
-- Input: *(output of the previous step)*
-- Separator: `?`
-- Segment: **First**
-
-The result is the job's Drive folder ID. Call this **folderId**.
-
----
-
-## Step 4 — find the right subfolder
-
-Add **Google Drive → Find a Folder**
-- Drive: the shared drive where "Salexx Construction Projects" lives
-- Title (exact match): `record__category`
-- Parent Folder: **folderId** (from Step 3)
-- *Do not* create the folder if missing — leave that off. Your Monday zap
-  already makes the six subfolders; if this step can't find one, the run
-  should fail so you notice.
-
----
-
-## Step 5 — upload the file
-
-Add **Google Drive → Upload File**
-- Folder: the folder ID from Step 4
-- File: `record__download_url`  *(Zapier fetches the file from this link)*
-- File Name: `record__file_name`
-- Convert to Google Document: **No**
-
----
-
-## Step 6 — tell the app it's done
-
-Add **Webhooks by Zapier → Custom Request**
-- Method: **PATCH**
-- URL:
-  `https://jrewbkwbbwpwflkqectk.supabase.co/rest/v1/project_files?file_id=eq.{{record__file_id}}`
-- Data (choose "Json" for the data type):
-  ```json
-  {
-    "drive_status": "synced",
-    "drive_url": "{{step5_webViewLink}}",
-    "drive_file_id": "{{step5_id}}"
-  }
-  ```
-  *(map `drive_url` to the "Web View Link" field from Step 5, and
-  `drive_file_id` to Step 5's "Id".)*
-- Headers:
+### 1. Trigger — Webhooks by Zapier → Retrieve Poll
+- **URL:** `https://jrewbkwbbwpwflkqectk.supabase.co/rest/v1/project_files?drive_status=eq.pending&select=*&order=created_at.desc`
+- **Key / Deduplication Key:** `file_id`
+- **Headers:**
   | Key | Value |
   |---|---|
-  | `apikey` | *(your service_role key)* |
-  | `Authorization` | `Bearer` *(space)* *(your service_role key)* |
-  | `Content-Type` | `application/json` |
-  | `Prefer` | `return=minimal` |
+  | `apikey` | the Supabase secret key (`sb_secret_…`, or a correctly-copied legacy `service_role` JWT) |
+  | `Authorization` | `Bearer ` + the same key — one space after "Bearer", **no `+`, no line break** |
+
+### 2. Filter by Zapier
+- Only continue if **`job_drive_url`** → **(Text) Exists**
+  (skips jobs that don't have a Drive folder link yet)
+
+### 3a. Formatter → Text → Split Text
+- Input: **`job_drive_url`** · Separator: `folders/` · Segment: **Second**
+
+### 3b. Formatter → Text → Split Text
+- Input: **output of 3a** · Separator: `?` · Segment: **First**
+- → the job's Drive folder ID
+
+### 4. Google Drive → Find a Folder
+- Folder Name: **`category`** (from the trigger) · Search Type: **Exact match**
+- Drive: **My Google Drive** · Parent Folder: **output of 3b**
+- "Successful if no results" → **False (halt)** · do **not** create if missing
+
+### 5. Google Drive → Upload File
+- Drive: **My Google Drive** · Folder: **Step 4 → Id**
+- File: **`download_url`** (from the trigger) · File Name: **`file_name`**
+- Convert to Document: **No**
+
+### 6. Webhooks by Zapier → Custom Request
+- Method: **PATCH**
+- URL: `https://jrewbkwbbwpwflkqectk.supabase.co/rest/v1/project_files?file_id=eq.` + **`file_id`** (from the trigger)
+- Data Pass-Through: **No**
+- Data:
+  ```
+  {"drive_status": "synced", "drive_url": "«Step 5 → Alternate Link»", "drive_file_id": "«Step 5 → Id»"}
+  ```
+- Headers: same 4 as Step 1's headers **plus** `Content-Type: application/json` and `Prefer: return=minimal`
 
 ---
 
-## Step 7 (optional) — mark failures
+## If a file stays "syncing…" for more than ~5 min
 
-In Zapier, turn on **Zap → Settings → Autoreplay** so transient errors
-retry. If you want failed files to show as **"sync failed"** in the app
-instead of a stuck "syncing…", add an error path that PATCHes the same URL
-with `{"drive_status": "error"}`.
+- The job has no Drive folder link → open the job's Files tab and paste it in, then re-upload
+- Check **Zapier → Zap History** for a halted/errored run
+- The `download_url` on the row is a 7-day signed link — a file left unsynced
+  longer than that needs re-uploading
 
----
+## Test procedure
 
-## Test it
-
-1. Upload a small PDF to a job's **Permits** section in the app.
-2. Watch the Zap run (Zapier → Zap History).
-3. Check the job's Drive folder → `Permits` → the file is there.
-4. Back in the app, refresh the Files tab → the badge reads **"in Drive ✓"**
-   and links to the Drive copy.
-
----
-
-## How the pieces fit
-
-```
-app upload ──▶ Supabase Storage (private bucket)
-     │              +
-     └────────▶ project_files row (drive_status = pending,
-                 job_drive_url, 7-day download_url)
-                        │
-                 Supabase DB webhook (INSERT)
-                        ▼
-                 Zapier catch hook
-                   ├─ filter: pending + has folder link
-                   ├─ split out the folder ID
-                   ├─ Google Drive: find <category> subfolder
-                   ├─ Google Drive: upload the file
-                   └─ PATCH project_files → drive_status = synced,
-                      drive_url = Drive link
-                        │
-                 app Files tab shows "in Drive ✓"
-```
+1. Upload a small file to a job that has a Drive folder link
+2. Wait ~2–3 min (or open Zap History and run it)
+3. Check that job's Drive folder → the right subfolder → the file is there
+4. Refresh the app's Files tab → badge reads **"in Drive ✓"**
