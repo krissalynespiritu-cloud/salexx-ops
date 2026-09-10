@@ -231,7 +231,7 @@
 </div>
 <div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="pay" aria-selected="false">Payments</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="fi" aria-selected="false">Files</button><button data-st="up" aria-selected="false">Updates</button></div><div class="panel" id="dBody"></div></div>
 <div id="payrollDetail" class="hidden"><div class="dhead"><button class="back" id="payrollBack">← Payroll</button><h2 id="ppName"></h2><p class="sub" id="ppSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Total</p><p class="v" id="ppTotal">$0</p><p class="d" id="ppStatus">—</p></div><div class="kpi" style="display:flex;flex-direction:column;justify-content:center;gap:8px"><button id="ppToggle" class="chip" style="text-align:center">Mark as Paid</button><button id="ppExport" class="chip" style="text-align:center">Export CSV</button></div></div><div class="scroller"><table id="ppTable"><thead><tr><th>Name</th><th>Hours</th><th>Amount</th></tr></thead><tbody id="ppBody"></tbody><tfoot><tr><td>Total</td><td id="ppFootHrs"></td><td id="ppFootAmt"></td></tr></tfoot></table></div></div></div>
-<div id="clientDetail" class="hidden"><div class="dhead"><button class="back" id="clientBack">← Clients</button><h2 id="clName"></h2><p class="sub" id="clSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Lifetime value</p><p class="v" id="clValue">$0</p><p class="d" id="clProjects">0 projects</p></div><div class="kpi"><p class="k">Avg margin</p><p class="v" id="clMargin">—</p><p class="d">across priced projects</p></div></div><div class="grp"><h5>Projects</h5><div id="clJobsList"></div></div></div></div>
+<div id="clientDetail" class="hidden"><div class="dhead"><button class="back" id="clientBack">← Clients</button><h2 id="clName"></h2><p class="sub" id="clSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Lifetime value</p><p class="v" id="clValue">$0</p><p class="d" id="clProjects">0 projects</p></div><div class="kpi"><p class="k">Avg margin</p><p class="v" id="clMargin">—</p><p class="d">across priced projects</p></div></div><div class="grp"><h5>Projects</h5><div id="clJobsList"></div></div><div class="grp"><h5>Materials used across all projects</h5><div id="clMaterials"></div></div></div></div>
 <div id="matReqDetail" class="hidden"><div class="dhead"><button class="back" id="matReqBack">← Material Requests</button><h2 id="mrName"></h2><p class="sub" id="mrSub"></p></div><div class="panel" id="mrBody"></div></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -320,6 +320,9 @@ async function fetchJobs(){
   if(e1||e2||e3||e4||e5){console.error(e1||e2||e3||e4||e5);return false}
   const {data:viTotalRows}=await sb.from("job_vendor_invoice_totals").select("*");
   const viTotalsById=Object.fromEntries((viTotalRows||[]).map(r=>[r.job_id,r]));
+  const {data:matReqRows}=await sb.from("material_request_summary").select("*");
+  const matReqsById={};
+  for(const r of matReqRows||[]){(matReqsById[r.job_id]||=[]).push(r)}
   const marginsById=Object.fromEntries((marginRows||[]).map(m=>[m.job_id,m]));
   const costsById={};
   for(const c of costRows||[]){(costsById[c.job_id]||=[]).push(c)}
@@ -335,6 +338,7 @@ async function fetchJobs(){
     merged.invoiceCount=vt?Number(vt.invoice_count)||0:0;
     merged.invoicedTotal=vt?Number(vt.invoiced_total)||0:0;
     merged.invoicedMaterials=vt?Number(vt.invoiced_materials)||0:0;
+    merged.matReqs=matReqsById[j.job_id]||[];
     jobs.push(merged);
   }
   return true;
@@ -676,10 +680,10 @@ async function createJobFromFields(f){
 }
 window.createJobFromFields=createJobFromFields;
 const F=(k,v,cls="")=>`<div class="fld ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`,FI=(k,f,v)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" value="${v??""}" placeholder="—"></div>`,FI2=(k,f,v,jobId)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" data-job="${jobId}" value="${v??""}" placeholder="—"></div>`;
-function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";currentUpdates=null;currentPayments=null;currentFiles=null;$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stClass(cur.stage)}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#clientDetail").classList.add("hidden");$("#detail").classList.remove("hidden");window.scrollTo(0,0)}
+function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";currentUpdates=null;currentPayments=null;currentFiles=null;$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stClass(cur.stage)}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#clientDetail").classList.add("hidden");$("#matReqDetail").classList.add("hidden");$("#detail").classList.remove("hidden");window.scrollTo(0,0)}
 function openJobUpdates(id){openJob(id);st="up";document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="up"));drawDetail()}
-function drawDetail(){const j=cur,p=j.marginPct,b=$("#dBody");if(st==="ov")b.innerHTML=`${j.revenue==null?`<div class="empty">No contract price yet.<br>Fills in automatically when GHL marks the opportunity won.</div>`:j.unpriced?`<p class="bignum" style="color:var(--steel)">n/a</p><p class="lbl" style="margin-top:6px">Margin — not calculable</p><div class="flagbox">Contract is ${money(j.revenue)} but no costs or hours have been entered yet. That's <b>not</b> 100% margin — it's an unpriced job, kept out of the company average until real numbers land.</div>`:`<p class="bignum" style="color:${col(p)}">${p.toFixed(1)}%</p><p class="lbl" style="margin-top:6px">Gross margin · target 50%</p><div class="gauge"><div class="fill" style="width:${Math.max(Math.min(p,100),0)}%;background:${col(p)}"></div><div class="target"></div></div><div class="gaugecap"><span>${money(j.gp)} GP</span><span>${money(j.revenue)} revenue</span></div>`}<div class="grp" style="margin-top:18px"><h5>Delivery</h5><div class="fields">${F(`Stage <span class="src mon">Monday</span>`,j.stage)}${F(`Sold date <span class="src ghl">GHL</span>`,j.sold||"—")}${F(`Completed date <span class="src mon">Monday</span>`,j.done||"—")}${F(`Crew type <span class="src man">edit</span>`,j.crew||"—")}${F(`Permit required <span class="src mon">Monday</span>`,j.permitReq)}${F(`Lead source <span class="src ghl">GHL</span>`,j.src||"—")}</div></div>${(()=>{if(!j.clientId)return"";const sibs=jobs.filter(x=>x.clientId===j.clientId).sort((a,b)=>(a.sold||"9999").localeCompare(b.sold||"9999"));if(sibs.length<2)return"";const ord=sibs.findIndex(x=>x.id===j.id)+1;const others=sibs.filter(x=>x.id!==j.id);return `<div class="grp" style="margin-top:18px"><h5>Client history</h5><div class="flagbox" style="background:#1A2C4A;border-color:var(--line);color:var(--text)">${ord===1?"1st":ord===2?"2nd":ord===3?"3rd":ord+"th"} project for this client · ${sibs.length} total<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">${others.map(o=>`<button class="jrow" data-open="${o.id}" style="width:100%"><span class="id">${o.id}</span><span class="mid"><span class="cn">${o.type}</span><span class="mt">${o.sold||"—"}</span></span><span class="rt"><span class="stage ${stClass(o.stage)}">${o.stage}</span></span></button>`).join("")}</div></div></div>`})()}`;
-if(st==="co")b.innerHTML=`<p class="note" id="coSaveStatus" style="margin:0 0 11px;min-height:14px;border:0;padding:0"></p><div class="grp"><h5>Revenue breakdown</h5><div class="fields">${FI("Contract price","contract",j.contract)}${FI("Change orders +/−","co",j.co)}${FI("Discounts / credits","disc",j.disc)}${F("Total revenue",money(j.revenue),"tot")}</div></div><div class="grp"><h5>Direct costs</h5><div class="fields">${FI("Materials","mat",j.mat)}${FI("Labor · in-house","laborIn",j.laborIn)}${j.sub?F(`Labor · subcontractor <span class="src zap">from Subs tab</span>`,money(j.sub)):FI("Labor · subcontractor","laborSub",j.laborSub)}${FI("Job hours (optional)","mhrs",j.manualHours)}${FI("Equipment / rentals","equip",j.equip)}${F("Total direct cost",money(j.laborCost+j.materialCost),"tot")}</div>${j.invoiceCount?`<p class="note" style="border:0;padding:6px 2px 0;margin:0">Vendor invoices logged for this job: <b>${money(j.invoicedTotal)}</b> across ${j.invoiceCount} invoice${j.invoiceCount===1?"":"s"}${j.invoicedMaterials&&Math.abs(j.invoicedMaterials-(j.mat||0))>0.5?` · <button data-vi-usemat="${j.id}" class="chip" style="font-size:10px;padding:2px 8px">Use ${money(j.invoicedMaterials)} as Materials</button>`:""} · <a href="#" data-vi-job="${j.id}" style="color:var(--sky)">view invoices</a></p>`:`<p class="note" style="border:0;padding:6px 2px 0;margin:0"><a href="#" data-vi-job="${j.id}" style="color:var(--sky)">Log a vendor invoice for this job</a></p>`}</div><div class="grp"><h5>Additional costs</h5><div class="fields">${FI("Disposal / dumpster","disp",j.disp)}${FI("Permits / fees","permit",j.permit)}${FI("Fuel / travel","fuel",j.fuel)}${FI("Other / misc","other",j.other)}${F("Total additional",money(j.additionalCost),"tot")}</div></div><div class="grp"><h5>Overhead &amp; profit</h5><div class="fields">${FI("Overhead %","oh",j.oh)}${F("Overhead $",money(j.overheadCost))}${F("Total job cost",money(j.totalCost),"tot")}<div class="fld tot"><span class="k">Gross profit</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":money(j.gp)}</span></div><div class="fld tot"><span class="k">Margin %</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":j.unpriced?"n/a":j.revenue?(j.gp/j.revenue*100).toFixed(2)+"%":"—"}</span></div></div></div>${j.unpriced?`<div class="flagbox">Margin shows <b>n/a</b>, not 100%, until at least one cost or hour is entered. A blank cost field is missing data, not free work.</div>`:""}<p class="note">Editing writes straight to Supabase. <b>Labor · in-house</b> and <b>Job hours</b> are used only when no crew time is logged against this job — a logged timesheet always wins.</p>`;
+function drawDetail(){const j=cur,p=j.marginPct,b=$("#dBody");if(st==="ov")b.innerHTML=`${j.revenue==null?`<div class="empty">No contract price yet.<br>Fills in automatically when GHL marks the opportunity won.</div>`:j.unpriced?`<p class="bignum" style="color:var(--steel)">n/a</p><p class="lbl" style="margin-top:6px">Margin — not calculable</p><div class="flagbox">Contract is ${money(j.revenue)} but no costs or hours have been entered yet. That's <b>not</b> 100% margin — it's an unpriced job, kept out of the company average until real numbers land.</div>`:`<p class="bignum" style="color:${col(p)}">${p.toFixed(1)}%</p><p class="lbl" style="margin-top:6px">Gross margin · target 50%</p><div class="gauge"><div class="fill" style="width:${Math.max(Math.min(p,100),0)}%;background:${col(p)}"></div><div class="target"></div></div><div class="gaugecap"><span>${money(j.gp)} GP</span><span>${money(j.revenue)} revenue</span></div>`}<div class="grp" style="margin-top:18px"><h5>Delivery</h5><div class="fields">${F(`Stage <span class="src mon">Monday</span>`,j.stage)}${F(`Sold date <span class="src ghl">GHL</span>`,j.sold||"—")}${F(`Completed date <span class="src mon">Monday</span>`,j.done||"—")}${F(`Crew type <span class="src man">edit</span>`,j.crew||"—")}${F(`Permit required <span class="src mon">Monday</span>`,j.permitReq)}${F(`Lead source <span class="src ghl">GHL</span>`,j.src||"—")}</div></div>${matReqOverviewBlock(j)}${(()=>{if(!j.clientId)return"";const sibs=jobs.filter(x=>x.clientId===j.clientId).sort((a,b)=>(a.sold||"9999").localeCompare(b.sold||"9999"));if(sibs.length<2)return"";const ord=sibs.findIndex(x=>x.id===j.id)+1;const others=sibs.filter(x=>x.id!==j.id);return `<div class="grp" style="margin-top:18px"><h5>Client history</h5><div class="flagbox" style="background:#1A2C4A;border-color:var(--line);color:var(--text)">${ord===1?"1st":ord===2?"2nd":ord===3?"3rd":ord+"th"} project for this client · ${sibs.length} total<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">${others.map(o=>`<button class="jrow" data-open="${o.id}" style="width:100%"><span class="id">${o.id}</span><span class="mid"><span class="cn">${o.type}</span><span class="mt">${o.sold||"—"}</span></span><span class="rt"><span class="stage ${stClass(o.stage)}">${o.stage}</span></span></button>`).join("")}</div></div></div>`})()}`;
+if(st==="co")b.innerHTML=`<p class="note" id="coSaveStatus" style="margin:0 0 11px;min-height:14px;border:0;padding:0"></p><div class="grp"><h5>Revenue breakdown</h5><div class="fields">${FI("Contract price","contract",j.contract)}${FI("Change orders +/−","co",j.co)}${FI("Discounts / credits","disc",j.disc)}${F("Total revenue",money(j.revenue),"tot")}</div></div><div class="grp"><h5>Direct costs</h5><div class="fields">${FI("Materials","mat",j.mat)}${FI("Labor · in-house","laborIn",j.laborIn)}${j.sub?F(`Labor · subcontractor <span class="src zap">from Subs tab</span>`,money(j.sub)):FI("Labor · subcontractor","laborSub",j.laborSub)}${FI("Job hours (optional)","mhrs",j.manualHours)}${FI("Equipment / rentals","equip",j.equip)}${F("Total direct cost",money(j.laborCost+j.materialCost),"tot")}</div>${j.invoiceCount?`<p class="note" style="border:0;padding:6px 2px 0;margin:0">Vendor invoices logged for this job: <b>${money(j.invoicedTotal)}</b> across ${j.invoiceCount} invoice${j.invoiceCount===1?"":"s"}${j.invoicedMaterials&&Math.abs(j.invoicedMaterials-(j.mat||0))>0.5?` · <button data-vi-usemat="${j.id}" class="chip" style="font-size:10px;padding:2px 8px">Use ${money(j.invoicedMaterials)} as Materials</button>`:""} · <a href="#" data-vi-job="${j.id}" style="color:var(--sky)">view invoices</a></p>`:`<p class="note" style="border:0;padding:6px 2px 0;margin:0"><a href="#" data-vi-job="${j.id}" style="color:var(--sky)">Log a vendor invoice for this job</a></p>`}${matReqCostNote(j)}</div><div class="grp"><h5>Additional costs</h5><div class="fields">${FI("Disposal / dumpster","disp",j.disp)}${FI("Permits / fees","permit",j.permit)}${FI("Fuel / travel","fuel",j.fuel)}${FI("Other / misc","other",j.other)}${F("Total additional",money(j.additionalCost),"tot")}</div></div><div class="grp"><h5>Overhead &amp; profit</h5><div class="fields">${FI("Overhead %","oh",j.oh)}${F("Overhead $",money(j.overheadCost))}${F("Total job cost",money(j.totalCost),"tot")}<div class="fld tot"><span class="k">Gross profit</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":money(j.gp)}</span></div><div class="fld tot"><span class="k">Margin %</span><span class="v" style="color:${col(j.unpriced?null:p)}">${j.revenue==null?"—":j.unpriced?"n/a":j.revenue?(j.gp/j.revenue*100).toFixed(2)+"%":"—"}</span></div></div></div>${j.unpriced?`<div class="flagbox">Margin shows <b>n/a</b>, not 100%, until at least one cost or hour is entered. A blank cost field is missing data, not free work.</div>`:""}<p class="note">Editing writes straight to Supabase. <b>Labor · in-house</b> and <b>Job hours</b> are used only when no crew time is logged against this job — a logged timesheet always wins.</p>`;
 if(st==="pay"){
   const sum=currentPayments?.summary;
   const list=currentPayments===null?`<p class="note" style="border:0;padding:0">Loading…</p>`:!currentPayments.rows.length?`<div class="empty">No payments recorded yet.</div>`:currentPayments.rows.map(pmt=>`<div class="fld"><span class="k">${pmt.paid_on} · ${pmt.method||"—"}${pmt.is_deposit?" · deposit":""}${pmt.reference?" · "+escapeHtml(pmt.reference):""}</span><span class="v" style="display:flex;align-items:center;gap:7px">${money(pmt.amount)}<button data-del-payment="${pmt.payment_id}" aria-label="Delete payment" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:20px;height:20px;line-height:1;cursor:pointer;font-size:12px">×</button></span></div>`).join("");
@@ -1213,7 +1217,32 @@ function openClient(clientId){
   $("#clProjects").textContent=`${c.projects} project${c.projects===1?"":"s"}${c.is_repeat?" · repeat client":""}`;
   $("#clMargin").textContent=c.avg_margin_pct==null?"—":c.avg_margin_pct.toFixed(1)+"%";
   $("#clJobsList").innerHTML=clientJobs.length?clientJobs.map(j=>`<button class="jrow" data-open="${j.id}" style="width:100%"><span class="id">${j.id}</span><span class="mid"><span class="cn">${j.type}</span><span class="mt">${j.sold||"—"}</span></span><span class="rt"><span class="rv" style="color:${col(j.unpriced?null:j.marginPct)}">${j.revenue==null?"—":j.unpriced?"n/a":j.marginPct.toFixed(0)+"%"}</span><span class="stage ${stClass(j.stage)}">${j.stage}</span></span></button>`).join(""):`<div class="empty">No linked jobs.</div>`;
+  $("#clMaterials").innerHTML=`<div class="empty">Loading…</div>`;
+  loadClientMaterials(clientJobs.map(j=>j.id));
+  $("#detail").classList.add("hidden");$("#matReqDetail").classList.add("hidden");
   $("#clientDetail").classList.remove("hidden");
+}
+async function loadClientMaterials(jobIds){
+  const el=$("#clMaterials");if(!el)return;
+  if(!jobIds.length){el.innerHTML=`<div class="empty">No linked jobs.</div>`;return}
+  const {data:reqs,error}=await sb.from("material_requests").select("request_id,job_id,project_type,status").in("job_id",jobIds);
+  if(error){el.innerHTML=`<div class="empty">Couldn't load materials.</div>`;return}
+  if(!reqs||!reqs.length){el.innerHTML=`<div class="empty">No material requests for this client yet.</div>`;return}
+  const reqById=Object.fromEntries(reqs.map(r=>[r.request_id,r]));
+  const {data:items}=await sb.from("material_request_items").select("request_id,item_name,unit,quantity,ordered,received").in("request_id",reqs.map(r=>r.request_id));
+  const filled=(items||[]).filter(i=>i.quantity!=null);
+  if(!filled.length){el.innerHTML=`<div class="empty">${reqs.length} request${reqs.length===1?"":"s"} started, no quantities entered yet.</div>`;return}
+  const agg={};
+  for(const i of filled){
+    const key=i.item_name+"|"+(i.unit||"");
+    (agg[key]||=(agg[key]={name:i.item_name,unit:i.unit||"",qty:0,ordered:0,received:0,jobs:new Set()}));
+    agg[key].qty+=Number(i.quantity)||0;
+    if(i.ordered)agg[key].ordered+=Number(i.quantity)||0;
+    if(i.received)agg[key].received+=Number(i.quantity)||0;
+    const jb=reqById[i.request_id]?.job_id;if(jb)agg[key].jobs.add(jb);
+  }
+  const rows=Object.values(agg).sort((a,b)=>a.name.localeCompare(b.name)).map(a=>`<tr><td style="text-align:left">${escapeHtml(a.name)}</td><td>${(+a.qty.toFixed(2))} ${escapeHtml(a.unit)}</td><td>${a.received?(+a.received.toFixed(2))+" rcv":a.ordered?(+a.ordered.toFixed(2))+" ord":"—"}</td><td>${a.jobs.size}</td></tr>`).join("");
+  el.innerHTML=`<div class="scroller"><table style="width:100%;font-size:11.5px"><thead><tr><th style="text-align:left">Item</th><th>Total qty</th><th>Ordered / received</th><th>Jobs</th></tr></thead><tbody>${rows}</tbody></table></div><p class="note" style="margin-top:8px">Summed across ${reqs.length} material request${reqs.length===1?"":"s"} on this client's jobs.</p>`;
 }
 function jobCostRowDetail(j){
   const heading=t=>`<h5 style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--steel);margin:0 0 9px">${t}</h5>`;
@@ -1396,12 +1425,16 @@ async function drawMaterialRequests(){
   }).join(""):`<div class="empty">No material requests${matReqFilter==="All"?" yet":` with status ${matReqFilter}`}.</div>`;
   $("#matReqCount").textContent=`${list.length} of ${matReqs.length} request${matReqs.length===1?"":"s"}`;
 }
-function openNewMatReq(){
+function openNewMatReq(preJobId){
   curMatReq=null;curMatItems=[];
   $("#mrName").textContent="New material request";
   $("#mrSub").textContent="Pick the job and trade to start";
   const jobOpts=[...jobs].sort((a,b)=>(a.client||"").localeCompare(b.client||"")).map(j=>`<option value="${j.id}">${escapeHtml(j.client)} — ${j.id}${j.type&&j.type!=="—"?" ("+escapeHtml(j.type)+")":""}</option>`).join("");
-  $("#mrBody").innerHTML=`<div style="max-width:520px"><p class="note" id="mrStatus" style="min-height:14px;margin:0 0 8px"></p><div class="grp"><h5>New request</h5><div class="fields"><div class="fld"><span class="k">Job</span><select id="mrNewJob" style="width:230px"><option value="">Job…</option>${jobOpts}</select></div><div class="fld"><span class="k">Trade / project type</span><select id="mrNewType" style="width:230px">${MAT_TRADES.map(t=>`<option>${t}</option>`).join("")}</select></div></div><div style="display:flex;justify-content:flex-end;margin-top:12px"><button id="mrCreateBtn" class="chip">Create request</button></div></div></div>`;
+  const preJob=preJobId?jobs.find(j=>j.id===preJobId):null;
+  const guess=preJob?({Roofing:"Roofing",Siding:"Siding",Painting:"Paint",Decking:"Deck","Windows/Doors":"Windows"}[preJob.type]||"Other"):"Roofing";
+  $("#mrBody").innerHTML=`<div style="max-width:520px"><p class="note" id="mrStatus" style="min-height:14px;margin:0 0 8px"></p><div class="grp"><h5>New request</h5><div class="fields"><div class="fld"><span class="k">Job</span><select id="mrNewJob" style="width:230px"><option value="">Job…</option>${jobOpts}</select></div><div class="fld"><span class="k">Trade / project type</span><select id="mrNewType" style="width:230px">${MAT_TRADES.map(t=>`<option ${t===guess?"selected":""}>${t}</option>`).join("")}</select></div></div><div style="display:flex;justify-content:flex-end;margin-top:12px"><button id="mrCreateBtn" class="chip">Create request</button></div></div></div>`;
+  if(preJobId)$("#mrNewJob").value=preJobId;
+  $("#detail").classList.add("hidden");$("#clientDetail").classList.add("hidden");
   $("#matReqDetail").classList.remove("hidden");window.scrollTo(0,0);
 }
 async function createMatReq(){
@@ -1413,10 +1446,11 @@ async function createMatReq(){
   const tpl=MAT_TEMPLATES[type]||MAT_TEMPLATES.Other;
   if(tpl.items.length)await sb.from("material_request_items").insert(tpl.items.map((it,i)=>({request_id:data.request_id,section:it[0],item_name:it[1],unit:it[2]||null,sort:i})));
   await openMatReq(data.request_id);
-  drawMaterialRequests();
+  drawMaterialRequests();refreshMatReqCache();
 }
 async function openMatReq(id){
   $("#mrBody").innerHTML=`<div class="empty">Loading…</div>`;
+  $("#detail").classList.add("hidden");$("#clientDetail").classList.add("hidden");
   $("#matReqDetail").classList.remove("hidden");window.scrollTo(0,0);
   const [{data:req},{data:items}]=await Promise.all([
     sb.from("material_requests").select("*").eq("request_id",id).single(),
@@ -1489,7 +1523,9 @@ async function saveMatItem(itemId,field,rawValue){
   else v=!!rawValue;
   it[col]=v;
   const {error}=await sb.from("material_request_items").update({[col]:v}).eq("item_id",itemId);
-  error?setMrStatus("Error: "+error.message,true):flashMr("Saved");
+  if(error){setMrStatus("Error: "+error.message,true);return}
+  flashMr("Saved");
+  if(field==="quantity")refreshMatReqCache();
 }
 async function addMatItem(section){
   if(!curMatReq)return;
@@ -1510,12 +1546,26 @@ async function setMatReqStatus(status){
   if(status==="Received"&&!curMatReq.received_at)patch.received_at=new Date().toISOString();
   const {error}=await sb.from("material_requests").update(patch).eq("request_id",curMatReq.request_id);
   if(error){setMrStatus("Error: "+error.message,true);return}
-  Object.assign(curMatReq,patch);renderMatReq();drawMaterialRequests();
+  Object.assign(curMatReq,patch);renderMatReq();drawMaterialRequests();refreshMatReqCache();
 }
 async function deleteMatReqRecord(){
   if(!curMatReq||!confirm("Delete this material request? This can't be undone."))return;
   await sb.from("material_requests").delete().eq("request_id",curMatReq.request_id);
-  $("#matReqDetail").classList.add("hidden");curMatReq=null;drawMaterialRequests();
+  $("#matReqDetail").classList.add("hidden");curMatReq=null;drawMaterialRequests();refreshMatReqCache();
+}
+function matReqOverviewBlock(j){
+  const rows=(j.matReqs||[]).map(r=>`<button class="jrow" data-open-mr="${r.request_id}" style="width:100%"><span class="mid"><span class="cn">${escapeHtml(r.project_type)} materials</span><span class="mt">${r.lines_filled}/${r.line_count} lines filled${r.lines_received?` · ${r.lines_received} received`:r.lines_ordered?` · ${r.lines_ordered} ordered`:""}${r.target_delivery_date?` · deliver ${r.target_delivery_date}`:""}</span></span><span class="rt"><span class="stage ${MAT_STATUS_CLASS[r.status]||""}">${r.status}</span></span></button>`).join("");
+  return `<div class="grp" style="margin-top:18px"><h5>Materials</h5>${rows?`<div style="display:flex;flex-direction:column;gap:6px">${rows}</div><div style="margin-top:9px"><button class="chip" data-new-matreq="${j.id}">＋ New material request</button></div>`:`<div class="flagbox" style="background:#1A2C4A;border-color:var(--line);color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><span>No material request for this job yet.</span><button class="chip" data-new-matreq="${j.id}" style="flex-shrink:0">＋ Start material request</button></div>`}</div>`;
+}
+function matReqCostNote(j){
+  if(!j.matReqs||!j.matReqs.length)return "";
+  const r=j.matReqs[0];
+  return `<p class="note" style="border:0;padding:6px 2px 0;margin:0">Material request: <b>${escapeHtml(r.project_type)}</b> · ${r.status} · ${r.lines_filled}/${r.line_count} lines${r.lines_ordered?` · ${r.lines_ordered} ordered`:""} · <a href="#" data-open-mr="${r.request_id}" style="color:var(--sky)">open</a></p>`;
+}
+async function refreshMatReqCache(){
+  const {data}=await sb.from("material_request_summary").select("*");
+  const by={};for(const r of data||[]){(by[r.job_id]||=[]).push(r)}
+  for(const j of jobs)j.matReqs=by[j.id]||[];
 }
 async function drawAdminTracker(){
   $("#adminTrackerTable").innerHTML=`<tr><td>Loading…</td></tr>`;
@@ -2111,7 +2161,8 @@ const fd=e.target.closest("[data-file-del]");if(fd){deleteProjectFile(fd.dataset
 if(e.target.id==="newMatReqBtn"){openNewMatReq();return}
 if(e.target.id==="mrCreateBtn"){createMatReq();return}
 if(e.target.id==="matReqBack"){$("#matReqDetail").classList.add("hidden");drawMaterialRequests();return}
-const omr=e.target.closest("[data-open-mr]");if(omr){openMatReq(omr.dataset.openMr);return}
+const omr=e.target.closest("[data-open-mr]");if(omr){e.preventDefault();$("#detail").classList.add("hidden");$("#clientDetail").classList.add("hidden");openMatReq(omr.dataset.openMr);return}
+const nmr=e.target.closest("[data-new-matreq]");if(nmr){e.preventDefault();$("#detail").classList.add("hidden");openNewMatReq(nmr.dataset.newMatreq);return}
 const mrf=e.target.closest("[data-mrf]");if(mrf){matReqFilter=mrf.dataset.mrf;drawMaterialRequests();return}
 const mrai=e.target.closest("[data-mr-additem]");if(mrai){addMatItem(mrai.dataset.mrAdditem);return}
 const mrid=e.target.closest("[data-mri-del]");if(mrid){delMatItem(mrid.dataset.mriDel);return}
