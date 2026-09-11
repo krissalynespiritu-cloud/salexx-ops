@@ -828,6 +828,11 @@ async function setJobDriveUrl(jobId,url){
 }
 async function openProjectFile(fileId){
   const f=(currentFiles||[]).find(x=>x.file_id===fileId);if(!f)return;
+  if(!f.storage_path){
+    if(f.drive_url){window.open(f.drive_url,"_blank","noopener");}
+    else setFileStatus("This file has no link.",true);
+    return;
+  }
   setFileStatus("Opening…",false);
   const {data,error}=await sb.storage.from("project-files").createSignedUrl(f.storage_path,3600);
   if(error||!data){setFileStatus("Couldn't open that file: "+(error?.message||"unknown error"),true);return;}
@@ -836,9 +841,9 @@ async function openProjectFile(fileId){
 }
 async function deleteProjectFile(fileId){
   const f=(currentFiles||[]).find(x=>x.file_id===fileId);if(!f)return;
-  if(!confirm(`Delete "${f.file_name}"? This removes it from the app. The copy already in Google Drive stays.`))return;
+  if(!confirm(`Remove "${f.file_name}" from this list? The file stays in Google Drive — this just hides it in the app.`))return;
   setFileStatus("Deleting…",false);
-  await sb.storage.from("project-files").remove([f.storage_path]);
+  if(f.storage_path)await sb.storage.from("project-files").remove([f.storage_path]);
   const {error}=await sb.from("project_files").delete().eq("file_id",fileId);
   if(error){setFileStatus("Error: "+error.message,true);return;}
   currentFiles=null;

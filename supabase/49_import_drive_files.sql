@@ -1,0 +1,23 @@
+-- ============================================================
+-- 49_import_drive_files.sql  (documentation only -- already applied)
+--
+-- The one-time backfill of files that already lived in the jobs'
+-- Google Drive folders. A Google Apps Script walked the "Salexx
+-- Construction Projects" parent folder and listed every file under
+-- each client's six subfolders (641 files across ~72 job folders:
+-- material invoices, contract photos, permit PDFs, project
+-- photos/videos). Each was inserted as a Drive-only project_files row
+-- (storage_path null, drive_status 'synced', drive_url pointing at the
+-- Drive file) and matched to its job -- first by the folder id in
+-- jobs.drive_folder_url, then by client name for the ~13 clients whose
+-- Drive folder had been recreated with a new id.
+--
+-- 640 of 641 imported. The one skip ("Copy of Mattingly Work Write
+-- Up", client "Sally Mattingly") had no matching job.
+--
+-- Applied through the app's authenticated client, not run here.
+-- Depends on 48 (nullable storage_path + unique drive_file_id index).
+-- ============================================================
+
+-- how many Drive-only files are on record
+select count(*) as drive_files from project_files where storage_path is null;
