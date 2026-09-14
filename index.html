@@ -1639,15 +1639,19 @@ async function drawDesignTracker(){
 }
 const weekEndingSunday=()=>{const d=new Date();d.setDate(d.getDate()+((7-d.getDay())%7));return d.toISOString().slice(0,10)};
 const WM_GROUPS=[
-  ["Job costing",[["Jobs reviewed","job_costing_reviewed"]]],
-  ["Calls",[["Cold calls completed","cold_calls_completed"],["Calls received","calls_received"],["Calls missed","calls_missed"],["Callbacks made","callbacks_made"]]],
-  ["Estimates & design",[["Rough estimates","rough_estimates"],["Estimates sent","estimates_sent"],["Estimates cancelled","estimates_cancelled"],["Design invoices sent","design_sent"],["Designs sold","design_sold"]]],
-  ["Sales",[["Jobs sold","jobs_sold"],["Closed jobs","closed_jobs"],["Closed revenue $","closed_revenue"]]],
-  ["Content",[["Videos edited","videos_edited"],["Videos posted","videos_posted"],["Blogs written","blogs_written"],["Blogs posted","blogs_posted"]]],
-  ["Reviews & photos",[["Review requests sent","review_requests_sent"],["Reviews received","reviews_received"],["Final photos needed","final_photos_needed"]]],
-  ["Leads",[["New leads","new_leads"]]],
-  ["Leads & sources",[["Reached out","reached_out"],["Facebook/Social","facebook_social"],["Referral","referral"],["Website","website"],["Phone/Nextdoor/Google","phone_nextdoor_google"]]]
+  ["Job costing",[["Jobs reviewed","job_costing_reviewed"],["Jobs costed","jobs_costed"],["Still needs costing","still_needs_costing"],["Missing labor/receipts/materials?","missing_labor_receipts_materials","text"]]],
+  ["Leads & sources",[["New leads","new_leads"],["Reached out","reached_out"],["Facebook/Social","facebook_social"],["Referral","referral"],["Website","website"],["Phone/Nextdoor/Google","phone_nextdoor_google"]]],
+  ["Calls & speed to lead",[["Cold calls completed","cold_calls_completed"],["Appointments set","appointments_set"],["Calls received","calls_received"],["Calls answered","calls_answered"],["Calls missed","calls_missed"],["Missed calls returned","missed_calls_returned"],["Callbacks made","callbacks_made"],["Avg response time (min)","avg_response_time_min"]]],
+  ["Estimates",[["Rough estimates","rough_estimates"],["Estimates sent","estimates_sent"],["Still needs completion","estimates_still_needs_completion"],["Estimates cancelled","estimates_cancelled"],["Estimates accepted","estimates_accepted"],["Estimates invoiced","estimates_invoiced"],["Why lost","why_lost","text"]]],
+  ["Design",[["Design invoices sent","design_sent"],["Designs sold","design_sold"]]],
+  ["Jobs sold & revenue",[["Jobs sold","jobs_sold"],["Closed jobs","closed_jobs"],["Closed revenue $","closed_revenue"],["Contracts/deposit/schedule confirmed?","contracts_confirmed","text"]]],
+  ["Video content",[["Videos waiting to edit","videos_to_edit"],["Videos ready to post","videos_ready"],["Videos posted","videos_posted"]]],
+  ["Blog",[["Blogs written","blogs_written"],["Blogs posted","blogs_posted"]]],
+  ["Google reviews",[["Review requests sent","review_requests_sent"],["Reviews received","reviews_received"]]],
+  ["Photos & wrap-up",[["Jobs needing final photos","final_photos_needed"],["Homeowners needing review ask","homeowners_needing_review_ask","text"],["Photos/video uploaded?","photos_video_uploaded","text"]]],
+  ["First-time calls",[["First-time calls answered","first_time_calls_answered"],["First-time calls missed","first_time_calls_missed"]]]
 ];
+const WM_TEXT_COLS=new Set(["notes","missing_labor_receipts_materials","why_lost","contracts_confirmed","homeowners_needing_review_ask","photos_video_uploaded"]);
 let wmSunday=null,wmRows=[];
 async function drawWeeklyMeeting(){
   const body=$("#weeklyMeetingBody");
@@ -1659,7 +1663,8 @@ async function drawWeeklyMeeting(){
   wmRows=data||[];
   const cur=wmRows.find(r=>r.week_ending===wmSunday)||{week_ending:wmSunday};
   const num=(label,col)=>`<div class="fld"><span class="k">${label}</span><input type="number" data-wm="${col}" value="${cur[col]??0}" style="width:90px"></div>`;
-  const groups=WM_GROUPS.map(([title,fields])=>`<div class="grp"><h5>${title}</h5><div class="fields">${fields.map(([l,c])=>num(l,c)).join("")}</div></div>`).join("");
+  const txt=(label,col)=>`<div class="fld"><span class="k">${label}</span><input type="text" data-wm="${col}" value="${escapeHtml(cur[col]||"")}" style="width:120px"></div>`;
+  const groups=WM_GROUPS.map(([title,fields])=>`<div class="grp"><h5>${title}</h5><div class="fields">${fields.map(([l,c,t])=>t==="text"?txt(l,c):num(l,c)).join("")}</div></div>`).join("");
   const hist=wmRows.map(r=>`<tr><td>${r.week_ending}${r.week_ending===wmSunday?' <span class="stage st-sched">This week</span>':''}</td><td>${r.new_leads}</td><td>${r.estimates_sent}</td><td>${r.design_sold}</td><td>${r.jobs_sold}</td><td>${money(r.closed_revenue)}</td><td>${r.reviews_received}</td></tr>`).join("");
   body.innerHTML=`<p class="lbl" style="margin-bottom:9px">Week ending ${wmSunday}</p>
     ${groups}
@@ -1668,7 +1673,7 @@ async function drawWeeklyMeeting(){
     <div class="scroller"><table><thead><tr><th style="text-align:left">Week ending</th><th>New leads</th><th>Est. sent</th><th>Designs sold</th><th>Jobs sold</th><th>Closed rev</th><th>Reviews</th></tr></thead><tbody>${hist||'<tr><td colspan="7">No weeks yet.</td></tr>'}</tbody></table></div>`;
 }
 async function saveWeeklyMetric(col,rawValue){
-  const val=col==="notes"?(rawValue||null):(rawValue===""?0:Number(rawValue));
+  const val=WM_TEXT_COLS.has(col)?(rawValue||null):(rawValue===""?0:Number(rawValue));
   $("#wmStatus").textContent="Saving…";$("#wmStatus").style.color="var(--steel)";
   const {error}=await sb.from("weekly_metrics").update({[col]:val}).eq("week_ending",wmSunday);
   if(error){$("#wmStatus").textContent="Error: "+error.message;$("#wmStatus").style.color="var(--alert)";return}
@@ -2025,6 +2030,8 @@ async function drawPerformance(){
   const designSold=ld.filter(l=>inR(l.design_sold_date)).length;
   // calls
   const callsRecv=W("calls_received"),callsAns=W("calls_answered"),callsMiss=W("calls_missed"),missRet=W("missed_calls_returned");
+  const respTimes=weeks.map(w=>Number(w.avg_response_time_min)).filter(v=>v>0);
+  const avgResponse=respTimes.length?Math.round(respTimes.reduce((a,b)=>a+b,0)/respTimes.length*10)/10:null;
   // marketing
   const revReq=W("review_requests_sent"),revRec=W("reviews_received");
   // fb ads
@@ -2071,7 +2078,7 @@ async function drawPerformance(){
   </div>
   <h4>Sales, leads &amp; estimates</h4>
   <div class="kpis">
-    ${pc("chart","var(--sky)","Estimates sent",W("estimates_sent")||"—","from Weekly Meeting")}
+    ${pc("chart","var(--sky)","Estimates sent",W("estimates_sent")||"—",`${W("estimates_still_needs_completion")||0} still need completion`)}
     ${pc("wrench","var(--violet)","Design sent / sold",`${designSent} / ${designSold}`,`${pctS(designSold,designSent)} close rate`)}
     ${pc("building","var(--steel)","Jobs costed",W("jobs_costed")||"—",`${W("still_needs_costing")||0} still need costing`)}
   </div>
@@ -2084,6 +2091,7 @@ async function drawPerformance(){
     ${pc("alert","var(--alert)","Calls missed",callsMiss||"—",`${missRet||0} returned`)}
     ${pc("contact","var(--sky)","Cold calls",W("cold_calls_completed")||"—","completed")}
     ${pc("clock","var(--violet)","Appointments set",W("appointments_set")||"—","from calls")}
+    ${pc("clock","var(--sky)","Avg response time",avgResponse!=null?avgResponse+" min":"—","lead response speed")}
     ${pc("alert",(W("first_time_calls_missed")>0?"var(--amber)":"var(--good)"),"First-time missed",W("first_time_calls_missed")||"0","new callers not reached")}
   </div>
   <h4>Marketing &amp; content</h4>
