@@ -1645,7 +1645,8 @@ const WM_GROUPS=[
   ["Sales",[["Jobs sold","jobs_sold"],["Closed jobs","closed_jobs"],["Closed revenue $","closed_revenue"]]],
   ["Content",[["Videos edited","videos_edited"],["Videos posted","videos_posted"],["Blogs written","blogs_written"],["Blogs posted","blogs_posted"]]],
   ["Reviews & photos",[["Review requests sent","review_requests_sent"],["Reviews received","reviews_received"],["Final photos needed","final_photos_needed"]]],
-  ["Leads",[["New leads","new_leads"]]]
+  ["Leads",[["New leads","new_leads"]]],
+  ["Leads & sources",[["Reached out","reached_out"],["Facebook/Social","facebook_social"],["Referral","referral"],["Website","website"],["Phone/Nextdoor/Google","phone_nextdoor_google"]]]
 ];
 let wmSunday=null,wmRows=[];
 async function drawWeeklyMeeting(){
@@ -2102,6 +2103,15 @@ async function drawPerformance(){
   <table><thead><tr><th>Source</th><th>Leads</th><th>Closed</th><th style="width:42%"></th></tr></thead><tbody>
     ${srcRows.sort((a,b)=>b.n-a.n).map((r,i)=>`<tr><td>${r.src}</td><td><b>${r.n}</b></td><td class="rev">${r.won||""}</td><td><div class="topbar"><span style="width:${r.n/maxN*100}%;background:${i===0?"var(--hivis)":"var(--hivis-dim)"}"></span></div></td></tr>`).join("")||`<tr><td colspan="4">No leads in this period.</td></tr>`}
   </tbody></table>
+  <h4>Leads by source (weekly log)</h4>
+  <table><thead><tr><th>Source</th><th>Leads</th></tr></thead><tbody>
+    <tr><td>Facebook/Social</td><td><b>${W("facebook_social")}</b></td></tr>
+    <tr><td>Referral</td><td><b>${W("referral")}</b></td></tr>
+    <tr><td>Website</td><td><b>${W("website")}</b></td></tr>
+    <tr><td>Phone Call/Nextdoor/Google</td><td><b>${W("phone_nextdoor_google")}</b></td></tr>
+    <tr><td>Reached out (outbound)</td><td><b>${W("reached_out")}</b></td></tr>
+  </tbody></table>
+  <p class="note">From the Weekly Meeting log — the same source buckets as the Weekly Entry sheet. The breakdown above is per-lead-record instead, so the two totals won't match exactly.</p>
   <h4>Followers</h4>
   ${platforms.length?`<table><thead><tr><th>Platform</th>${folMonths.map(m=>`<th>${new Date(m+"T00:00:00").toLocaleDateString("en-US",{month:"short",year:"2-digit"})}</th>`).join("")}<th></th></tr></thead><tbody>
     ${platforms.map(p=>`<tr class="sfrow"><td>${escapeHtml(p)}</td>${folMonths.map(m=>{const row=fol.find(f=>f.platform===p&&f.month===m);return `<td><input type="number" data-sf-platform="${escapeHtml(p)}" data-sf-month="${m}" value="${row?row.followers:""}" placeholder="—"></td>`}).join("")}<td></td></tr>`).join("")}
