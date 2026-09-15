@@ -1682,7 +1682,7 @@ const WM_GROUPS=[
     ["Estimates sent","estimates_sent","num"],
     ["Still needs completion","estimates_still_needs_completion","num"],
     ["Estimates cancelled","estimates_cancelled","num"],
-    ["Why lost","estimates_why_lost","text"],
+    ["Why lost","why_lost","text"],
     ["Estimates accepted","estimates_accepted","num"],
     ["Estimates invoiced","estimates_invoiced","num"]
   ]],
@@ -1694,7 +1694,7 @@ const WM_GROUPS=[
     ["Jobs sold","jobs_sold","num"],
     ["Closed jobs (completed)","closed_jobs","num"],
     ["Closed revenue $","closed_revenue","money"],
-    ["Contracts/deposit/schedule confirmed?","contracts_deposit_schedule_confirmed","yesno"]
+    ["Contracts/deposit/schedule confirmed?","contracts_confirmed","yesno"]
   ]],
   ["Video content","trendUp","var(--good)",[
     ["Videos waiting to edit","videos_to_edit","num"],
@@ -1718,7 +1718,7 @@ const WM_GROUPS=[
     ["Meeting notes / action items","notes","text"]
   ]]
 ];
-const TEXT_WM_FIELDS=new Set(["notes","missing_labor_receipts_materials","estimates_why_lost","contracts_deposit_schedule_confirmed","homeowners_needing_review_ask","photos_video_uploaded"]);
+const TEXT_WM_FIELDS=new Set(["notes","missing_labor_receipts_materials","why_lost","contracts_confirmed","homeowners_needing_review_ask","photos_video_uploaded"]);
 const WM_COLUMNS=WM_GROUPS.flatMap(([title,,,fields])=>fields.map(([label,col,type],i)=>({title,label,col,type,first:i===0})));
 let wmSunday=null,wmRows=[];
 const addDaysISO=(dateStr,days)=>{const d=new Date(dateStr+"T00:00:00");d.setDate(d.getDate()+days);return d.toISOString().slice(0,10)};
@@ -2155,6 +2155,8 @@ async function drawPerformance(){
   const designSold=ld.filter(l=>inR(l.design_sold_date)).length;
   // calls
   const callsRecv=W("calls_received"),callsAns=W("calls_answered"),callsMiss=W("calls_missed"),missRet=W("missed_calls_returned");
+  const respTimes=weeks.map(w=>Number(w.avg_response_time_min)).filter(v=>v>0);
+  const avgResponse=respTimes.length?Math.round(respTimes.reduce((a,b)=>a+b,0)/respTimes.length*10)/10:null;
   // marketing
   const revReq=W("review_requests_sent"),revRec=W("reviews_received");
   // fb ads
@@ -2201,7 +2203,7 @@ async function drawPerformance(){
   </div>
   <h4>Sales, leads &amp; estimates</h4>
   <div class="kpis">
-    ${pc("chart","var(--sky)","Estimates sent",W("estimates_sent")||"—","from Weekly Meeting")}
+    ${pc("chart","var(--sky)","Estimates sent",W("estimates_sent")||"—",`${W("estimates_still_needs_completion")||0} still need completion`)}
     ${pc("wrench","var(--violet)","Design sent / sold",`${designSent} / ${designSold}`,`${pctS(designSold,designSent)} close rate`)}
     ${pc("building","var(--steel)","Jobs costed",W("jobs_costed")||"—",`${W("still_needs_costing")||0} still need costing`)}
   </div>
@@ -2214,6 +2216,7 @@ async function drawPerformance(){
     ${pc("alert","var(--alert)","Calls missed",callsMiss||"—",`${missRet||0} returned`)}
     ${pc("contact","var(--sky)","Cold calls",W("cold_calls_completed")||"—","completed")}
     ${pc("clock","var(--violet)","Appointments set",W("appointments_set")||"—","from calls")}
+    ${pc("clock","var(--sky)","Avg response time",avgResponse!=null?avgResponse+" min":"—","lead response speed")}
     ${pc("alert",(W("first_time_calls_missed")>0?"var(--amber)":"var(--good)"),"First-time missed",W("first_time_calls_missed")||"0","new callers not reached")}
   </div>
   <h4>Marketing &amp; content</h4>
@@ -2233,6 +2236,15 @@ async function drawPerformance(){
   <table><thead><tr><th>Source</th><th>Leads</th><th>Closed</th><th style="width:42%"></th></tr></thead><tbody>
     ${srcRows.sort((a,b)=>b.n-a.n).map((r,i)=>`<tr><td>${r.src}</td><td><b>${r.n}</b></td><td class="rev">${r.won||""}</td><td><div class="topbar"><span style="width:${r.n/maxN*100}%;background:${i===0?"var(--hivis)":"var(--hivis-dim)"}"></span></div></td></tr>`).join("")||`<tr><td colspan="4">No leads in this period.</td></tr>`}
   </tbody></table>
+  <h4>Leads by source (weekly log)</h4>
+  <table><thead><tr><th>Source</th><th>Leads</th></tr></thead><tbody>
+    <tr><td>Facebook/Social</td><td><b>${W("facebook_social")}</b></td></tr>
+    <tr><td>Referral</td><td><b>${W("referral")}</b></td></tr>
+    <tr><td>Website</td><td><b>${W("website")}</b></td></tr>
+    <tr><td>Phone Call/Nextdoor/Google</td><td><b>${W("phone_nextdoor_google")}</b></td></tr>
+    <tr><td>Reached out (outbound)</td><td><b>${W("reached_out")}</b></td></tr>
+  </tbody></table>
+  <p class="note">From the Weekly Meeting log — the same source buckets as the Weekly Entry sheet. The breakdown above is per-lead-record instead, so the two totals won't match exactly.</p>
   <h4>Followers</h4>
   ${platforms.length?`<table><thead><tr><th>Platform</th>${folMonths.map(m=>`<th>${new Date(m+"T00:00:00").toLocaleDateString("en-US",{month:"short",year:"2-digit"})}</th>`).join("")}<th></th></tr></thead><tbody>
     ${platforms.map(p=>`<tr class="sfrow"><td>${escapeHtml(p)}</td>${folMonths.map(m=>{const row=fol.find(f=>f.platform===p&&f.month===m);return `<td><input type="number" data-sf-platform="${escapeHtml(p)}" data-sf-month="${m}" value="${row?row.followers:""}" placeholder="—"></td>`}).join("")}<td></td></tr>`).join("")}
