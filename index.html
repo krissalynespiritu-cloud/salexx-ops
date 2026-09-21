@@ -275,6 +275,8 @@
 #taskModalCard{background:var(--navy-2);border:1px solid var(--line);border-radius:13px;padding:18px;width:460px;max-width:100%;box-shadow:0 16px 40px rgba(0,0,0,.5)}
 #mergeReviewModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto}
 #mergeReviewCard{background:var(--navy-2);border:1px solid var(--line);border-radius:13px;padding:20px;width:760px;max-width:100%;box-shadow:0 16px 40px rgba(0,0,0,.5)}
+#retireJobModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto}
+#retireJobCard{background:var(--navy-2);border:1px solid var(--line);border-radius:13px;padding:20px;width:560px;max-width:100%;box-shadow:0 16px 40px rgba(0,0,0,.5)}
 .taskCard{background:var(--navy-2);border:1px solid var(--line);border-radius:10px;padding:11px;margin-bottom:9px;cursor:grab}
 .taskCard:hover{border-color:var(--hivis)}
 .taskCard.dragging{opacity:.4}
@@ -315,6 +317,7 @@
 <div id="estBudgetModal" class="hidden"><div id="estBudgetModalCard"></div></div>
 <div id="taskModal" class="hidden"><div id="taskModalCard"></div></div>
 <div id="mergeReviewModal" class="hidden"><div id="mergeReviewCard"></div></div>
+<div id="retireJobModal" class="hidden"><div id="retireJobCard"></div></div>
 <div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="ea" aria-selected="false">Est. vs Actual</button><button data-st="pay" aria-selected="false">Payments</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="fi" aria-selected="false">Files</button><button data-st="up" aria-selected="false">Updates</button></div><div class="panel" id="dBody"></div></div>
 <div id="payrollDetail" class="hidden"><div class="dhead"><button class="back" id="payrollBack">← Payroll</button><h2 id="ppName"></h2><p class="sub" id="ppSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Total</p><p class="v" id="ppTotal">$0</p><p class="d" id="ppStatus">—</p></div><div class="kpi" style="display:flex;flex-direction:column;justify-content:center;gap:8px"><button id="ppToggle" class="chip" style="text-align:center">Mark as Paid</button><button id="ppExport" class="chip" style="text-align:center">Export CSV</button></div></div><div class="scroller"><table id="ppTable"><thead><tr><th>Name</th><th>Hours</th><th>Amount</th></tr></thead><tbody id="ppBody"></tbody><tfoot><tr><td>Total</td><td id="ppFootHrs"></td><td id="ppFootAmt"></td></tr></tfoot></table></div></div></div>
 <div id="clientDetail" class="hidden"><div class="dhead"><button class="back" id="clientBack">← Clients</button><h2 id="clName"></h2><p class="sub" id="clSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Lifetime value</p><p class="v" id="clValue">$0</p><p class="d" id="clProjects">0 projects</p></div><div class="kpi"><p class="k">Avg margin</p><p class="v" id="clMargin">—</p><p class="d">across priced projects</p></div></div><div class="grp"><h5>Projects</h5><div id="clJobsList"></div></div><div class="grp"><h5>Materials used across all projects</h5><div id="clMaterials"></div></div></div></div>
@@ -431,7 +434,7 @@ function incompleteBadge(j){
 }
 async function fetchJobs(){
   const [{data:jobRows,error:e1},{data:marginRows,error:e2},{data:costRows,error:e3},{data:subRows,error:e4},{data:updateRows,error:e5}]=await Promise.all([
-    sb.from("jobs").select("*"),
+    sb.from("jobs").select("*").eq("retired",false),
     sb.from("job_margins").select("*"),
     sb.from("job_costs").select("*"),
     sb.from("sub_payments").select("job_id,contract_amount"),
@@ -1181,7 +1184,8 @@ function jobCardHTML(j){
       <button data-open="${j.id}" class="chip" style="padding:3px 8px;font-size:10px;flex-shrink:0">Open →</button>
       <span style="position:relative;flex-shrink:0">
         <button data-job-menu="${j.id}" aria-label="More options" style="background:none;border:1px solid var(--line);color:var(--steel);border-radius:5px;width:22px;height:22px;cursor:pointer;font-size:13px;line-height:1">⋮</button>
-        <div data-job-menu-panel="${j.id}" class="hidden" style="position:absolute;right:0;top:26px;z-index:20;background:var(--navy-2);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.4);min-width:110px;overflow:hidden">
+        <div data-job-menu-panel="${j.id}" class="hidden" style="position:absolute;right:0;top:26px;z-index:20;background:var(--navy-2);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.4);min-width:150px;overflow:hidden">
+          <button data-retire-job="${j.id}" style="display:block;width:100%;text-align:left;padding:8px 12px;background:none;border:0;color:var(--text);cursor:pointer;font-size:12px;white-space:nowrap">Retire (safe delete)</button>
           <button data-delete-job="${j.id}" style="display:block;width:100%;text-align:left;padding:8px 12px;background:none;border:0;color:var(--alert);cursor:pointer;font-size:12px;white-space:nowrap">Delete job</button>
         </div>
       </span>
@@ -2456,6 +2460,100 @@ async function confirmMergeReview(){
   await drawClients();
   renderDupClientsToggle();
 }
+// ---------- Retire Job (safe delete): dependency-checked, soft, logged ----------
+const RETIRE_DEP_LABELS=[
+  ["job_costs","Job costs"],["time_entries","Time entries"],["payments","Payments"],
+  ["leads","Leads"],["estimates","Estimates"],["job_updates","Update notes"],
+  ["google_reviews","Google review requests"],["sub_payments","Subcontractor payments"],
+  ["vendor_invoices","Vendor invoices"],["tasks","Tasks"],["project_files","Files"],
+  ["material_requests","Material requests"],["job_labor_estimates","Labor budget lines"],
+  ["job_material_estimates","Material budget lines"]
+];
+let retireJobId=null,retireJobDeps=null,retireJobLoading=false;
+function openRetireJobReview(jobId){
+  retireJobId=jobId;retireJobDeps=null;retireJobLoading=true;
+  document.getElementById("retireJobModal").classList.remove("hidden");
+  renderRetireJobModal();
+  loadRetireJobDeps();
+}
+function closeRetireJobReview(){
+  retireJobId=null;retireJobDeps=null;retireJobLoading=false;
+  document.getElementById("retireJobModal").classList.add("hidden");
+}
+async function loadRetireJobDeps(){
+  const jobId=retireJobId;
+  const{data,error}=await sb.rpc("job_dependency_counts",{p_job_id:jobId});
+  if(jobId!==retireJobId)return;
+  retireJobLoading=false;
+  retireJobDeps=error?{error:error.message}:(data&&data[0])||null;
+  renderRetireJobModal();
+}
+function renderRetireJobModal(){
+  const j=jobs.find(x=>x.id===retireJobId);
+  const card=document.getElementById("retireJobCard");
+  if(!j){card.innerHTML=`<div class="empty">Job not found.</div>`;return}
+  const header=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 style="margin:0;font-family:'Barlow Condensed',sans-serif;font-size:20px;text-transform:uppercase">Retire Job (Safe Delete)</h3>
+      <button id="retireJobClose" aria-label="Close" style="background:none;border:0;color:var(--steel);cursor:pointer;font-size:18px;line-height:1">×</button>
+    </div>
+    <div class="fields" style="margin-bottom:16px">
+      <div class="fld"><span class="k">Job</span><span class="v">${j.id} — ${escapeHtml(j.client)}</span></div>
+      <div class="fld"><span class="k">Type / Stage</span><span class="v">${escapeHtml(j.type||"—")} · ${escapeHtml(j.stage||"—")}</span></div>
+      <div class="fld"><span class="k">Address</span><span class="v">${escapeHtml(j.loc||"—")}</span></div>
+      <div class="fld"><span class="k">Contract price</span><span class="v">${j.contract==null?"—":money(j.contract)}</span></div>
+    </div>`;
+  if(retireJobLoading){
+    card.innerHTML=header+`<div class="empty">Checking linked records…</div>`;
+    return;
+  }
+  if(!retireJobDeps||retireJobDeps.error){
+    card.innerHTML=header+`<p class="note" style="color:var(--alert)">Couldn't check linked records${retireJobDeps?.error?": "+escapeHtml(retireJobDeps.error):""}. Not safe to proceed.</p>
+      <div style="display:flex;justify-content:flex-end"><button id="retireJobCancel" class="chip" style="background:none">Close</button></div>`;
+    return;
+  }
+  const total=Number(retireJobDeps.total)||0;
+  const rows=RETIRE_DEP_LABELS.map(([k,label])=>({label,n:Number(retireJobDeps[k])||0})).filter(r=>r.n>0);
+  const depTable=`<p class="note" style="border:0;padding:0;margin:0 0 8px;font-size:10.5px">Linked records (checked live, right now)</p>
+    <div class="fields" style="margin-bottom:16px">
+      ${rows.length?rows.map(r=>`<div class="fld"><span class="k">${r.label}</span><span class="v" style="color:var(--alert);font-weight:600">${r.n}</span></div>`).join(""):`<div class="fld"><span class="k">Linked records</span><span class="v" style="color:#3ba55c">None found</span></div>`}
+    </div>`;
+  if(total>0){
+    card.innerHTML=header+depTable+
+      `<p class="note" style="border-color:var(--alert);color:var(--alert);font-size:12px">Blocked — ${total} linked record${total===1?"":"s"} still reference this job. Nothing here is deleted or reassigned automatically. Resolve or move these first, elsewhere in the app, then reopen this dialog.</p>
+      <div style="display:flex;justify-content:flex-end"><button id="retireJobCancel" class="chip" style="background:none">Close</button></div>`;
+    return;
+  }
+  card.innerHTML=header+depTable+
+    `<p class="note" style="border:0;padding:0;margin:0 0 8px;font-size:10.5px">Zero linked records — safe to retire. This flips the job to retired (hidden from active views and never counted in revenue again) and keeps it, fully intact, for anyone who looks it up directly. It is never hard-deleted.</p>
+    <label style="display:block;margin-bottom:12px"><span class="note" style="border:0;padding:0;margin:0 0 4px;font-size:10.5px">Reason (required)</span>
+      <textarea id="retireJobReason" rows="2" placeholder="e.g. Duplicate of SLX-029 — same address/trade/price, confirmed by cost + Monday-link comparison" style="width:100%;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:8px;font:inherit;font-size:12px;box-sizing:border-box"></textarea>
+    </label>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span id="retireJobStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px;font-size:11px"></span>
+      <div style="display:flex;gap:8px">
+        <button id="retireJobCancel" class="chip" style="background:none">Cancel</button>
+        <button id="retireJobConfirm" class="chip" style="background:var(--alert);border-color:var(--alert)">Retire ${j.id}</button>
+      </div>
+    </div>`;
+}
+async function confirmRetireJob(){
+  const jobId=retireJobId;
+  const reasonEl=document.getElementById("retireJobReason");
+  const statusEl=document.getElementById("retireJobStatus");
+  const reason=(reasonEl?.value||"").trim();
+  if(!reason){statusEl.textContent="A reason is required.";statusEl.style.color="var(--alert)";return}
+  statusEl.textContent="Retiring…";statusEl.style.color="var(--steel)";
+  const retiredBy=currentUserProfile?.full_name||currentUserEmail||"Unknown";
+  const{data,error}=await sb.rpc("retire_job",{p_job_id:jobId,p_reason:reason,p_retired_by:retiredBy});
+  const result=error?null:(data&&data[0]);
+  if(error||!result?.ok){
+    statusEl.textContent="Error: "+(error?.message||result?.message||"Unknown error");
+    statusEl.style.color="var(--alert)";
+    return;
+  }
+  closeRetireJobReview();
+  await fetchJobs();drawJobs();drawToday();
+}
 function openClient(clientId){
   const c=clientValues.find(x=>x.client_id===clientId);if(!c)return;
   const clientJobs=jobs.filter(j=>j.clientId===clientId).sort((a,b)=>(a.sold||"9999").localeCompare(b.sold||"9999"));
@@ -3726,7 +3824,7 @@ const mrai=e.target.closest("[data-mr-additem]");if(mrai){addMatItem(mrai.datase
 const mrid=e.target.closest("[data-mri-del]");if(mrid){delMatItem(mrid.dataset.mriDel);return}
 const mrs=e.target.closest("[data-mr-status]");if(mrs){setMatReqStatus(mrs.dataset.mrStatus);return}
 if(e.target.closest("[data-mr-delete]")){deleteMatReqRecord();return}
-const dre=e.target.closest("[data-drive-edit]");if(dre){const jb=jobs.find(x=>x.id===dre.dataset.driveEdit);const v=prompt("Google Drive folder link for this job:",jb?.drive||"");if(v!=null)setJobDriveUrl(dre.dataset.driveEdit,v);return}const jm=e.target.closest("[data-job-menu]");if(jm){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>{if(p.dataset.jobMenuPanel!==jm.dataset.jobMenu)p.classList.add("hidden")});document.querySelector(`[data-job-menu-panel="${jm.dataset.jobMenu}"]`)?.classList.toggle("hidden");return}const dj=e.target.closest("[data-delete-job]");if(dj){const jb=jobs.find(x=>x.id===dj.dataset.deleteJob);deleteJobRecord(dj.dataset.deleteJob,jb?.client||"this job");return}if(!e.target.closest("[data-job-menu-panel]")&&!e.target.closest("[data-job-menu]")){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>p.classList.add("hidden"))}const ju=e.target.closest("[data-job-updates]");if(ju){openJobUpdatesPopover(ju.dataset.jobUpdates,ju);return}if(e.target.id==="jupClose"){closeJobUpdatesPopover();return}if(e.target.id==="jupPostBtn"){postJobUpdatePopover();return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const op=e.target.closest("[data-open-payroll]");if(op){openPayrollPeriod(op.dataset.openPayroll);return}if(e.target.id==="payrollBack"){$("#payrollDetail").classList.add("hidden");drawPayroll();return}const oc=e.target.closest("[data-open-client]");if(oc){openClient(oc.dataset.openClient);return}if(e.target.id==="clientBack"){$("#clientDetail").classList.add("hidden");return}if(e.target.id==="ppToggle"){togglePayrollPaid();return}if(e.target.id==="ppExport"){exportPayrollCsv();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest(".sidebarLink[data-tab]");if(t){if(t.dataset.tab===activeTab){$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}activeTab=t.dataset.tab;localStorage.setItem("lastTab",t.dataset.tab);document.querySelectorAll(".sidebarLink[data-tab]").forEach(b=>b.setAttribute("aria-current",b===t));["#detail","#payrollDetail","#clientDetail","#matReqDetail"].forEach(s=>$(s)?.classList.add("hidden"));["today","tasks","performance","jobs","time","leadstracker","leadsourcereport","admintracker","closertracker","designtracker","weeklymeeting","fbads","socialplanner","monthlykpi","overhead","estimates","reports","payroll","billing","subs","clients","jobcosting","profitability","projecthours","vendorpay","materialrequests"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab));if(t.dataset.tab==="payroll")drawPayroll();if(t.dataset.tab==="billing")drawBilling();if(t.dataset.tab==="subs")drawSubs();if(t.dataset.tab==="clients")drawClients();if(t.dataset.tab==="jobcosting")drawJobCosting();if(t.dataset.tab==="profitability")drawProfitability();if(t.dataset.tab==="materialrequests")drawMaterialRequests();if(t.dataset.tab==="projecthours")drawProjectHours();if(t.dataset.tab==="performance")drawPerformance();if(t.dataset.tab==="vendorpay")drawVendorPayables();if(t.dataset.tab==="leadsourcereport")window.drawLeadReport?.();if(t.dataset.tab==="admintracker")drawAdminTracker();if(t.dataset.tab==="closertracker")drawCloserTracker();if(t.dataset.tab==="designtracker")drawDesignTracker();if(t.dataset.tab==="weeklymeeting")drawWeeklyMeeting();if(t.dataset.tab==="fbads")drawFbAds();if(t.dataset.tab==="socialplanner")drawSocialPlanner();if(t.dataset.tab==="monthlykpi")drawMonthlyKpi();if(t.dataset.tab==="overhead")drawOverhead();if(t.dataset.tab==="estimates")drawEstimates();if(t.dataset.tab==="tasks")drawTaskManagement();$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}const tg=e.target.closest("[data-toggle-group]");if(tg){const body=tg.nextElementSibling;const willOpen=tg.getAttribute("aria-expanded")!=="true";tg.setAttribute("aria-expanded",String(willOpen));body.classList.toggle("collapsed",!willOpen);localStorage.setItem("sidebarGroup:"+tg.dataset.toggleGroup,String(willOpen));return}if(e.target.id==="hamburgerBtn"){$("#sidebar").classList.toggle("open");$("#sidebarBackdrop").classList.toggle("show");return}if(e.target.id==="sidebarBackdrop"){$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}});
+const dre=e.target.closest("[data-drive-edit]");if(dre){const jb=jobs.find(x=>x.id===dre.dataset.driveEdit);const v=prompt("Google Drive folder link for this job:",jb?.drive||"");if(v!=null)setJobDriveUrl(dre.dataset.driveEdit,v);return}const jm=e.target.closest("[data-job-menu]");if(jm){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>{if(p.dataset.jobMenuPanel!==jm.dataset.jobMenu)p.classList.add("hidden")});document.querySelector(`[data-job-menu-panel="${jm.dataset.jobMenu}"]`)?.classList.toggle("hidden");return}const dj=e.target.closest("[data-delete-job]");if(dj){const jb=jobs.find(x=>x.id===dj.dataset.deleteJob);deleteJobRecord(dj.dataset.deleteJob,jb?.client||"this job");return}const rj=e.target.closest("[data-retire-job]");if(rj){openRetireJobReview(rj.dataset.retireJob);return}if(!e.target.closest("[data-job-menu-panel]")&&!e.target.closest("[data-job-menu]")){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>p.classList.add("hidden"))}const ju=e.target.closest("[data-job-updates]");if(ju){openJobUpdatesPopover(ju.dataset.jobUpdates,ju);return}if(e.target.id==="jupClose"){closeJobUpdatesPopover();return}if(e.target.id==="jupPostBtn"){postJobUpdatePopover();return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const op=e.target.closest("[data-open-payroll]");if(op){openPayrollPeriod(op.dataset.openPayroll);return}if(e.target.id==="payrollBack"){$("#payrollDetail").classList.add("hidden");drawPayroll();return}const oc=e.target.closest("[data-open-client]");if(oc){openClient(oc.dataset.openClient);return}if(e.target.id==="clientBack"){$("#clientDetail").classList.add("hidden");return}if(e.target.id==="ppToggle"){togglePayrollPaid();return}if(e.target.id==="ppExport"){exportPayrollCsv();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest(".sidebarLink[data-tab]");if(t){if(t.dataset.tab===activeTab){$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}activeTab=t.dataset.tab;localStorage.setItem("lastTab",t.dataset.tab);document.querySelectorAll(".sidebarLink[data-tab]").forEach(b=>b.setAttribute("aria-current",b===t));["#detail","#payrollDetail","#clientDetail","#matReqDetail"].forEach(s=>$(s)?.classList.add("hidden"));["today","tasks","performance","jobs","time","leadstracker","leadsourcereport","admintracker","closertracker","designtracker","weeklymeeting","fbads","socialplanner","monthlykpi","overhead","estimates","reports","payroll","billing","subs","clients","jobcosting","profitability","projecthours","vendorpay","materialrequests"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab));if(t.dataset.tab==="payroll")drawPayroll();if(t.dataset.tab==="billing")drawBilling();if(t.dataset.tab==="subs")drawSubs();if(t.dataset.tab==="clients")drawClients();if(t.dataset.tab==="jobcosting")drawJobCosting();if(t.dataset.tab==="profitability")drawProfitability();if(t.dataset.tab==="materialrequests")drawMaterialRequests();if(t.dataset.tab==="projecthours")drawProjectHours();if(t.dataset.tab==="performance")drawPerformance();if(t.dataset.tab==="vendorpay")drawVendorPayables();if(t.dataset.tab==="leadsourcereport")window.drawLeadReport?.();if(t.dataset.tab==="admintracker")drawAdminTracker();if(t.dataset.tab==="closertracker")drawCloserTracker();if(t.dataset.tab==="designtracker")drawDesignTracker();if(t.dataset.tab==="weeklymeeting")drawWeeklyMeeting();if(t.dataset.tab==="fbads")drawFbAds();if(t.dataset.tab==="socialplanner")drawSocialPlanner();if(t.dataset.tab==="monthlykpi")drawMonthlyKpi();if(t.dataset.tab==="overhead")drawOverhead();if(t.dataset.tab==="estimates")drawEstimates();if(t.dataset.tab==="tasks")drawTaskManagement();$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}const tg=e.target.closest("[data-toggle-group]");if(tg){const body=tg.nextElementSibling;const willOpen=tg.getAttribute("aria-expanded")!=="true";tg.setAttribute("aria-expanded",String(willOpen));body.classList.toggle("collapsed",!willOpen);localStorage.setItem("sidebarGroup:"+tg.dataset.toggleGroup,String(willOpen));return}if(e.target.id==="hamburgerBtn"){$("#sidebar").classList.toggle("open");$("#sidebarBackdrop").classList.toggle("show");return}if(e.target.id==="sidebarBackdrop"){$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}});
 document.addEventListener("click",e=>{const rs=e.target.closest("[data-report-sort]");if(rs){reportSort=rs.dataset.reportSort;document.querySelectorAll("[data-report-sort]").forEach(b=>b.setAttribute("aria-pressed",b===rs));drawReports();return}});
 document.addEventListener("click",e=>{const range=e.target.closest("[data-report-range]");if(!range)return;const todayStr=todayPacific(),year=todayStr.slice(0,4),month=todayStr.slice(5,7);document.querySelectorAll("[data-report-range]").forEach(button=>button.setAttribute("aria-pressed",button===range));if(range.dataset.reportRange==="month"){reportStart=`${year}-${month}-01`;reportEnd=todayStr;$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="year"){reportStart=`${year}-01-01`;reportEnd=todayStr;$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="all"){reportStart="0000-01-01";reportEnd="9999-12-31";$("#reportCustom").style.display="none"}else{$("#reportCustom").style.display="block"}drawReports()});
 document.querySelectorAll("[data-toggle-group]").forEach(head=>{const key=head.dataset.toggleGroup;if(localStorage.getItem("sidebarGroup:"+key)==="false"){head.setAttribute("aria-expanded","false");head.nextElementSibling.classList.add("collapsed")}});
@@ -3966,6 +4064,9 @@ document.addEventListener("click",e=>{
   if(e.target.id==="mergeReviewClose"||e.target.id==="mergeReviewCancel"){closeMergeReview();return}
   if(e.target.id==="mergeReviewModal"){closeMergeReview();return}
   if(e.target.id==="mergeReviewConfirm"){confirmMergeReview();return}
+  if(e.target.id==="retireJobClose"||e.target.id==="retireJobCancel"){closeRetireJobReview();return}
+  if(e.target.id==="retireJobModal"){closeRetireJobReview();return}
+  if(e.target.id==="retireJobConfirm"){confirmRetireJob();return}
 });
 sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 (async()=>{

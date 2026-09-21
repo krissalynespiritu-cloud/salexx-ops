@@ -75,6 +75,17 @@ Phase 2A has already established:
 - Merges are soft merges: losing clients are deactivated, not deleted.
 - `client_merge_log` stores merge history and pre-merge snapshots.
 - Merged/inactive clients are hidden from the active Clients list.
+- A job-level equivalent exists for retiring a duplicate/invalid job:
+  `retire_job()` (soft — sets `jobs.retired`, never deletes), gated by
+  `job_dependency_counts()` (blocks the retire if job_costs, time_entries,
+  payments, leads, estimates, job_updates, google_reviews, sub_payments,
+  vendor_invoices, tasks, project_files, material_requests, or either
+  job budget-estimate table still reference the job). `job_retire_log`
+  stores who/when/why plus a full snapshot. Retired jobs stop counting
+  in `job_financials`/`job_margins`/`client_value` but stay queryable
+  directly. UI: "Retire (safe delete)" in each job's `⋮` menu in
+  `index.html`. See `supabase/64_job_retire_foundation.sql` through
+  `66_hide_retired_jobs_from_financials.sql`.
 
 Previously approved merges must NOT be reconsidered or reversed unless explicitly
 requested.
