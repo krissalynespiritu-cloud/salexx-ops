@@ -1228,7 +1228,16 @@ async function saveJobField(jobId,field,rawValue){
   setTimeout(()=>{const el=document.querySelector(`[data-job-status="${jobId}"]`);if(el&&el.textContent==="Saved")setJobFieldStatus(jobId,"",false)},2000);
 }
 async function deleteJobRecord(jobId,clientName){
-  if(!confirm(`Delete ${clientName} (${jobId})? This can't be undone. Jobs with logged hours can't be deleted.`))return;
+  const{data:depData,error:depError}=await sb.rpc("job_dependency_counts",{p_job_id:jobId});
+  if(depError){alert(`Couldn't check linked records: ${depError.message}. Not safe to delete — try again, or use "Retire (safe delete)" instead.`);return}
+  const dep=depData&&depData[0];
+  const total=dep?Number(dep.total)||0:0;
+  if(total>0){
+    const details=RETIRE_DEP_LABELS.map(([k,label])=>({label,n:Number(dep[k])||0})).filter(r=>r.n>0).map(r=>`${r.n} ${r.label}`).join(", ");
+    alert(`Can't delete ${clientName} (${jobId}) — ${total} linked record${total===1?"":"s"} still reference it: ${details}. Use "Retire (safe delete)" from this job's menu instead — it checks the same dependencies and keeps an audit trail.`);
+    return;
+  }
+  if(!confirm(`Delete ${clientName} (${jobId})? This can't be undone.`))return;
   setJobFieldStatus(jobId,"Deleting…",false);
   const {error}=await sb.from("jobs").delete().eq("job_id",jobId);
   if(error){setJobFieldStatus(jobId,"Error: "+error.message,true);return}
@@ -3465,6 +3474,16 @@ async function updateEstField(id,field,rawValue){
 }
 async function deleteEstimate(id){
   const r=estRows.find(x=>x.estimate_id===id);
+  const{data:depData,error:depError}=await sb.rpc("estimate_dependency_counts",{p_estimate_id:id});
+  if(depError){alert(`Couldn't check linked records: ${depError.message}. Not safe to delete — try again.`);return}
+  const dep=depData&&depData[0];
+  const total=dep?Number(dep.total)||0:0;
+  if(total>0){
+    const labels=[["job_labor_estimates","labor budget line"],["job_material_estimates","material budget line"],["job_updates","update note"]];
+    const details=labels.map(([k,label])=>({label,n:Number(dep[k])||0})).filter(x=>x.n>0).map(x=>`${x.n} ${x.label}${x.n===1?"":"s"}`).join(", ");
+    alert(`Can't delete the estimate for "${r?r.client_name:"this client"}" — ${total} linked record${total===1?"":"s"} still reference it: ${details}. Remove those first, or leave this estimate as-is.`);
+    return;
+  }
   if(!confirm(`Delete the estimate for "${r?r.client_name:"this client"}"?`))return;
   const {error}=await sb.from("estimates").delete().eq("estimate_id",id);
   if(error){setEst("Error: "+error.message,true);return}
