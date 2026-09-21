@@ -1038,6 +1038,7 @@ async function saveTaskModal(){
     notes:document.getElementById("taskModalNotes").value||null,
     assignees:taskModalAssignees
   };
+  if(payload.job_id){const jobRec=jobs.find(x=>x.id===payload.job_id);payload.client_id=jobRec?.clientId||null;}
   const {error}=taskModalId?await sb.from("tasks").update(payload).eq("task_id",taskModalId):await sb.from("tasks").insert(payload);
   if(error){msg.textContent="Error: "+error.message;msg.style.color="var(--alert)";return}
   closeTaskModal();
@@ -3437,11 +3438,16 @@ async function updateEstField(id,field,rawValue){
   if(field==="amount")val=rawValue===""?null:Number(rawValue);
   else if(["sent_date","requested_date","job_type","estimator","lost_reason","notes","client_name","stage"].includes(field))val=rawValue||null;
   const upd={[field]:val};
+  const r=estRows.find(x=>x.estimate_id===id);
+  if(field==="client_name"){
+    const{clientId,needsReview}=await resolveClientForCreate({name:val,leadId:r?.lead_id,explicitClientId:r?.client_id});
+    upd.client_id=clientId;upd.needs_review=needsReview;
+  }
   if(field==="pipeline_status"){upd.status=EST_ENUM[rawValue]||"Sent";if(["Accepted","Lost"].includes(rawValue))upd.decided_date=todayPacific();}
   setEst("Saving…",false);
   const {error}=await sb.from("estimates").update(upd).eq("estimate_id",id);
   if(error){setEst("Error: "+error.message,true);return}
-  const r=estRows.find(x=>x.estimate_id===id);if(r)Object.assign(r,upd);
+  if(r)Object.assign(r,upd);
   setEst("Saved",false);setTimeout(()=>{if($("#estStatus").textContent==="Saved")setEst("",false)},1200);
   if(field==="pipeline_status"&&rawValue==="Accepted"&&r&&!r.job_id&&confirm(`Estimate accepted. Create a job for ${r.client_name}?`)){
     const jid=await createJobFromFields({client_name:r.client_name,job_type:r.job_type,contract_price:r.amount,
