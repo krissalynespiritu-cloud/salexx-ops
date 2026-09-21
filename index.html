@@ -3058,7 +3058,16 @@ async function setMatReqStatus(status){
   Object.assign(curMatReq,patch);renderMatReq();drawMaterialRequests();refreshMatReqCache();
 }
 async function deleteMatReqRecord(){
-  if(!curMatReq||!confirm("Delete this material request? This can't be undone."))return;
+  if(!curMatReq)return;
+  const{data:depData,error:depError}=await sb.rpc("material_request_dependency_counts",{p_request_id:curMatReq.request_id});
+  if(depError){alert(`Couldn't check linked records: ${depError.message}. Not safe to delete — try again.`);return}
+  const dep=depData&&depData[0];
+  const total=dep?Number(dep.total)||0:0;
+  if(total>0){
+    alert(`Can't delete this material request — ${total} item line${total===1?"":"s"} still reference it. Remove those first, or leave this request as-is.`);
+    return;
+  }
+  if(!confirm("Delete this material request? This can't be undone."))return;
   await sb.from("material_requests").delete().eq("request_id",curMatReq.request_id);
   $("#matReqDetail").classList.add("hidden");curMatReq=null;drawMaterialRequests();refreshMatReqCache();
 }
