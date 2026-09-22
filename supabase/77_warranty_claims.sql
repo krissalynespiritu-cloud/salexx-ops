@@ -48,6 +48,7 @@ create trigger warranty_claims_touch before update on warranty_claims
 -- Extend job_dependency_counts() (65/73/74/76) with warranty_claims,
 -- so a job with open or resolved warranty claims can't be retired
 -- without a human resolving them first.
+drop function if exists job_dependency_counts(text);
 create or replace function job_dependency_counts(p_job_id text)
 returns table (
   job_costs               bigint,

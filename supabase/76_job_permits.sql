@@ -49,6 +49,7 @@ create trigger job_permits_touch before update on job_permits
   for each row execute function touch_updated_at();
 
 -- Extend job_dependency_counts() (65/73/74) with job_permits.
+drop function if exists job_dependency_counts(text);
 create or replace function job_dependency_counts(p_job_id text)
 returns table (
   job_costs               bigint,

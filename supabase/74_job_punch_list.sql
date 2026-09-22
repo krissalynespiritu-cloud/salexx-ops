@@ -42,6 +42,7 @@ create trigger job_punch_items_touch before update on job_punch_items
 
 -- Extend job_dependency_counts() (65_job_retire_function.sql, already
 -- extended once by 73_job_change_orders.sql) with job_punch_items.
+drop function if exists job_dependency_counts(text);
 create or replace function job_dependency_counts(p_job_id text)
 returns table (
   job_costs               bigint,

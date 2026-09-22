@@ -54,6 +54,7 @@ create trigger job_change_orders_touch before update on job_change_orders
 -- (65_job_retire_function.sql) so a job with logged change orders is
 -- blocked from retiring until a human resolves them, same as every
 -- other dependency.
+drop function if exists job_dependency_counts(text);
 create or replace function job_dependency_counts(p_job_id text)
 returns table (
   job_costs               bigint,
