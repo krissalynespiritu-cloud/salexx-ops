@@ -319,7 +319,7 @@
 <div id="mergeReviewModal" class="hidden"><div id="mergeReviewCard"></div></div>
 <div id="retireJobModal" class="hidden"><div id="retireJobCard"></div></div>
 <div id="needsReviewModal" class="hidden"><div id="needsReviewCard"></div></div>
-<div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="ea" aria-selected="false">Est. vs Actual</button><button data-st="pay" aria-selected="false">Payments</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="fi" aria-selected="false">Files</button><button data-st="up" aria-selected="false">Updates</button></div><div class="panel" id="dBody"></div></div>
+<div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="ea" aria-selected="false">Est. vs Actual</button><button data-st="pay" aria-selected="false">Payments</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="mtl" aria-selected="false">Materials</button><button data-st="fi" aria-selected="false">Files</button><button data-st="tk" aria-selected="false">Tasks</button><button data-st="up" aria-selected="false">Updates</button></div><div class="panel" id="dBody"></div></div>
 <div id="payrollDetail" class="hidden"><div class="dhead"><button class="back" id="payrollBack">← Payroll</button><h2 id="ppName"></h2><p class="sub" id="ppSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Total</p><p class="v" id="ppTotal">$0</p><p class="d" id="ppStatus">—</p></div><div class="kpi" style="display:flex;flex-direction:column;justify-content:center;gap:8px"><button id="ppToggle" class="chip" style="text-align:center">Mark as Paid</button><button id="ppExport" class="chip" style="text-align:center">Export CSV</button></div></div><div class="scroller"><table id="ppTable"><thead><tr><th>Name</th><th>Hours</th><th>Amount</th></tr></thead><tbody id="ppBody"></tbody><tfoot><tr><td>Total</td><td id="ppFootHrs"></td><td id="ppFootAmt"></td></tr></tfoot></table></div></div></div>
 <div id="clientDetail" class="hidden"><div class="dhead"><button class="back" id="clientBack">← Clients</button><h2 id="clName"></h2><p class="sub" id="clSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Lifetime value</p><p class="v" id="clValue">$0</p><p class="d" id="clProjects">0 projects</p></div><div class="kpi"><p class="k">Avg margin</p><p class="v" id="clMargin">—</p><p class="d">across priced projects</p></div></div><div class="grp"><h5>Projects</h5><div id="clJobsList"></div></div><div class="grp"><h5>Materials used across all projects</h5><div id="clMaterials"></div></div></div></div>
 <div id="matReqDetail" class="hidden"><div class="dhead"><button class="back" id="matReqBack">← Material Requests</button><h2 id="mrName"></h2><p class="sub" id="mrSub"></p></div><div class="panel" id="mrBody"></div></div>
@@ -451,6 +451,9 @@ async function fetchJobs(){
   const {data:matReqRows}=await sb.from("material_request_summary").select("*");
   const matReqsById={};
   for(const r of matReqRows||[]){(matReqsById[r.job_id]||=[]).push(r)}
+  const {data:taskRowsForJobs}=await sb.from("tasks").select("*");
+  const jobTasksById={};
+  for(const t of taskRowsForJobs||[]){if(t.job_id)(jobTasksById[t.job_id]||=[]).push(t)}
   const marginsById=Object.fromEntries((marginRows||[]).map(m=>[m.job_id,m]));
   const costsById={};
   for(const c of costRows||[]){(costsById[c.job_id]||=[]).push(c)}
@@ -467,6 +470,7 @@ async function fetchJobs(){
     merged.invoicedTotal=vt?Number(vt.invoiced_total)||0:0;
     merged.invoicedMaterials=vt?Number(vt.invoiced_materials)||0:0;
     merged.matReqs=matReqsById[j.job_id]||[];
+    merged.jobTasks=jobTasksById[j.job_id]||[];
     jobs.push(merged);
   }
   return true;
@@ -1005,7 +1009,10 @@ async function deleteTask(id){
   if(!confirm("Delete this task? This can't be undone."))return;
   const {error}=await sb.from("tasks").delete().eq("task_id",id);
   if(error)return;
-  drawTaskManagement();
+  await refreshTaskCache();
+  if(activeTab==="tasks"){drawTaskSummary();drawTaskTimeline();drawTaskPersonChips();drawTaskBoard();}
+  if(activeTab==="mytasks")renderMyTasksBody();
+  if(cur&&st==="tk")drawDetail();
 }
 function toggleTaskModalAssignee(p){
   const i=taskModalAssignees.indexOf(p);
@@ -1013,8 +1020,9 @@ function toggleTaskModalAssignee(p){
   renderTaskModal();
 }
 function renderTaskModal(){
-  const t=taskModalId?taskRows.find(x=>x.task_id===taskModalId):null;
-  const jobOptions=`<option value="">None</option>`+[...jobs].sort((a,b)=>(a.client||"").localeCompare(b.client||"")).map(j=>`<option value="${j.id}" ${t&&t.job_id===j.id?"selected":""}>${escapeHtml(j.id+" · "+j.client)}</option>`).join("");
+  const t=taskModalId?(taskRows.find(x=>x.task_id===taskModalId)||jobs.flatMap(j=>j.jobTasks||[]).find(x=>x.task_id===taskModalId)):null;
+  const selectedJobId=t?t.job_id:taskModalDefaultJobId;
+  const jobOptions=`<option value="">None</option>`+[...jobs].sort((a,b)=>(a.client||"").localeCompare(b.client||"")).map(j=>`<option value="${j.id}" ${selectedJobId===j.id?"selected":""}>${escapeHtml(j.id+" · "+j.client)}</option>`).join("");
   const activeAssignees=taskModalAssignees.map(p=>`<span style="display:inline-flex;align-items:center;gap:5px;background:${hexToRgba(TASK_PERSON_COLOR[p]||"#8A93AB",.18)};color:${TASK_PERSON_COLOR[p]||"var(--steel)"};border-radius:6px;padding:5px 8px;font-size:11.5px;font-weight:600">${escapeHtml(p)}<button type="button" data-task-modal-assignee="${escapeHtml(p)}" aria-label="Remove ${escapeHtml(p)}" style="background:none;border:0;color:inherit;cursor:pointer;font-size:12px;line-height:1;padding:0">×</button></span>`).join("");
   const addableAssignees=TASK_PEOPLE.filter(p=>!taskModalAssignees.includes(p)).map(p=>`<button type="button" data-task-modal-assignee="${escapeHtml(p)}" class="chip" style="font-size:11px;padding:4px 10px">＋ ${p}</button>`).join("");
   const statusVal=t?.status||taskModalDefaultStatus;
@@ -1044,17 +1052,18 @@ function renderTaskModal(){
       </div>
     </div>`;
 }
-let taskModalDefaultStatus="To-do";
-function openTaskModal(id,defaultStatus){
+let taskModalDefaultStatus="To-do",taskModalDefaultJobId=null;
+function openTaskModal(id,defaultStatus,defaultJobId){
   taskModalId=id||null;
-  const t=id?taskRows.find(x=>x.task_id===id):null;
+  const t=id?(taskRows.find(x=>x.task_id===id)||jobs.flatMap(j=>j.jobTasks||[]).find(x=>x.task_id===id)):null;
   taskModalAssignees=t?[...(t.assignees||[])]:[];
   taskModalDefaultStatus=defaultStatus||"To-do";
+  taskModalDefaultJobId=defaultJobId||null;
   document.getElementById("taskModal").classList.remove("hidden");
   renderTaskModal();
 }
 function closeTaskModal(){
-  taskModalId=null;taskModalAssignees=[];
+  taskModalId=null;taskModalAssignees=[];taskModalDefaultJobId=null;
   document.getElementById("taskModal").classList.add("hidden");
 }
 async function saveTaskModal(){
@@ -1075,7 +1084,10 @@ async function saveTaskModal(){
   const {error}=taskModalId?await sb.from("tasks").update(payload).eq("task_id",taskModalId):await sb.from("tasks").insert(payload);
   if(error){msg.textContent="Error: "+error.message;msg.style.color="var(--alert)";return}
   closeTaskModal();
-  drawTaskManagement();
+  await refreshTaskCache();
+  if(activeTab==="tasks"){drawTaskSummary();drawTaskTimeline();drawTaskPersonChips();drawTaskBoard();}
+  if(activeTab==="mytasks")renderMyTasksBody();
+  if(cur&&st==="tk")drawDetail();
 }
 const SOCIAL_STAGES=["Raw Footage / Ideas","Editing in Progress","Stuck","Ready for Scheduling/Captioning","Scheduled","Posted","Ads"];
 const socialStageColor=s=>({"Raw Footage / Ideas":"var(--steel)","Editing in Progress":"var(--sky)","Stuck":"var(--alert)","Ready for Scheduling/Captioning":"var(--amber)","Scheduled":"var(--violet)","Posted":"var(--good)","Ads":"var(--hivis)"}[s]||"var(--steel)");
@@ -1445,10 +1457,12 @@ if(st==="pay"){
   if(currentPayments===null)loadPayments();
 }
 if(st==="hr")b.innerHTML=j.hrs?`<p class="bignum">${j.hrs}</p><p class="lbl" style="margin-top:6px">Hours logged · ${money(j.laborCost)} labor</p><p class="note">Live build lists every entry — who, which day, in and out — so a bad number traces back to the row that caused it.</p>`:`<div class="empty">No hours logged against this job.<br>${j.crew==="Sub out"?"Sub-out job — labor sits in Subcontractors instead.":"If crew worked it, the time went somewhere else or was never entered."}</div>`;
+if(st==="mtl")b.innerHTML=matReqOverviewBlock(j)+`<p class="note">Same material requests as the Material Requests page — opening one here goes straight to it.</p>`;
 if(st==="fi"){
   if(currentFiles===null){b.innerHTML=`<div class="empty">Loading…</div>`;loadProjectFiles(j.id);}
   else b.innerHTML=renderFilesTab(j);
 }
+if(st==="tk")b.innerHTML=jobTasksBlock(j);
 if(st==="up"){
   const list=currentUpdates===null?`<p class="note" style="border:0;padding:0">Loading…</p>`:currentUpdates.length===0?`<div class="empty">No updates yet.<br>The first note here becomes the record of why anything changed.</div>`:currentUpdates.map(u=>`<div style="display:flex;gap:10px;margin-bottom:14px"><div style="width:32px;height:32px;border-radius:50%;background:${u.author_color};color:var(--text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${escapeHtml(u.author_initials)}</div><div style="flex:1;min-width:0"><div style="display:flex;gap:6px;align-items:baseline;flex-wrap:wrap"><b style="font-size:13px">${escapeHtml(u.author_name)}</b><span style="font-size:11px;color:var(--steel)">${relativeTime(u.posted_at)}</span></div><div style="font-size:13px;margin-top:2px;white-space:pre-wrap;line-height:1.45">${escapeHtml(u.body)}</div></div></div>`).join("");
   b.innerHTML=`<div id="updatesList">${list}</div><div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><textarea id="newUpdateBody" placeholder="Write an update…" style="width:100%;min-height:70px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px;font:inherit;font-size:13px;resize:vertical"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="updateStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="postUpdateBtn" class="chip">Post</button></div></div>`;
@@ -3204,6 +3218,18 @@ async function refreshMatReqCache(){
   const by={};for(const r of data||[]){(by[r.job_id]||=[]).push(r)}
   for(const j of jobs)j.matReqs=by[j.id]||[];
 }
+function jobTasksBlock(j){
+  const jobById=Object.fromEntries(jobs.map(x=>[x.id,x]));
+  const list=(j.jobTasks||[]).slice().sort((a,b)=>(a.due_date||"9999-99-99").localeCompare(b.due_date||"9999-99-99"));
+  return `<div class="grp" style="margin-top:18px"><h5>Tasks</h5>${list.length?`<div style="display:flex;flex-direction:column;gap:9px">${list.map(t=>taskCardHTML(t,jobById)).join("")}</div><div style="margin-top:9px"><button class="chip" data-new-task="${j.id}">＋ New task</button></div>`:`<div class="flagbox" style="background:#1A2C4A;border-color:var(--line);color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><span>No tasks linked to this job yet.</span><button class="chip" data-new-task="${j.id}" style="flex-shrink:0">＋ Add task</button></div>`}</div>`;
+}
+async function refreshTaskCache(){
+  const {data,error}=await sb.from("tasks").select("*");
+  if(error)return;
+  const by={};for(const t of data||[]){if(t.job_id)(by[t.job_id]||=[]).push(t)}
+  for(const j of jobs)j.jobTasks=by[j.id]||[];
+  if(taskRows.length)taskRows=data||[];
+}
 async function drawAdminTracker(){
   $("#adminTrackerTable").innerHTML=`<tr><td>Loading…</td></tr>`;
   const {data,error}=await sb.from("admin_daily").select("*").order("log_date",{ascending:false});
@@ -4158,7 +4184,7 @@ if(e.target.id==="newMatReqBtn"){openNewMatReq();return}
 if(e.target.id==="mrCreateBtn"){createMatReq();return}
 if(e.target.id==="matReqBack"){$("#matReqDetail").classList.add("hidden");drawMaterialRequests();return}
 const omr=e.target.closest("[data-open-mr]");if(omr){e.preventDefault();$("#detail").classList.add("hidden");$("#clientDetail").classList.add("hidden");openMatReq(omr.dataset.openMr);return}
-const nmr=e.target.closest("[data-new-matreq]");if(nmr){e.preventDefault();$("#detail").classList.add("hidden");openNewMatReq(nmr.dataset.newMatreq);return}
+const nmr=e.target.closest("[data-new-matreq]");if(nmr){e.preventDefault();$("#detail").classList.add("hidden");openNewMatReq(nmr.dataset.newMatreq);return}const nt=e.target.closest("[data-new-task]");if(nt){openTaskModal(null,"To-do",nt.dataset.newTask);return}
 const mrf=e.target.closest("[data-mrf]");if(mrf){matReqFilter=mrf.dataset.mrf;drawMaterialRequests();return}
 const mrai=e.target.closest("[data-mr-additem]");if(mrai){addMatItem(mrai.dataset.mrAdditem);return}
 const mrid=e.target.closest("[data-mri-del]");if(mrid){delMatItem(mrid.dataset.mriDel);return}
