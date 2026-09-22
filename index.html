@@ -1220,8 +1220,14 @@ async function saveJobField(jobId,field,rawValue){
   if(field==="contract_price"){const clean=rawValue.replace(/[^0-9.-]/g,"");value=clean===""?null:Number(clean)}
   else if(field==="client_name"||field==="job_type"||field==="address_city")value=rawValue.trim()||null;
   else if((field==="sold_date"||field==="completed_date")&&rawValue==="")value=null;
+  const upd={[field]:value};
+  if(field==="client_name"){
+    const job=jobs.find(x=>x.id===jobId);
+    const{clientId,needsReview}=await resolveClientForCreate({name:value,explicitClientId:job?.clientId});
+    upd.client_id=clientId;upd.needs_review=needsReview;
+  }
   setJobFieldStatus(jobId,"Saving…",false);
-  const {error}=await sb.from("jobs").update({[field]:value}).eq("job_id",jobId);
+  const {error}=await sb.from("jobs").update(upd).eq("job_id",jobId);
   if(error){setJobFieldStatus(jobId,"Error: "+error.message,true);return}
   await refreshJob(jobId);
   drawJobs();drawToday();
