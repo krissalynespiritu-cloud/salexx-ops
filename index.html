@@ -322,7 +322,7 @@
 <div id="mergeReviewModal" class="hidden"><div id="mergeReviewCard"></div></div>
 <div id="retireJobModal" class="hidden"><div id="retireJobCard"></div></div>
 <div id="needsReviewModal" class="hidden"><div id="needsReviewCard"></div></div>
-<div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="sch" aria-selected="false">Schedule</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="ea" aria-selected="false">Est. vs Actual</button><button data-st="pay" aria-selected="false">Payments</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="mtl" aria-selected="false">Materials</button><button data-st="fi" aria-selected="false">Files</button><button data-st="tk" aria-selected="false">Tasks</button><button data-st="up" aria-selected="false">Updates</button><button data-st="cho" aria-selected="false">Change Orders</button><button data-st="pnl" aria-selected="false">Punch List</button><button data-st="clo" aria-selected="false">Closeout</button></div><div class="panel" id="dBody"></div></div>
+<div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="sch" aria-selected="false">Schedule</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="ea" aria-selected="false">Est. vs Actual</button><button data-st="pay" aria-selected="false">Payments</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="mtl" aria-selected="false">Materials</button><button data-st="fi" aria-selected="false">Files</button><button data-st="tk" aria-selected="false">Tasks</button><button data-st="up" aria-selected="false">Updates</button><button data-st="tl" aria-selected="false">Timeline</button><button data-st="cho" aria-selected="false">Change Orders</button><button data-st="pnl" aria-selected="false">Punch List</button><button data-st="clo" aria-selected="false">Closeout</button></div><div class="panel" id="dBody"></div></div>
 <div id="payrollDetail" class="hidden"><div class="dhead"><button class="back" id="payrollBack">← Payroll</button><h2 id="ppName"></h2><p class="sub" id="ppSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Total</p><p class="v" id="ppTotal">$0</p><p class="d" id="ppStatus">—</p></div><div class="kpi" style="display:flex;flex-direction:column;justify-content:center;gap:8px"><button id="ppToggle" class="chip" style="text-align:center">Mark as Paid</button><button id="ppExport" class="chip" style="text-align:center">Export CSV</button></div></div><div class="scroller"><table id="ppTable"><thead><tr><th>Name</th><th>Hours</th><th>Amount</th></tr></thead><tbody id="ppBody"></tbody><tfoot><tr><td>Total</td><td id="ppFootHrs"></td><td id="ppFootAmt"></td></tr></tfoot></table></div></div></div>
 <div id="clientDetail" class="hidden"><div class="dhead"><button class="back" id="clientBack">← Clients</button><h2 id="clName"></h2><p class="sub" id="clSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Lifetime value</p><p class="v" id="clValue">$0</p><p class="d" id="clProjects">0 projects</p></div><div class="kpi"><p class="k">Avg margin</p><p class="v" id="clMargin">—</p><p class="d">across priced projects</p></div></div><div class="grp"><h5>Projects</h5><div id="clJobsList"></div></div><div class="grp"><h5>Materials used across all projects</h5><div id="clMaterials"></div></div></div></div>
 <div id="matReqDetail" class="hidden"><div class="dhead"><button class="back" id="matReqBack">← Material Requests</button><h2 id="mrName"></h2><p class="sub" id="mrSub"></p></div><div class="panel" id="mrBody"></div></div>
@@ -377,7 +377,7 @@ async function fetchCrewRates(){
   const byName=Object.fromEntries(data.map(c=>[c.name,c.hourly_wage]));
   for(const p of people)p.rate=byName[p.n]??RATE;
 }
-const $=s=>document.querySelector(s);let jobStageFilter="All",query="",day={},cur=null,st="ov",currentUserEmail=null,currentUserProfile=null,currentUpdates=null,currentPayments=null,currentFiles=null,currentEstActual=null,currentCloseout=null,eaLabor=[],eaMats=[],jcQuery="",jcSort="marginDesc",jcStageFilter="All",jcPageSize=50,jcVisibleCount=50;const FILE_CATS=["Materials","Estimate Details","Contracts","Permits","Project Photos/Videos","Accounting"];const fileRenaming=new Set();const jcExpanded=new Set();const col=p=>p==null?"var(--steel)":p>=50?"var(--good)":p>=38?"var(--amber)":"var(--alert)";
+const $=s=>document.querySelector(s);let jobStageFilter="All",query="",day={},cur=null,st="ov",currentUserEmail=null,currentUserProfile=null,currentUpdates=null,currentPayments=null,currentFiles=null,currentEstActual=null,currentCloseout=null,currentTimeline=null,eaLabor=[],eaMats=[],jcQuery="",jcSort="marginDesc",jcStageFilter="All",jcPageSize=50,jcVisibleCount=50;const FILE_CATS=["Materials","Estimate Details","Contracts","Permits","Project Photos/Videos","Accounting"];const fileRenaming=new Set();const jcExpanded=new Set();const col=p=>p==null?"var(--steel)":p>=50?"var(--good)":p>=38?"var(--amber)":"var(--alert)";
 const COST_CATEGORY_FIELD={Materials:"mat","Equipment / Rentals":"equip","Disposal / Dumpster":"disp","Permits / Fees":"permit","Fuel / Travel":"fuel","Other / Misc":"other",Labor:"laborIn",Subcontractors:"laborSub"};
 function costRowsToFields(costRows){
   const c={};
@@ -1398,7 +1398,7 @@ async function createJobFromFields(f){
 }
 window.createJobFromFields=createJobFromFields;
 const F=(k,v,cls="")=>`<div class="fld ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`,FI=(k,f,v,ph="—")=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" value="${v??""}" placeholder="${ph}"></div>`,FI2=(k,f,v,jobId)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" data-job="${jobId}" value="${v??""}" placeholder="—"></div>`;
-function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";currentUpdates=null;currentPayments=null;currentFiles=null;currentEstActual=null;currentCloseout=null;eaLabor=[];eaMats=[];$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stClass(cur.stage)}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#clientDetail").classList.add("hidden");$("#matReqDetail").classList.add("hidden");$("#detail").classList.remove("hidden");window.scrollTo(0,0)}
+function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";currentUpdates=null;currentPayments=null;currentFiles=null;currentEstActual=null;currentCloseout=null;currentTimeline=null;eaLabor=[];eaMats=[];$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stClass(cur.stage)}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#clientDetail").classList.add("hidden");$("#matReqDetail").classList.add("hidden");$("#detail").classList.remove("hidden");window.scrollTo(0,0)}
 function openJobUpdates(id){openJob(id);st="up";document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="up"));drawDetail()}
 let jupJobId=null,jupUpdates=null;
 function closeJobUpdatesPopover(){document.getElementById("jobUpdatesPopover").classList.add("hidden");jupJobId=null;jupUpdates=null}
@@ -1489,6 +1489,10 @@ if(st==="up"){
   const list=currentUpdates===null?`<p class="note" style="border:0;padding:0">Loading…</p>`:currentUpdates.length===0?`<div class="empty">No updates yet.<br>The first note here becomes the record of why anything changed.</div>`:currentUpdates.map(u=>`<div style="display:flex;gap:10px;margin-bottom:14px"><div style="width:32px;height:32px;border-radius:50%;background:${u.author_color};color:var(--text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${escapeHtml(u.author_initials)}</div><div style="flex:1;min-width:0"><div style="display:flex;gap:6px;align-items:baseline;flex-wrap:wrap"><b style="font-size:13px">${escapeHtml(u.author_name)}</b><span style="font-size:11px;color:var(--steel)">${relativeTime(u.posted_at)}</span></div><div style="font-size:13px;margin-top:2px;white-space:pre-wrap;line-height:1.45">${escapeHtml(u.body)}</div></div></div>`).join("");
   b.innerHTML=`<div id="updatesList">${list}</div><div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><textarea id="newUpdateBody" placeholder="Write an update…" style="width:100%;min-height:70px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px;font:inherit;font-size:13px;resize:vertical"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="updateStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="postUpdateBtn" class="chip">Post</button></div></div>`;
   if(currentUpdates===null)loadUpdates();
+}
+if(st==="tl"){
+  b.innerHTML=renderTimelineTab();
+  if(currentTimeline===null)loadTimeline();
 }
 if(st==="cho")b.innerHTML=jobChangeOrdersBlock(j);
 if(st==="pnl")b.innerHTML=jobPunchListBlock(j);
@@ -3359,6 +3363,36 @@ function renderCloseoutTab(j){
 function jobScheduleBlock(j){
   const dur=(j.scheduledStart&&j.scheduledEnd)?Math.round((parseDateOnly(j.scheduledEnd)-parseDateOnly(j.scheduledStart))/86400000)+1:null;
   return `<div class="grp" style="margin-top:18px"><h5>Schedule</h5><div class="fields"><div class="fld"><span class="k">Scheduled Start</span><input type="date" data-jf="scheduled_start_date" data-job="${j.id}" value="${j.scheduledStart||""}" style="background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:6px 8px;font:inherit;font-size:12.5px"></div><div class="fld"><span class="k">Scheduled End</span><input type="date" data-jf="scheduled_end_date" data-job="${j.id}" value="${j.scheduledEnd||""}" style="background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:6px 8px;font:inherit;font-size:12.5px"></div>${dur!=null?`<div class="fld"><span class="k">Planned duration</span><span class="v" style="font-family:inherit">${dur} day${dur===1?"":"s"}</span></div>`:""}</div>${dur!=null&&dur<0?`<div class="flagbox" style="margin-top:10px">End date is before the start date — double check these.</div>`:""}<p class="note">Feeds the Upcoming Schedule list on the Dashboard. Doesn't drive crew assignment or any cost/margin calculation.</p></div>`;
+}
+const TIMELINE_ICON={labor:"⏱",update:"📝",payment:"💰",invoice:"🧾",material:"📦"};
+async function loadTimeline(){
+  const jobId=cur.id;
+  const [teRes,muRes,payRes,viRes,mrRes]=await Promise.all([
+    sb.from("time_entries").select("person,work_date,hours").eq("job_id",jobId).eq("kind","Job"),
+    sb.from("job_updates").select("author_name,posted_at,body").eq("job_id",jobId),
+    sb.from("payments").select("amount,paid_on,method,is_deposit").eq("job_id",jobId),
+    sb.from("vendor_invoices").select("vendor,bill_date,total_amount,category").eq("job_id",jobId),
+    sb.from("material_requests").select("project_type,submitted_at,ordered_at,received_at").eq("job_id",jobId)
+  ]);
+  const events=[];
+  for(const t of teRes.data||[])events.push({date:t.work_date,type:"labor",label:`${escapeHtml(t.person)} logged ${Number(t.hours).toFixed(2)}h`});
+  for(const u of muRes.data||[])if(u.posted_at)events.push({date:u.posted_at.slice(0,10),time:u.posted_at,type:"update",label:`${escapeHtml(u.author_name)}: ${escapeHtml(u.body)}`});
+  for(const p of payRes.data||[])if(p.paid_on)events.push({date:p.paid_on,type:"payment",label:`${p.is_deposit?"Deposit":"Payment"} received — ${money(p.amount)}${p.method?" · "+escapeHtml(p.method):""}`});
+  for(const v of viRes.data||[])if(v.bill_date)events.push({date:v.bill_date,type:"invoice",label:`Vendor invoice — ${escapeHtml(v.vendor)} · ${money(v.total_amount)}${v.category?" · "+escapeHtml(v.category):""}`});
+  for(const m of mrRes.data||[]){
+    if(m.submitted_at)events.push({date:m.submitted_at.slice(0,10),time:m.submitted_at,type:"material",label:`${escapeHtml(m.project_type)} materials submitted`});
+    if(m.ordered_at)events.push({date:m.ordered_at.slice(0,10),time:m.ordered_at,type:"material",label:`${escapeHtml(m.project_type)} materials ordered`});
+    if(m.received_at)events.push({date:m.received_at.slice(0,10),time:m.received_at,type:"material",label:`${escapeHtml(m.project_type)} materials received`});
+  }
+  events.sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.time||"").localeCompare(a.time||""));
+  currentTimeline=events;
+  if(cur&&cur.id===jobId&&st==="tl")drawDetail();
+}
+function renderTimelineTab(){
+  if(currentTimeline===null)return `<div class="empty">Loading…</div>`;
+  if(!currentTimeline.length)return `<div class="empty">No timeline events yet for this job.<br>Crew hours, updates, payments, invoices, and material milestones will appear here as they happen.</div>`;
+  const rows=currentTimeline.map(e=>`<div style="display:flex;gap:10px;margin-bottom:12px"><div style="width:32px;height:32px;border-radius:50%;background:var(--navy-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${TIMELINE_ICON[e.type]||"•"}</div><div style="flex:1;min-width:0"><div style="font-size:11px;color:var(--steel)">${e.date||"—"}</div><div style="font-size:13px;margin-top:2px;line-height:1.4">${e.label}</div></div></div>`).join("");
+  return `<div class="grp" style="margin-top:18px"><h5>Project Timeline</h5><p class="note" style="border:0;padding:0;margin:0 0 14px">Crew hours, updates, payments, vendor invoices, and material milestones for this job, newest first. Stage-change history isn't tracked yet, so it isn't shown here.</p>${rows}</div>`;
 }
 async function drawAdminTracker(){
   $("#adminTrackerTable").innerHTML=`<tr><td>Loading…</td></tr>`;
