@@ -4435,6 +4435,13 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			const value=field==="value"?(rawValue===""?0:Number(rawValue)):field==="name"?String(rawValue).trim():(rawValue===""?null:rawValue);
 			update={[column]:value};
 			if(field==="status"&&rawValue==="Won"&&(!lead||!lead.saleDate))update.sale_date=todayPacific();
+			if(field==="name"||field==="email"||field==="phone"){
+				const newName=field==="name"?value:(lead?.name||"");
+				const newEmail=field==="email"?value:(lead?.email||null);
+				const newPhone=field==="phone"?value:(lead?.phone||null);
+				const{clientId,needsReview}=await resolveClientForCreate({name:newName,email:newEmail,phone:newPhone,explicitClientId:lead?.clientId});
+				update.client_id=clientId;update.needs_review=needsReview;
+			}
 		}
 		const {error}=await sb.from("leads").update(update).eq("lead_id",leadId);
 		if(error){setLeadStatus("Error: "+error.message,true);return}
