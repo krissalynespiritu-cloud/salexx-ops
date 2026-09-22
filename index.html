@@ -319,7 +319,7 @@
 <div id="mergeReviewModal" class="hidden"><div id="mergeReviewCard"></div></div>
 <div id="retireJobModal" class="hidden"><div id="retireJobCard"></div></div>
 <div id="needsReviewModal" class="hidden"><div id="needsReviewCard"></div></div>
-<div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="ea" aria-selected="false">Est. vs Actual</button><button data-st="pay" aria-selected="false">Payments</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="mtl" aria-selected="false">Materials</button><button data-st="fi" aria-selected="false">Files</button><button data-st="tk" aria-selected="false">Tasks</button><button data-st="up" aria-selected="false">Updates</button></div><div class="panel" id="dBody"></div></div>
+<div id="detail" class="hidden"><div class="dhead"><button class="back" id="back">← All jobs</button><h2 id="dName"></h2><p class="sub" id="dSub"></p></div><div class="subtabs" id="subtabs"><button data-st="ov" aria-selected="true">Overview</button><button data-st="co" aria-selected="false">Job Costing</button><button data-st="ea" aria-selected="false">Est. vs Actual</button><button data-st="pay" aria-selected="false">Payments</button><button data-st="hr" aria-selected="false">Hours</button><button data-st="mtl" aria-selected="false">Materials</button><button data-st="fi" aria-selected="false">Files</button><button data-st="tk" aria-selected="false">Tasks</button><button data-st="up" aria-selected="false">Updates</button><button data-st="cho" aria-selected="false">Change Orders</button></div><div class="panel" id="dBody"></div></div>
 <div id="payrollDetail" class="hidden"><div class="dhead"><button class="back" id="payrollBack">← Payroll</button><h2 id="ppName"></h2><p class="sub" id="ppSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Total</p><p class="v" id="ppTotal">$0</p><p class="d" id="ppStatus">—</p></div><div class="kpi" style="display:flex;flex-direction:column;justify-content:center;gap:8px"><button id="ppToggle" class="chip" style="text-align:center">Mark as Paid</button><button id="ppExport" class="chip" style="text-align:center">Export CSV</button></div></div><div class="scroller"><table id="ppTable"><thead><tr><th>Name</th><th>Hours</th><th>Amount</th></tr></thead><tbody id="ppBody"></tbody><tfoot><tr><td>Total</td><td id="ppFootHrs"></td><td id="ppFootAmt"></td></tr></tfoot></table></div></div></div>
 <div id="clientDetail" class="hidden"><div class="dhead"><button class="back" id="clientBack">← Clients</button><h2 id="clName"></h2><p class="sub" id="clSub"></p></div><div class="panel"><div class="kpis" style="margin-bottom:14px"><div class="kpi"><p class="k">Lifetime value</p><p class="v" id="clValue">$0</p><p class="d" id="clProjects">0 projects</p></div><div class="kpi"><p class="k">Avg margin</p><p class="v" id="clMargin">—</p><p class="d">across priced projects</p></div></div><div class="grp"><h5>Projects</h5><div id="clJobsList"></div></div><div class="grp"><h5>Materials used across all projects</h5><div id="clMaterials"></div></div></div></div>
 <div id="matReqDetail" class="hidden"><div class="dhead"><button class="back" id="matReqBack">← Material Requests</button><h2 id="mrName"></h2><p class="sub" id="mrSub"></p></div><div class="panel" id="mrBody"></div></div>
@@ -454,6 +454,9 @@ async function fetchJobs(){
   const {data:taskRowsForJobs}=await sb.from("tasks").select("*");
   const jobTasksById={};
   for(const t of taskRowsForJobs||[]){if(t.job_id)(jobTasksById[t.job_id]||=[]).push(t)}
+  const {data:choRows}=await sb.from("job_change_orders").select("*");
+  const choById={};
+  for(const r of choRows||[]){(choById[r.job_id]||=[]).push(r)}
   const marginsById=Object.fromEntries((marginRows||[]).map(m=>[m.job_id,m]));
   const costsById={};
   for(const c of costRows||[]){(costsById[c.job_id]||=[]).push(c)}
@@ -471,6 +474,7 @@ async function fetchJobs(){
     merged.invoicedMaterials=vt?Number(vt.invoiced_materials)||0:0;
     merged.matReqs=matReqsById[j.job_id]||[];
     merged.jobTasks=jobTasksById[j.job_id]||[];
+    merged.changeOrders=choById[j.job_id]||[];
     jobs.push(merged);
   }
   return true;
@@ -1468,6 +1472,7 @@ if(st==="up"){
   b.innerHTML=`<div id="updatesList">${list}</div><div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><textarea id="newUpdateBody" placeholder="Write an update…" style="width:100%;min-height:70px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px;font:inherit;font-size:13px;resize:vertical"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="updateStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="postUpdateBtn" class="chip">Post</button></div></div>`;
   if(currentUpdates===null)loadUpdates();
 }
+if(st==="cho")b.innerHTML=jobChangeOrdersBlock(j);
 if(st==="ea"){
   if(currentEstActual===null){b.innerHTML=`<div class="empty">Loading…</div>`;loadEstActual();}
   else b.innerHTML=renderEstActualTab(j);
@@ -2534,7 +2539,7 @@ const RETIRE_DEP_LABELS=[
   ["google_reviews","Google review requests"],["sub_payments","Subcontractor payments"],
   ["vendor_invoices","Vendor invoices"],["tasks","Tasks"],["project_files","Files"],
   ["material_requests","Material requests"],["job_labor_estimates","Labor budget lines"],
-  ["job_material_estimates","Material budget lines"]
+  ["job_material_estimates","Material budget lines"],["job_change_orders","Change orders"]
 ];
 let retireJobId=null,retireJobDeps=null,retireJobLoading=false;
 function openRetireJobReview(jobId){
@@ -3229,6 +3234,43 @@ async function refreshTaskCache(){
   const by={};for(const t of data||[]){if(t.job_id)(by[t.job_id]||=[]).push(t)}
   for(const j of jobs)j.jobTasks=by[j.id]||[];
   if(taskRows.length)taskRows=data||[];
+}
+function setChoStatus(msg,isError){
+  const el=document.getElementById("choStatus");if(!el)return;
+  el.textContent=msg;el.style.color=isError?"var(--alert)":"var(--steel)";
+}
+function jobChangeOrdersBlock(j){
+  const list=(j.changeOrders||[]).slice().sort((a,b)=>(a.co_date||"9999-99-99").localeCompare(b.co_date||"9999-99-99"));
+  const itemizedTotal=list.reduce((s,r)=>s+Number(r.amount||0),0);
+  const manualTotal=Number(j.co)||0;
+  const mismatch=Math.abs(itemizedTotal-manualTotal)>0.5;
+  const rows=list.map(r=>`<div class="fld" style="flex-wrap:wrap"><span class="k" style="flex:1;min-width:160px">${escapeHtml(r.description)}${r.approved_by?` <span style="color:var(--steel)">· approved by ${escapeHtml(r.approved_by)}</span>`:""}</span><span class="v" style="display:flex;align-items:center;gap:8px;font-family:inherit">${r.co_date||"—"}<span style="color:${r.amount<0?"var(--alert)":"var(--good)"}">${money(r.amount)}</span><button data-del-cho="${r.change_order_id}" aria-label="Delete change order" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:20px;height:20px;line-height:1;cursor:pointer;font-size:12px;flex-shrink:0">×</button></span></div>`).join("");
+  return `<div class="grp" style="margin-top:18px"><h5>Change Orders</h5>${mismatch?`<div class="flagbox" style="margin-bottom:10px">Job Costing's manual Change Orders total is <b>${money(manualTotal)}</b>, but these itemized entries add up to <b>${money(itemizedTotal)}</b>. Not reconciled automatically — update whichever one is out of date.</div>`:""}<div class="fields">${rows||`<div class="fld"><span class="k" style="color:var(--steel)">No change orders logged for this job yet.</span></div>`}</div><div class="grp" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px"><h5>Add a change order</h5><input id="newChoDesc" placeholder="Description" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"><input id="newChoAmount" type="number" step="0.01" placeholder="Amount +/-" style="flex:1;min-width:110px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newChoDate" type="date" style="flex:1;min-width:130px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"></div><input id="newChoApproved" placeholder="Approved by (optional)" style="width:100%;margin-bottom:8px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><div style="display:flex;justify-content:space-between;align-items:center"><span id="choStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button data-add-cho="${j.id}" class="chip">Add change order</button></div></div></div>`;
+}
+async function addChangeOrder(jobId){
+  const desc=$("#newChoDesc").value.trim();
+  const amount=parseFloat($("#newChoAmount").value)||0;
+  const date=$("#newChoDate").value||null;
+  const approved=$("#newChoApproved").value.trim()||null;
+  if(!desc){setChoStatus("Description is required",true);return}
+  setChoStatus("Saving…",false);
+  const {error}=await sb.from("job_change_orders").insert({job_id:jobId,description:desc,amount,co_date:date,approved_by:approved});
+  if(error){setChoStatus("Error: "+error.message,true);return}
+  await refreshChangeOrdersCache();
+  if(cur&&cur.id===jobId&&st==="cho")drawDetail();
+}
+async function deleteChangeOrder(id){
+  if(!confirm("Delete this change order? This can't be undone."))return;
+  const {error}=await sb.from("job_change_orders").delete().eq("change_order_id",id);
+  if(error)return;
+  await refreshChangeOrdersCache();
+  if(cur&&st==="cho")drawDetail();
+}
+async function refreshChangeOrdersCache(){
+  const {data,error}=await sb.from("job_change_orders").select("*");
+  if(error)return;
+  const by={};for(const r of data||[]){(by[r.job_id]||=[]).push(r)}
+  for(const j of jobs)j.changeOrders=by[j.id]||[];
 }
 async function drawAdminTracker(){
   $("#adminTrackerTable").innerHTML=`<tr><td>Loading…</td></tr>`;
@@ -4184,7 +4226,7 @@ if(e.target.id==="newMatReqBtn"){openNewMatReq();return}
 if(e.target.id==="mrCreateBtn"){createMatReq();return}
 if(e.target.id==="matReqBack"){$("#matReqDetail").classList.add("hidden");drawMaterialRequests();return}
 const omr=e.target.closest("[data-open-mr]");if(omr){e.preventDefault();$("#detail").classList.add("hidden");$("#clientDetail").classList.add("hidden");openMatReq(omr.dataset.openMr);return}
-const nmr=e.target.closest("[data-new-matreq]");if(nmr){e.preventDefault();$("#detail").classList.add("hidden");openNewMatReq(nmr.dataset.newMatreq);return}const nt=e.target.closest("[data-new-task]");if(nt){openTaskModal(null,"To-do",nt.dataset.newTask);return}
+const nmr=e.target.closest("[data-new-matreq]");if(nmr){e.preventDefault();$("#detail").classList.add("hidden");openNewMatReq(nmr.dataset.newMatreq);return}const nt=e.target.closest("[data-new-task]");if(nt){openTaskModal(null,"To-do",nt.dataset.newTask);return}const ach=e.target.closest("[data-add-cho]");if(ach){addChangeOrder(ach.dataset.addCho);return}const dch=e.target.closest("[data-del-cho]");if(dch){deleteChangeOrder(dch.dataset.delCho);return}
 const mrf=e.target.closest("[data-mrf]");if(mrf){matReqFilter=mrf.dataset.mrf;drawMaterialRequests();return}
 const mrai=e.target.closest("[data-mr-additem]");if(mrai){addMatItem(mrai.dataset.mrAdditem);return}
 const mrid=e.target.closest("[data-mri-del]");if(mrid){delMatItem(mrid.dataset.mriDel);return}
