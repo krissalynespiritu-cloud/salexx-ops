@@ -473,29 +473,32 @@ function incompleteBadge(j){
   return `<span title="${escapeHtml(reason)}" style="display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:4px;background:rgba(232,163,61,.18);color:var(--amber);cursor:help">${j.unpriced?"No cost data":"Incomplete"}</span>`;
 }
 async function fetchJobs(){
-  const [{data:jobRows,error:e1},{data:marginRows,error:e2},{data:costRows,error:e3},{data:subRows,error:e4},{data:updateRows,error:e5}]=await Promise.all([
+  const [
+    {data:jobRows,error:e1},{data:marginRows,error:e2},{data:costRows,error:e3},{data:subRows,error:e4},{data:updateRows,error:e5},
+    {data:viTotalRows},{data:matReqRows},{data:taskRowsForJobs},{data:choRows},{data:punchRows},{data:permitRows}
+  ]=await Promise.all([
     sb.from("jobs").select("*").eq("retired",false),
     sb.from("job_margins").select("*"),
     sb.from("job_costs").select("*"),
     sb.from("sub_payments").select("job_id,contract_amount"),
-    sb.from("job_updates").select("job_id")
+    sb.from("job_updates").select("job_id"),
+    sb.from("job_vendor_invoice_totals").select("*"),
+    sb.from("material_request_summary").select("*"),
+    sb.from("tasks").select("*"),
+    sb.from("job_change_orders").select("*"),
+    sb.from("job_punch_items").select("*"),
+    sb.from("job_permits").select("*")
   ]);
   if(e1||e2||e3||e4||e5){const err=e1||e2||e3||e4||e5;console.error(err);fetchJobs.lastError=err;return false}
-  const {data:viTotalRows}=await sb.from("job_vendor_invoice_totals").select("*");
   const viTotalsById=Object.fromEntries((viTotalRows||[]).map(r=>[r.job_id,r]));
-  const {data:matReqRows}=await sb.from("material_request_summary").select("*");
   const matReqsById={};
   for(const r of matReqRows||[]){(matReqsById[r.job_id]||=[]).push(r)}
-  const {data:taskRowsForJobs}=await sb.from("tasks").select("*");
   const jobTasksById={};
   for(const t of taskRowsForJobs||[]){if(t.job_id)(jobTasksById[t.job_id]||=[]).push(t)}
-  const {data:choRows}=await sb.from("job_change_orders").select("*");
   const choById={};
   for(const r of choRows||[]){(choById[r.job_id]||=[]).push(r)}
-  const {data:punchRows}=await sb.from("job_punch_items").select("*");
   const punchById={};
   for(const r of punchRows||[]){(punchById[r.job_id]||=[]).push(r)}
-  const {data:permitRows}=await sb.from("job_permits").select("*");
   const permitById={};
   for(const r of permitRows||[]){(permitById[r.job_id]||=[]).push(r)}
   const marginsById=Object.fromEntries((marginRows||[]).map(m=>[m.job_id,m]));
