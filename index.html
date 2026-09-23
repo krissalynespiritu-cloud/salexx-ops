@@ -1095,12 +1095,12 @@ function renderMyTasksBody(){
   const todayStr=todayPacific();
   const open=mine.filter(t=>t.status!=="Completed");
   const groups=[
-    ["Overdue",open.filter(t=>t.due_date&&t.due_date<todayStr)],
-    ["Today",open.filter(t=>t.due_date===todayStr)],
-    ["Upcoming",open.filter(t=>!t.due_date||t.due_date>todayStr)],
-    ["Completed",mine.filter(t=>t.status==="Completed")]
+    ["Overdue",open.filter(t=>t.due_date&&t.due_date<todayStr),"Nothing overdue — you're on track."],
+    ["Today",open.filter(t=>t.due_date===todayStr),"No tasks due today."],
+    ["Upcoming",open.filter(t=>!t.due_date||t.due_date>todayStr),"Nothing scheduled yet."],
+    ["Completed",mine.filter(t=>t.status==="Completed"),"No completed tasks yet."]
   ];
-  $("#myTasksBody").innerHTML=groups.map(([label,list],i)=>`<p class="lbl" style="margin:${i===0?"0":"22px"} 0 8px;font-size:14px">${label} <span style="color:var(--steel);font-weight:400">(${list.length})</span></p><div class="taskCol">${list.length?list.map(t=>taskCardHTML(t,jobById)).join(""):`<p class="note" style="border:0;padding:0;margin:0;color:var(--steel);font-size:11px">Nothing here.</p>`}</div>`).join("");
+  $("#myTasksBody").innerHTML=groups.map(([label,list,emptyMsg],i)=>`<p class="lbl" style="margin:${i===0?"0":"22px"} 0 8px;font-size:14px">${label} <span style="color:var(--steel);font-weight:400">(${list.length})</span></p><div class="taskCol"${list.length?"":' style="min-height:0;padding:14px 10px;display:flex;align-items:center;justify-content:center"'}>${list.length?list.map(t=>taskCardHTML(t,jobById)).join(""):`<p class="note" style="border:0;padding:0;margin:0;color:var(--steel);font-size:11px">${emptyMsg}</p>`}</div>`).join("");
 }
 function drawTaskTimeline(){
   const today=parseDateOnly(todayPacific());
