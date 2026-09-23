@@ -1109,14 +1109,14 @@ async function updateTaskStatus(id,status){
   const patch={status};
   if(status==="Completed")patch.progress=100;
   const {error}=await sb.from("tasks").update(patch).eq("task_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't update the task: "+error.message,true);return}
   const r=taskRows.find(x=>x.task_id===id);if(r)Object.assign(r,patch);
   drawTaskSummary();drawTaskBoard();
 }
 async function deleteTask(id){
   if(!await confirmDialog("Delete this task?","This can't be undone."))return;
   const {error}=await sb.from("tasks").delete().eq("task_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't delete the task: "+error.message,true);return}
   await refreshTaskCache();
   if(activeTab==="tasks"){drawTaskSummary();drawTaskTimeline();drawTaskPersonChips();drawTaskBoard();}
   if(activeTab==="mytasks")renderMyTasksBody();
@@ -1301,7 +1301,7 @@ function socialCalShift(delta){
 }
 async function addSocialPost(){
   const {data,error}=await sb.from("social_posts").insert({title:"",stage:"Raw Footage / Ideas"}).select().single();
-  if(error){console.error(error);return}
+  if(error){showToast("Couldn't add the post: "+error.message,true);return}
   await drawSocialPlanner();
   const input=document.querySelector(`[data-social="title"][data-social-id="${data.post_id}"]`);
   input?.focus();
@@ -1309,7 +1309,7 @@ async function addSocialPost(){
 async function updateSocialField(id,field,rawValue){
   const val=field==="title"?rawValue:(rawValue===""?null:rawValue);
   const {error}=await sb.from("social_posts").update({[field]:val}).eq("post_id",id);
-  if(error){console.error(error);return}
+  if(error){showToast("Couldn't save the post: "+error.message,true);return}
   const r=socialRows.find(x=>x.post_id===id);if(r)r[field]=val;
   if(field==="stage")drawSocialStageChips();
   if(field==="stage"||field==="posting_date"||field==="title"||field==="final_video_link")renderSocialView();
@@ -1317,7 +1317,7 @@ async function updateSocialField(id,field,rawValue){
 async function deleteSocialPost(id){
   if(!await confirmDialog("Delete this post?","This can't be undone."))return;
   const {error}=await sb.from("social_posts").delete().eq("post_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't delete the post: "+error.message,true);return}
   drawSocialPlanner();
 }
 const JOB_TYPES=["Roofing","Siding","Painting","Decking","Windows/Doors","Gutters","Concrete/Hardscape","Patio Cover","Fencing","Flooring","Multi-Trade","Other"];
@@ -1978,11 +1978,12 @@ function renderEstActualTab(j){
 }
 async function addEaLaborRow(){
   const {data,error}=await sb.from("job_labor_estimates").insert({job_id:cur.id,sort:eaLabor.length}).select().single();
-  if(error)return;
+  if(error){showToast("Couldn't add the labor row: "+error.message,true);return}
   eaLabor.push(data);drawDetail();
 }
 async function delEaLaborRow(id){
-  await sb.from("job_labor_estimates").delete().eq("estimate_id",id);
+  const {error}=await sb.from("job_labor_estimates").delete().eq("estimate_id",id);
+  if(error){showToast("Couldn't delete the labor row: "+error.message,true);return}
   eaLabor=eaLabor.filter(r=>r.estimate_id!==id);drawDetail();
 }
 async function saveEaLaborField(id,field,rawValue){
@@ -1995,36 +1996,38 @@ async function saveEaLaborField(id,field,rawValue){
     patch[field]=rawValue===""?0:Number(rawValue);
   }
   const {error}=await sb.from("job_labor_estimates").update(patch).eq("estimate_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't save the labor row: "+error.message,true);return}
   const r=eaLabor.find(x=>x.estimate_id===id);if(r)Object.assign(r,patch);
   drawDetail();
 }
 async function addEaMatRow(){
   const {data,error}=await sb.from("job_material_estimates").insert({job_id:cur.id,item_name:"New item",sort:eaMats.length}).select().single();
-  if(error)return;
+  if(error){showToast("Couldn't add the material row: "+error.message,true);return}
   eaMats.push(data);drawDetail();
 }
 async function delEaMatRow(id){
-  await sb.from("job_material_estimates").delete().eq("estimate_id",id);
+  const {error}=await sb.from("job_material_estimates").delete().eq("estimate_id",id);
+  if(error){showToast("Couldn't delete the material row: "+error.message,true);return}
   eaMats=eaMats.filter(r=>r.estimate_id!==id);drawDetail();
 }
 async function saveEaMatField(id,field,rawValue){
   const val=field==="item_name"?rawValue:(rawValue===""?null:Number(rawValue));
   const {error}=await sb.from("job_material_estimates").update({[field]:val}).eq("estimate_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't save the material row: "+error.message,true);return}
   const r=eaMats.find(x=>x.estimate_id===id);if(r)r[field]=val;
   drawDetail();
 }
 async function saveEaSetting(field,rawValue){
   const val=field==="labor_burden_pct"?(Number(rawValue)||0)*100:(Number(rawValue)||0);
-  await sb.from("settings").update({[field]:val}).eq("id",1);
+  const {error}=await sb.from("settings").update({[field]:val}).eq("id",1);
+  if(error){showToast("Couldn't save the setting: "+error.message,true);return}
   if(currentEstActual)currentEstActual.settings[field]=val;
   drawDetail();
 }
 async function saveForeman(jobId,value){
   const val=value.trim()||null;
   const {error}=await sb.from("jobs").update({manager:val}).eq("job_id",jobId);
-  if(error)return;
+  if(error){showToast("Couldn't save the manager: "+error.message,true);return}
   const jrec=jobs.find(x=>x.id===jobId);if(jrec)jrec.manager=val;
   if(cur&&cur.id===jobId)cur.manager=val;
   if(cur&&cur.id===jobId&&st==="ea")drawDetail();
@@ -2032,7 +2035,7 @@ async function saveForeman(jobId,value){
 async function seedEaMatDefaults(){
   const rows=EA_MAT_DEFAULTS.map((name,i)=>({job_id:cur.id,item_name:name,sort:i}));
   const {data,error}=await sb.from("job_material_estimates").insert(rows).select();
-  if(error)return;
+  if(error){showToast("Couldn't seed the default material rows: "+error.message,true);return}
   eaMats=[...eaMats,...data];drawDetail();
 }
 
@@ -3387,7 +3390,7 @@ function jobChangeOrdersBlock(j){
 }
 async function addChangeOrder(jobId){
   const {error}=await sb.from("job_change_orders").insert({job_id:jobId,description:"New change order",amount:0});
-  if(error)return;
+  if(error){showToast("Couldn't add the change order: "+error.message,true);return}
   await refreshChangeOrdersCache();
   if(cur&&cur.id===jobId&&st==="cho")drawDetail();
 }
@@ -3402,14 +3405,14 @@ async function updateChangeOrderField(id,field,rawValue){
     if(r&&!r.approved_date)patch.approved_date=todayPacific();
   }
   const {error}=await sb.from("job_change_orders").update(patch).eq("change_order_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't save the change order: "+error.message,true);return}
   await refreshChangeOrdersCache();
   if(cur&&st==="cho")drawDetail();
 }
 async function deleteChangeOrder(id){
   if(!await confirmDialog("Delete this change order?","This can't be undone."))return;
   const {error}=await sb.from("job_change_orders").delete().eq("change_order_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't delete the change order: "+error.message,true);return}
   await refreshChangeOrdersCache();
   if(cur&&st==="cho")drawDetail();
 }
@@ -3438,14 +3441,14 @@ async function addPunchItem(jobId){
 }
 async function togglePunchItem(id,done){
   const {error}=await sb.from("job_punch_items").update({done,done_at:done?new Date().toISOString():null}).eq("punch_item_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't save the punch list item: "+error.message,true);return}
   await refreshPunchListCache();
   if(cur&&st==="pnl")drawDetail();
 }
 async function deletePunchItem(id){
   if(!await confirmDialog("Delete this punch list item?","This can't be undone."))return;
   const {error}=await sb.from("job_punch_items").delete().eq("punch_item_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't delete the punch list item: "+error.message,true);return}
   await refreshPunchListCache();
   if(cur&&st==="pnl")drawDetail();
 }
@@ -3555,7 +3558,7 @@ function jobPermitsBlock(j){
 }
 async function addPermit(jobId){
   const {error}=await sb.from("job_permits").insert({job_id:jobId,permit_type:"Building",inspection_result:"Pending"});
-  if(error)return;
+  if(error){showToast("Couldn't add the permit: "+error.message,true);return}
   await refreshPermitsCache();
   if(cur&&cur.id===jobId&&st==="prm")drawDetail();
 }
@@ -3564,14 +3567,14 @@ async function updatePermitField(id,field,rawValue){
   if(field==="submitted_date"||field==="approved_date"||field==="inspection_scheduled_date"||field==="inspection_result_date")value=rawValue===""?null:rawValue;
   else if(field==="permit_type"||field==="permit_number")value=rawValue.trim()||null;
   const {error}=await sb.from("job_permits").update({[field]:value}).eq("permit_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't save the permit: "+error.message,true);return}
   await refreshPermitsCache();
   if(cur&&st==="prm")drawDetail();
 }
 async function deletePermit(id){
   if(!await confirmDialog("Delete this permit record?","This can't be undone."))return;
   const {error}=await sb.from("job_permits").delete().eq("permit_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't delete the permit: "+error.message,true);return}
   await refreshPermitsCache();
   if(cur&&st==="prm")drawDetail();
 }
@@ -3641,7 +3644,7 @@ async function updateWarrantyField(id,field,rawValue){
   else if(field==="reported_date"||field==="resolved_date")value=rawValue===""?null:rawValue;
   else if(field==="issue"||field==="resolution"||field==="assignee")value=rawValue.trim()||null;
   const {error}=await sb.from("warranty_claims").update({[field]:value}).eq("claim_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't save the warranty claim: "+error.message,true);return}
   const r=warrantyRows.find(x=>x.claim_id===id);if(r)r[field]=value;
   if(field==="status")drawWarrantyChips();
   renderWarrantyList();
@@ -3649,7 +3652,7 @@ async function updateWarrantyField(id,field,rawValue){
 async function deleteWarrantyClaim(id){
   if(!await confirmDialog("Delete this warranty claim?","This can't be undone."))return;
   const {error}=await sb.from("warranty_claims").delete().eq("claim_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't delete the warranty claim: "+error.message,true);return}
   drawWarranty();
 }
 async function drawAdminTracker(){
@@ -3833,7 +3836,7 @@ function showToast(message,isError){
 async function deleteAssignmentModal(){
   if(!await confirmDialog("Remove this assignment?","This can't be undone."))return;
   const {error}=await sb.from("crew_assignments").delete().eq("assignment_id",assignmentModalId);
-  if(error)return;
+  if(error){showToast("Couldn't remove the assignment: "+error.message,true);return}
   const affectsToday=assignmentModalDate===todayPacific();
   closeAssignmentModal();
   drawCrewSchedule();
@@ -3852,7 +3855,7 @@ function renderTeam(){
 }
 async function updateTeamRole(userId,role){
   const {error}=await sb.from("profiles").update({role}).eq("user_id",userId);
-  if(error)return;
+  if(error){showToast("Couldn't save the role: "+error.message,true);return}
   const p=teamRows.find(x=>x.user_id===userId);if(p)p.role=role;
 }
 let marketingView="leadsource";
@@ -4353,14 +4356,14 @@ function refreshEstBudgetPanel(estId){
 async function saveEstClmf(estId,rawValue){
   const val=rawValue===""?0:Number(rawValue);
   const {error}=await sb.from("estimates").update({crew_leader_fee:val}).eq("estimate_id",estId);
-  if(error)return;
+  if(error){showToast("Couldn't save the crew leader fee: "+error.message,true);return}
   const r=estRows.find(x=>x.estimate_id===estId);if(r)r.crew_leader_fee=val;
   refreshEstBudgetPanel(estId);
 }
 async function addEaLaborRowEst(estId){
   const bd=estBudgetData[estId];if(!bd)return;
   const {data,error}=await sb.from("job_labor_estimates").insert({linked_estimate_id:estId,sort:bd.labor.length}).select().single();
-  if(error)return;
+  if(error){showToast("Couldn't add the labor row: "+error.message,true);return}
   bd.labor.push(data);refreshEstBudgetPanel(estId);
 }
 async function delEaLaborRowEst(estId,id){
@@ -4379,14 +4382,14 @@ async function saveEaLaborFieldEst(estId,id,field,rawValue){
     patch[field]=rawValue===""?0:Number(rawValue);
   }
   const {error}=await sb.from("job_labor_estimates").update(patch).eq("estimate_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't save the labor row: "+error.message,true);return}
   const bd=estBudgetData[estId];if(bd){const r=bd.labor.find(x=>x.estimate_id===id);if(r)Object.assign(r,patch);}
   refreshEstBudgetPanel(estId);
 }
 async function addEaMatRowEst(estId){
   const bd=estBudgetData[estId];if(!bd)return;
   const {data,error}=await sb.from("job_material_estimates").insert({linked_estimate_id:estId,item_name:"New item",sort:bd.mats.length}).select().single();
-  if(error)return;
+  if(error){showToast("Couldn't add the material row: "+error.message,true);return}
   bd.mats.push(data);refreshEstBudgetPanel(estId);
 }
 async function delEaMatRowEst(estId,id){
@@ -4398,7 +4401,7 @@ async function delEaMatRowEst(estId,id){
 async function saveEaMatFieldEst(estId,id,field,rawValue){
   const val=field==="item_name"?rawValue:(rawValue===""?null:Number(rawValue));
   const {error}=await sb.from("job_material_estimates").update({[field]:val}).eq("estimate_id",id);
-  if(error)return;
+  if(error){showToast("Couldn't save the material row: "+error.message,true);return}
   const bd=estBudgetData[estId];if(bd){const r=bd.mats.find(x=>x.estimate_id===id);if(r)r[field]=val;}
   refreshEstBudgetPanel(estId);
 }
