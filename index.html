@@ -277,6 +277,10 @@
 #taskModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto}
 #assignmentModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto}
 #assignmentModalCard{background:var(--navy-2);border:1px solid var(--line);border-radius:13px;padding:18px;width:380px;max-width:100%;box-shadow:0 16px 40px rgba(0,0,0,.5)}
+#confirmModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:95;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto}
+#confirmModalCard{background:var(--navy-2);border:1px solid var(--line);border-radius:13px;padding:18px;width:360px;max-width:100%;box-shadow:0 16px 40px rgba(0,0,0,.5)}
+.toast{background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.5;box-shadow:0 8px 20px rgba(0,0,0,.4);cursor:pointer}
+.toast.err{background:#2B1F1C;border-color:rgba(209,74,60,.5)}
 .crewSchedTable{border-collapse:collapse;width:100%;font-size:11.5px}
 .crewSchedTable th,.crewSchedTable td{padding:6px;border:1px solid var(--line);vertical-align:top;min-width:90px}
 .crewSchedTable th{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);background:var(--navy-2)}
@@ -331,6 +335,8 @@
 <div id="estBudgetModal" class="hidden"><div id="estBudgetModalCard"></div></div>
 <div id="taskModal" class="hidden"><div id="taskModalCard"></div></div>
 <div id="assignmentModal" class="hidden"><div id="assignmentModalCard"></div></div>
+<div id="confirmModal" class="hidden"><div id="confirmModalCard"></div></div>
+<div id="toastStack" style="position:fixed;bottom:0;right:0;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:360px;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))"></div>
 <div id="mergeReviewModal" class="hidden"><div id="mergeReviewCard"></div></div>
 <div id="retireJobModal" class="hidden"><div id="retireJobCard"></div></div>
 <div id="needsReviewModal" class="hidden"><div id="needsReviewCard"></div></div>
@@ -1043,7 +1049,7 @@ async function updateTaskStatus(id,status){
   drawTaskSummary();drawTaskBoard();
 }
 async function deleteTask(id){
-  if(!confirm("Delete this task? This can't be undone."))return;
+  if(!await confirmDialog("Delete this task?","This can't be undone."))return;
   const {error}=await sb.from("tasks").delete().eq("task_id",id);
   if(error)return;
   await refreshTaskCache();
@@ -1244,7 +1250,7 @@ async function updateSocialField(id,field,rawValue){
   if(field==="stage"||field==="posting_date"||field==="title"||field==="final_video_link")renderSocialView();
 }
 async function deleteSocialPost(id){
-  if(!confirm("Delete this post? This can't be undone."))return;
+  if(!await confirmDialog("Delete this post?","This can't be undone."))return;
   const {error}=await sb.from("social_posts").delete().eq("post_id",id);
   if(error)return;
   drawSocialPlanner();
@@ -1317,15 +1323,15 @@ async function saveJobField(jobId,field,rawValue){
 }
 async function deleteJobRecord(jobId,clientName){
   const{data:depData,error:depError}=await sb.rpc("job_dependency_counts",{p_job_id:jobId});
-  if(depError){alert(`Couldn't check linked records: ${depError.message}. Not safe to delete — try again, or use "Retire (safe delete)" instead.`);return}
+  if(depError){showToast(`Couldn't check linked records: ${depError.message}. Not safe to delete — try again, or use "Retire (safe delete)" instead.`,true);return}
   const dep=depData&&depData[0];
   const total=dep?Number(dep.total)||0:0;
   if(total>0){
     const details=RETIRE_DEP_LABELS.map(([k,label])=>({label,n:Number(dep[k])||0})).filter(r=>r.n>0).map(r=>`${r.n} ${r.label}`).join(", ");
-    alert(`Can't delete ${clientName} (${jobId}) — ${total} linked record${total===1?"":"s"} still reference it: ${details}. Use "Retire (safe delete)" from this job's menu instead — it checks the same dependencies and keeps an audit trail.`);
+    showToast(`Can't delete ${clientName} (${jobId}) — ${total} linked record${total===1?"":"s"} still reference it: ${details}. Use "Retire (safe delete)" from this job's menu instead — it checks the same dependencies and keeps an audit trail.`,true);
     return;
   }
-  if(!confirm(`Delete ${clientName} (${jobId})? This can't be undone.`))return;
+  if(!await confirmDialog(`Delete ${clientName} (${jobId})?`,"This can't be undone."))return;
   setJobFieldStatus(jobId,"Deleting…",false);
   const {error}=await sb.from("jobs").delete().eq("job_id",jobId);
   if(error){setJobFieldStatus(jobId,"Error: "+error.message,true);return}
@@ -1392,7 +1398,7 @@ async function createJob(){
   const nextId="SLX-"+String((nums.length?Math.max(...nums):0)+1).padStart(3,"0");
   const{clientId,needsReview}=await resolveClientForCreate({name:name.trim()});
   const {error}=await sb.from("jobs").insert({job_id:nextId,client_name:name.trim(),client_id:clientId,needs_review:needsReview});
-  if(error){alert("Couldn't create the job: "+error.message);return}
+  if(error){showToast("Couldn't create the job: "+error.message,true);return}
   await fetchJobs();
   drawJobs();drawToday();
   const created=jobs.find(j=>j.id===nextId);
@@ -1408,7 +1414,7 @@ async function createJobFromFields(f){
   const {error}=await sb.from("jobs").insert({job_id:nextId,client_name:f.client_name,client_id:clientId,needs_review:needsReview,
     job_type:f.job_type||null,contract_price:f.contract_price==null||f.contract_price===""?null:Number(f.contract_price),
     manager:f.manager||null,stage:f.stage||"Designs Sold"});
-  if(error){alert("Couldn't create the job: "+error.message);return null}
+  if(error){showToast("Couldn't create the job: "+error.message,true);return null}
   await fetchJobs();drawJobs();drawToday();
   return nextId;
 }
@@ -1572,7 +1578,7 @@ async function addPayment(){
   setPayStatus("Saved",false);
 }
 async function deletePayment(paymentId){
-  if(!confirm("Delete this payment? This can't be undone."))return;
+  if(!await confirmDialog("Delete this payment?","This can't be undone."))return;
   const {error}=await sb.from("payments").delete().eq("payment_id",paymentId);
   if(error){setPayStatus("Error: "+error.message,true);return}
   currentPayments=null;
@@ -1694,7 +1700,7 @@ async function commitRenameFile(fileId,rawValue){
 }
 async function deleteProjectFile(fileId){
   const f=(currentFiles||[]).find(x=>x.file_id===fileId);if(!f)return;
-  if(!confirm(`Remove "${f.file_name}" from this list? The file stays in Google Drive — this just hides it in the app.`))return;
+  if(!await confirmDialog(`Remove "${f.file_name}" from this list?`,"The file stays in Google Drive — this just hides it in the app.","Remove"))return;
   setFileStatus("Deleting…",false);
   if(f.storage_path)await sb.storage.from("project-files").remove([f.storage_path]);
   const {error}=await sb.from("project_files").delete().eq("file_id",fileId);
@@ -2256,7 +2262,7 @@ async function createSubcontractor(){
   setTimeout(()=>{if(document.getElementById("subStatus")?.textContent==="Added")setSubStatus("",false)},2000);
 }
 async function deleteSubcontractor(id,name){
-  if(!confirm(`Delete subcontractor "${name}"? This can't be undone.`))return;
+  if(!await confirmDialog(`Delete subcontractor "${name}"?`,"This can't be undone."))return;
   setSubStatus("Deleting…",false);
   const {error}=await sb.from("subcontractors").delete().eq("sub_id",id);
   if(error){setSubStatus("Error: "+error.message,true);return}
@@ -2327,7 +2333,7 @@ async function addSubPayment(){
   setTimeout(()=>{if(document.getElementById("spStatus")?.textContent==="Added")setSpStatus("",false)},2000);
 }
 async function deleteSubPayment(contractId,jobId){
-  if(!confirm("Delete this subcontractor contract? This can't be undone."))return;
+  if(!await confirmDialog("Delete this subcontractor contract?","This can't be undone."))return;
   setSpStatus("Deleting…",false);
   const {error}=await sb.from("sub_payments").delete().eq("contract_id",contractId);
   if(error){setSpStatus("Error: "+error.message,true);return}
@@ -3255,14 +3261,14 @@ async function setMatReqStatus(status){
 async function deleteMatReqRecord(){
   if(!curMatReq)return;
   const{data:depData,error:depError}=await sb.rpc("material_request_dependency_counts",{p_request_id:curMatReq.request_id});
-  if(depError){alert(`Couldn't check linked records: ${depError.message}. Not safe to delete — try again.`);return}
+  if(depError){showToast(`Couldn't check linked records: ${depError.message}. Not safe to delete — try again.`,true);return}
   const dep=depData&&depData[0];
   const total=dep?Number(dep.total)||0:0;
   if(total>0){
-    alert(`Can't delete this material request — ${total} item line${total===1?"":"s"} still reference it. Remove those first, or leave this request as-is.`);
+    showToast(`Can't delete this material request — ${total} item line${total===1?"":"s"} still reference it. Remove those first, or leave this request as-is.`,true);
     return;
   }
-  if(!confirm("Delete this material request? This can't be undone."))return;
+  if(!await confirmDialog("Delete this material request?","This can't be undone."))return;
   await sb.from("material_requests").delete().eq("request_id",curMatReq.request_id);
   $("#matReqDetail").classList.add("hidden");curMatReq=null;drawMaterialRequests();refreshMatReqCache();
 }
@@ -3328,7 +3334,7 @@ async function updateChangeOrderField(id,field,rawValue){
   if(cur&&st==="cho")drawDetail();
 }
 async function deleteChangeOrder(id){
-  if(!confirm("Delete this change order? This can't be undone."))return;
+  if(!await confirmDialog("Delete this change order?","This can't be undone."))return;
   const {error}=await sb.from("job_change_orders").delete().eq("change_order_id",id);
   if(error)return;
   await refreshChangeOrdersCache();
@@ -3364,7 +3370,7 @@ async function togglePunchItem(id,done){
   if(cur&&st==="pnl")drawDetail();
 }
 async function deletePunchItem(id){
-  if(!confirm("Delete this punch list item? This can't be undone."))return;
+  if(!await confirmDialog("Delete this punch list item?","This can't be undone."))return;
   const {error}=await sb.from("job_punch_items").delete().eq("punch_item_id",id);
   if(error)return;
   await refreshPunchListCache();
@@ -3490,7 +3496,7 @@ async function updatePermitField(id,field,rawValue){
   if(cur&&st==="prm")drawDetail();
 }
 async function deletePermit(id){
-  if(!confirm("Delete this permit record? This can't be undone."))return;
+  if(!await confirmDialog("Delete this permit record?","This can't be undone."))return;
   const {error}=await sb.from("job_permits").delete().eq("permit_id",id);
   if(error)return;
   await refreshPermitsCache();
@@ -3568,7 +3574,7 @@ async function updateWarrantyField(id,field,rawValue){
   renderWarrantyList();
 }
 async function deleteWarrantyClaim(id){
-  if(!confirm("Delete this warranty claim? This can't be undone."))return;
+  if(!await confirmDialog("Delete this warranty claim?","This can't be undone."))return;
   const {error}=await sb.from("warranty_claims").delete().eq("claim_id",id);
   if(error)return;
   drawWarranty();
@@ -3710,8 +3716,30 @@ async function saveAssignmentModal(){
   drawCrewSchedule();
   if(affectsToday){await fetchTodayAssignments();drawRoster();}
 }
+let confirmModalResolve=null;
+function confirmDialog(title,body,confirmLabel,danger){
+  if(danger==null)danger=true;
+  return new Promise(resolve=>{
+    confirmModalResolve=resolve;
+    document.getElementById("confirmModalCard").innerHTML=`<h3 style="margin:0 0 10px;font-family:'Barlow Condensed',sans-serif;font-size:19px;text-transform:uppercase">${escapeHtml(title)}</h3><p style="margin:0 0 18px;font-size:13px;line-height:1.5;color:var(--text)">${escapeHtml(body)}</p><div style="display:flex;justify-content:flex-end;gap:8px"><button id="confirmModalCancel" class="chip" style="background:none">Cancel</button><button id="confirmModalOk" class="chip" style="${danger?"background:var(--alert);border-color:var(--alert);color:#fff":""}">${escapeHtml(confirmLabel||(danger?"Delete":"OK"))}</button></div>`;
+    document.getElementById("confirmModal").classList.remove("hidden");
+  });
+}
+function resolveConfirmModal(result){
+  document.getElementById("confirmModal").classList.add("hidden");
+  if(confirmModalResolve){const r=confirmModalResolve;confirmModalResolve=null;r(result);}
+}
+function showToast(message,isError){
+  const stack=document.getElementById("toastStack");
+  const el=document.createElement("div");
+  el.className="toast"+(isError?" err":"");
+  el.textContent=message;
+  el.addEventListener("click",()=>el.remove());
+  stack.appendChild(el);
+  if(!isError)setTimeout(()=>el.remove(),4500);
+}
 async function deleteAssignmentModal(){
-  if(!confirm("Remove this assignment?"))return;
+  if(!await confirmDialog("Remove this assignment?","This can't be undone."))return;
   const {error}=await sb.from("crew_assignments").delete().eq("assignment_id",assignmentModalId);
   if(error)return;
   const affectsToday=assignmentModalDate===todayPacific();
@@ -3926,7 +3954,7 @@ async function addAdSpend(){
   drawFbAds();drawToday();
 }
 async function deleteAdSpend(id){
-  if(!confirm("Delete this ad spend entry? This can't be undone."))return;
+  if(!await confirmDialog("Delete this ad spend entry?","This can't be undone."))return;
   const {error}=await sb.from("ad_spend").delete().eq("spend_id",id);
   if(error){$("#adStatus").textContent="Error: "+error.message;$("#adStatus").style.color="var(--alert)";return}
   drawFbAds();drawToday();
@@ -3993,7 +4021,7 @@ async function updateOhField(id,field,rawValue){
 }
 async function deleteOverhead(id){
   const r=ohRows.find(x=>x.expense_id===id);
-  if(!confirm(`Delete "${r?r.item:"this line item"}"?`))return;
+  if(!await confirmDialog(`Delete "${r?r.item:"this line item"}"?`,"This can't be undone."))return;
   const {error}=await sb.from("overhead_expenses").delete().eq("expense_id",id);
   if(error){setOh("Error: "+error.message,true);return}
   drawOverhead();
@@ -4097,7 +4125,7 @@ async function updateEstField(id,field,rawValue){
   if(error){setEst("Error: "+error.message,true);return}
   if(r)Object.assign(r,upd);
   setEst("Saved",false);setTimeout(()=>{if($("#estStatus").textContent==="Saved")setEst("",false)},1200);
-  if(field==="pipeline_status"&&rawValue==="Accepted"&&r&&!r.job_id&&confirm(`Estimate accepted. Create a job for ${r.client_name}?`)){
+  if(field==="pipeline_status"&&rawValue==="Accepted"&&r&&!r.job_id&&await confirmDialog(`Create a job for ${r.client_name}?`,"The estimate was just marked Accepted.","Create job",false)){
     const jid=await createJobFromFields({client_name:r.client_name,job_type:r.job_type,contract_price:r.amount,
       explicitClientId:r.client_id,leadId:r.lead_id,estimateId:r.estimate_id,manager:r.estimator});
     if(jid){
@@ -4119,16 +4147,16 @@ async function updateEstField(id,field,rawValue){
 async function deleteEstimate(id){
   const r=estRows.find(x=>x.estimate_id===id);
   const{data:depData,error:depError}=await sb.rpc("estimate_dependency_counts",{p_estimate_id:id});
-  if(depError){alert(`Couldn't check linked records: ${depError.message}. Not safe to delete — try again.`);return}
+  if(depError){showToast(`Couldn't check linked records: ${depError.message}. Not safe to delete — try again.`,true);return}
   const dep=depData&&depData[0];
   const total=dep?Number(dep.total)||0:0;
   if(total>0){
     const labels=[["job_labor_estimates","labor budget line"],["job_material_estimates","material budget line"],["job_updates","update note"]];
     const details=labels.map(([k,label])=>({label,n:Number(dep[k])||0})).filter(x=>x.n>0).map(x=>`${x.n} ${x.label}${x.n===1?"":"s"}`).join(", ");
-    alert(`Can't delete the estimate for "${r?r.client_name:"this client"}" — ${total} linked record${total===1?"":"s"} still reference it: ${details}. Remove those first, or leave this estimate as-is.`);
+    showToast(`Can't delete the estimate for "${r?r.client_name:"this client"}" — ${total} linked record${total===1?"":"s"} still reference it: ${details}. Remove those first, or leave this estimate as-is.`,true);
     return;
   }
-  if(!confirm(`Delete the estimate for "${r?r.client_name:"this client"}"?`))return;
+  if(!await confirmDialog(`Delete the estimate for "${r?r.client_name:"this client"}"?`,"This can't be undone."))return;
   const {error}=await sb.from("estimates").delete().eq("estimate_id",id);
   if(error){setEst("Error: "+error.message,true);return}
   drawEstimates();
@@ -4386,7 +4414,7 @@ async function updateViField(id,field,rawValue){
 }
 async function deleteInvoice(id){
   const r=viRows.find(x=>x.invoice_id===id);
-  if(!confirm(`Delete the ${r?r.vendor:""} invoice${r&&r.invoice_number?" "+r.invoice_number:""}?`))return;
+  if(!await confirmDialog(`Delete the ${r?r.vendor:""} invoice${r&&r.invoice_number?" "+r.invoice_number:""}?`,"This can't be undone."))return;
   const {error}=await sb.from("vendor_invoices").delete().eq("invoice_id",id);
   if(error){setVi("Error: "+error.message,true);return}
   await fetchJobs();drawVendorPayables();
@@ -4902,6 +4930,8 @@ document.addEventListener("click",e=>{
   if(e.target.id==="assignmentModalSave"){saveAssignmentModal();return}
   if(e.target.id==="assignmentModalDelete"){deleteAssignmentModal();return}
   if(e.target.id==="assignmentModal"){closeAssignmentModal();return}
+  if(e.target.id==="confirmModalOk"){resolveConfirmModal(true);return}
+  if(e.target.id==="confirmModalCancel"||e.target.id==="confirmModal"){resolveConfirmModal(false);return}
   if(e.target.id==="crewSchedPrev"){crewSchedWeekStart=addDays(crewSchedWeekStart,-7);drawCrewSchedule();return}
   if(e.target.id==="crewSchedNext"){crewSchedWeekStart=addDays(crewSchedWeekStart,7);drawCrewSchedule();return}
   const sv=e.target.closest("[data-social-view]");
@@ -5057,7 +5087,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			}
 		}
 		if(field==="status"&&rawValue==="Won"&&lead&&!lead.jobId&&typeof window.createJobFromFields==="function"
-			&&confirm(`Lead won. Create a job for ${lead.name}?`)){
+			&&await confirmDialog(`Create a job for ${lead.name}?`,"This lead was just marked Won.","Create job",false)){
 			const jid=await window.createJobFromFields({client_name:lead.name,
 				contract_price:lead.closedRevenue||lead.value||null,manager:lead.manager,
 				explicitClientId:lead.clientId,leadId:lead.id,email:lead.email,phone:lead.phone});
@@ -5104,7 +5134,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		setTimeout(()=>{if(document.getElementById("leadSaveStatus")?.textContent==="Saved")setLeadStatus("",false)},2000);
 	}
 	async function deleteLead(leadId,name){
-		if(!confirm(`Delete the lead for "${name}"? This can't be undone.`))return;
+		if(!await confirmDialog(`Delete the lead for "${name}"?`,"This can't be undone."))return;
 		setLeadStatus("Deleting…",false);
 		const {error}=await sb.from("leads").delete().eq("lead_id",leadId);
 		if(error){setLeadStatus("Error: "+error.message,true);return}
