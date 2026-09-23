@@ -1345,7 +1345,7 @@ function drawJobs(){
     return `<button class="chip ${s==="All"?"":stClass(s)}" aria-pressed="${jobStageFilter===s}" data-s="${escapeHtml(s)}">${escapeHtml(s)}<b>${n}</b></button>`;
   }).join("");
   const list=jobs.filter(j=>(jobStageFilter==="All"||j.stage===jobStageFilter)&&matches(j));
-  $("#jobList").innerHTML=list.length?list.map(jobCardHTML).join(""):`<div class="empty">No clients</div>`;
+  $("#jobList").innerHTML=list.length?list.map(jobCardHTML).join(""):`<div class="empty">${jobs.length?"No jobs match this filter.":"No jobs yet — click “+ New job” above to add one."}</div>`;
   $("#jobCount").textContent=`${list.length} of ${jobs.length} jobs`;
   const header=document.querySelector("header");
   if(header)$("#stageChips").style.top=header.offsetHeight+"px";
@@ -2170,7 +2170,7 @@ function openPayrollPeriod(start){
   $("#ppStatus").textContent=paidRow?.paid?`Paid ${new Date(paidRow.paid_on).toLocaleDateString()}`:"Due";
   $("#ppToggle").textContent=paidRow?.paid?"Mark as Due":"Mark as Paid";
   const rows=Object.entries(w.people).sort((a,b)=>b[1].amount-a[1].amount);
-  $("#ppBody").innerHTML=rows.map(([name,v])=>`<tr><td>${name}</td><td>${v.hours.toFixed(2)}</td><td>${money(v.amount)}</td></tr>`).join("")||`<tr><td colspan="3" style="text-align:center;color:var(--steel)">No hours logged this period</td></tr>`;
+  $("#ppBody").innerHTML=rows.map(([name,v])=>`<tr><td>${name}</td><td>${v.hours.toFixed(2)}</td><td>${money(v.amount)}</td></tr>`).join("")||`<tr><td colspan="3" style="text-align:center;color:var(--steel)">No hours logged this period.</td></tr>`;
   $("#ppFootHrs").textContent=rows.reduce((s,[,v])=>s+v.hours,0).toFixed(2);
   $("#ppFootAmt").textContent=money(w.total);
   $("#payrollDetail").classList.remove("hidden");
@@ -2808,7 +2808,12 @@ function nrCandidateRow(c){
 // each character typed (the input element would be recreated).
 function renderNrManualResultsList(){
   const el=document.getElementById("nrManualResultsList");
-  if(el)el.innerHTML=nrManualResults.map(nrCandidateRow).join("");
+  if(!el)return;
+  if(nrManualResults.length){el.innerHTML=nrManualResults.map(nrCandidateRow).join("");return}
+  const q=(nrManualQuery||"").trim();
+  el.innerHTML=q.length<2
+    ?`<div style="padding:12px;color:var(--steel);font-size:12px">Type at least 2 characters to search.</div>`
+    :`<div style="padding:12px;color:var(--steel);font-size:12px">No matches for "${escapeHtml(q)}".</div>`;
 }
 async function nrManualSearch(query){
   nrManualQuery=query;
@@ -2854,9 +2859,7 @@ function renderNeedsReviewModal(){
     </div>
     <p class="note" style="border:0;padding:0;margin:0 0 8px;font-size:10.5px">Or search all clients manually</p>
     <input id="nrManualSearch" type="text" placeholder="Search by name…" value="${escapeHtml(nrManualQuery)}" style="width:100%;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:8px;font:inherit;font-size:12px;box-sizing:border-box;margin-bottom:8px">
-    <div id="nrManualResultsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
-      ${nrManualResults.map(nrCandidateRow).join("")}
-    </div>
+    <div id="nrManualResultsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
     <div style="display:flex;justify-content:space-between;align-items:center">
       <span id="nrStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px;font-size:11px"></span>
       <div style="display:flex;gap:8px">
@@ -2865,6 +2868,7 @@ function renderNeedsReviewModal(){
       </div>
     </div>`;
   card.innerHTML=header+body;
+  renderNrManualResultsList();
 }
 async function confirmResolveNeedsReview(){
   const rec=nrCurrentRecord();
