@@ -1805,13 +1805,15 @@ async function loadEstActual(){
   if(!cur||cur.id!==jobId)return;
   eaLabor=labor||[];eaMats=mats||[];
   if(eaLabor.length===0){
-    const {data:seeded}=await sb.from("job_labor_estimates").insert([0,1,2].map(i=>({job_id:jobId,sort:i}))).select();
+    const {data:seeded,error:seedError}=await sb.from("job_labor_estimates").insert([0,1,2].map(i=>({job_id:jobId,sort:i}))).select();
     if(cur.id!==jobId)return;
+    if(seedError)showToast("Couldn't set up the default labor rows: "+seedError.message,true);
     eaLabor=seeded||[];
   }
   if(eaMats.length===0){
-    const {data:seeded}=await sb.from("job_material_estimates").insert(EA_MAT_DEFAULTS.map((name,i)=>({job_id:jobId,item_name:name,sort:i}))).select();
+    const {data:seeded,error:seedError}=await sb.from("job_material_estimates").insert(EA_MAT_DEFAULTS.map((name,i)=>({job_id:jobId,item_name:name,sort:i}))).select();
     if(cur.id!==jobId)return;
+    if(seedError)showToast("Couldn't set up the default material rows: "+seedError.message,true);
     eaMats=seeded||[];
   }
   const byPerson={};
@@ -3042,7 +3044,7 @@ async function toggleCostingReviewed(jobId,checked){
   const jrec=jobs.find(x=>x.id===jobId);
   if(jrec)jrec.reviewed=checked;
   const {error}=await sb.from("jobs").update({costing_reviewed:checked}).eq("job_id",jobId);
-  if(error){console.error(error);if(jrec)jrec.reviewed=!checked;drawJobCosting()}
+  if(error){showToast("Couldn't save Reviewed: "+error.message,true);if(jrec)jrec.reviewed=!checked;drawJobCosting()}
 }
 function drawJobCosting(){
   $("#jcStageChips").innerHTML=["All",...STAGES].map(s=>{
@@ -3227,7 +3229,10 @@ async function createMatReq(){
   const {data,error}=await sb.from("material_requests").insert({job_id:jobId,project_type:type,requested_by:currentUserProfile?.full_name||currentUserEmail||null}).select().single();
   if(error){setMrStatus("Error: "+error.message,true);return}
   const tpl=MAT_TEMPLATES[type]||MAT_TEMPLATES.Other;
-  if(tpl.items.length)await sb.from("material_request_items").insert(tpl.items.map((it,i)=>({request_id:data.request_id,section:it[0],item_name:it[1],unit:it[2]||null,sort:i})));
+  if(tpl.items.length){
+    const {error:itemsError}=await sb.from("material_request_items").insert(tpl.items.map((it,i)=>({request_id:data.request_id,section:it[0],item_name:it[1],unit:it[2]||null,sort:i})));
+    if(itemsError)showToast("Request created, but the default checklist items couldn't be added: "+itemsError.message,true);
+  }
   await openMatReq(data.request_id);
   drawMaterialRequests();refreshMatReqCache();
 }
@@ -3298,8 +3303,8 @@ async function saveMatSpec(key,value){
 async function saveMatChk(key,checked){
   if(!curMatReq)return;
   curMatReq[key]=checked;
-  await sb.from("material_requests").update({[key]:checked,updated_at:new Date().toISOString()}).eq("request_id",curMatReq.request_id);
-  flashMr("Saved");
+  const {error}=await sb.from("material_requests").update({[key]:checked,updated_at:new Date().toISOString()}).eq("request_id",curMatReq.request_id);
+  error?setMrStatus("Error: "+error.message,true):flashMr("Saved");
 }
 async function saveMatItem(itemId,field,rawValue){
   const it=curMatItems.find(x=>x.item_id===itemId);if(!it)return;
@@ -3321,7 +3326,8 @@ async function addMatItem(section){
   curMatItems.push(data);renderMatReq();
 }
 async function delMatItem(itemId){
-  await sb.from("material_request_items").delete().eq("item_id",itemId);
+  const {error}=await sb.from("material_request_items").delete().eq("item_id",itemId);
+  if(error){showToast("Couldn't delete the item: "+error.message,true);return}
   curMatItems=curMatItems.filter(x=>x.item_id!==itemId);renderMatReq();
 }
 async function setMatReqStatus(status){
@@ -3345,7 +3351,8 @@ async function deleteMatReqRecord(){
     return;
   }
   if(!await confirmDialog("Delete this material request?","This can't be undone."))return;
-  await sb.from("material_requests").delete().eq("request_id",curMatReq.request_id);
+  const {error}=await sb.from("material_requests").delete().eq("request_id",curMatReq.request_id);
+  if(error){showToast("Couldn't delete the material request: "+error.message,true);return}
   $("#matReqDetail").classList.add("hidden");curMatReq=null;drawMaterialRequests();refreshMatReqCache();
 }
 function matReqOverviewBlock(j){
@@ -3955,7 +3962,8 @@ async function drawWeeklyMeeting(){
   const body=$("#weeklyMeetingBody");
   body.innerHTML=`<div class="empty">Loading…</div>`;
   wmSunday=weekEndingSunday();
-  await sb.from("weekly_metrics").upsert({week_ending:wmSunday},{onConflict:"week_ending",ignoreDuplicates:true});
+  const {error:upsertError}=await sb.from("weekly_metrics").upsert({week_ending:wmSunday},{onConflict:"week_ending",ignoreDuplicates:true});
+  if(upsertError)console.error("Couldn't ensure this week's weekly_metrics row exists:",upsertError);
   const {data,error}=await sb.from("weekly_metrics").select("*").order("week_ending",{ascending:false});
   if(error){body.innerHTML=`<div class="empty">Couldn't load weekly metrics.</div>`;console.error(error);return}
   wmRows=data||[];
@@ -4227,12 +4235,14 @@ async function updateEstField(id,field,rawValue){
       const jobRec=jobs.find(x=>x.id===jid);
       const estUpd={job_id:jid};
       if(!r.client_id&&jobRec?.clientId)estUpd.client_id=jobRec.clientId;
-      await sb.from("estimates").update(estUpd).eq("estimate_id",id);
-      r.job_id=jid;if(estUpd.client_id)r.client_id=estUpd.client_id;
+      const {error:linkError}=await sb.from("estimates").update(estUpd).eq("estimate_id",id);
+      if(linkError)showToast("Job created, but couldn't link it back to the estimate: "+linkError.message,true);
+      else{r.job_id=jid;if(estUpd.client_id)r.client_id=estUpd.client_id;}
       if(r.notes&&r.notes.trim()){
         const {data:{user}}=await sb.auth.getUser();
         const author=currentUserProfile?.full_name||currentUserEmail||"Unknown";
-        await sb.from("job_updates").insert({job_id:jid,author_id:user.id,author,body:`Carried over from the accepted estimate:\n\n${r.notes.trim()}`});
+        const {error:noteError}=await sb.from("job_updates").insert({job_id:jid,author_id:user.id,author,body:`Carried over from the accepted estimate:\n\n${r.notes.trim()}`});
+        if(noteError)showToast("Job created, but the estimate notes couldn't be carried over: "+noteError.message,true);
       }
       setEst(`Created job ${jid}`,false);setTimeout(()=>setEst("",false),2500);
     }
@@ -4265,13 +4275,15 @@ async function loadEstimateBudget(estId){
   let laborRows=labor||[],matRows=mats||[];
   if(estBudgetModalId!==estId)return;
   if(laborRows.length===0){
-    const {data:seeded}=await sb.from("job_labor_estimates").insert([0,1,2].map(i=>({linked_estimate_id:estId,sort:i}))).select();
+    const {data:seeded,error:seedError}=await sb.from("job_labor_estimates").insert([0,1,2].map(i=>({linked_estimate_id:estId,sort:i}))).select();
     if(estBudgetModalId!==estId)return;
+    if(seedError)showToast("Couldn't set up the default labor rows: "+seedError.message,true);
     laborRows=seeded||[];
   }
   if(matRows.length===0){
-    const {data:seeded}=await sb.from("job_material_estimates").insert(EA_MAT_DEFAULTS.map((name,i)=>({linked_estimate_id:estId,item_name:name,sort:i}))).select();
+    const {data:seeded,error:seedError}=await sb.from("job_material_estimates").insert(EA_MAT_DEFAULTS.map((name,i)=>({linked_estimate_id:estId,item_name:name,sort:i}))).select();
     if(estBudgetModalId!==estId)return;
+    if(seedError)showToast("Couldn't set up the default material rows: "+seedError.message,true);
     matRows=seeded||[];
   }
   estBudgetData[estId]={labor:laborRows,mats:matRows,settings:settingsRow||{labor_multiplier:2,labor_burden_pct:40,material_multiplier:2}};
@@ -4368,7 +4380,8 @@ async function addEaLaborRowEst(estId){
 }
 async function delEaLaborRowEst(estId,id){
   const bd=estBudgetData[estId];
-  await sb.from("job_labor_estimates").delete().eq("estimate_id",id);
+  const {error}=await sb.from("job_labor_estimates").delete().eq("estimate_id",id);
+  if(error){showToast("Couldn't delete the labor row: "+error.message,true);return}
   if(bd)bd.labor=bd.labor.filter(r=>r.estimate_id!==id);
   refreshEstBudgetPanel(estId);
 }
@@ -4394,7 +4407,8 @@ async function addEaMatRowEst(estId){
 }
 async function delEaMatRowEst(estId,id){
   const bd=estBudgetData[estId];
-  await sb.from("job_material_estimates").delete().eq("estimate_id",id);
+  const {error}=await sb.from("job_material_estimates").delete().eq("estimate_id",id);
+  if(error){showToast("Couldn't delete the material row: "+error.message,true);return}
   if(bd)bd.mats=bd.mats.filter(r=>r.estimate_id!==id);
   refreshEstBudgetPanel(estId);
 }
@@ -4667,13 +4681,15 @@ async function drawPerformance(){
 async function saveFollower(platform,month,count){
   const v=count===""?null:Number(count);
   if(v==null)return;
-  await sb.from("social_followers").upsert({platform,month,followers:v},{onConflict:"month,platform"});
+  const {error}=await sb.from("social_followers").upsert({platform,month,followers:v},{onConflict:"month,platform"});
+  if(error){showToast("Couldn't save the follower count: "+error.message,true);return}
   perfData=null;drawPerformance();
 }
 async function addFollower(){
   const m=$("#sfMonth").value,p=$("#sfPlatform").value.trim(),c=$("#sfCount").value;
   if(!m||!p||c==="")return;
-  await sb.from("social_followers").upsert({month:m+"-01",platform:p,followers:Number(c)},{onConflict:"month,platform"});
+  const {error}=await sb.from("social_followers").upsert({month:m+"-01",platform:p,followers:Number(c)},{onConflict:"month,platform"});
+  if(error){showToast("Couldn't add the follower count: "+error.message,true);return}
   $("#sfPlatform").value="";$("#sfCount").value="";
   perfData=null;drawPerformance();
 }
@@ -5180,9 +5196,14 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		if(field==="jobId"&&rawValue){
 			const job=(typeof jobs!=="undefined"?jobs:[]).find(j=>j.id===rawValue);
 			if(job){
-				if(!job.src&&lead&&lead.source){await sb.from("jobs").update({lead_source:lead.source}).eq("job_id",rawValue);job.src=lead.source;}
+				if(!job.src&&lead&&lead.source){
+					const{error:srcError}=await sb.from("jobs").update({lead_source:lead.source}).eq("job_id",rawValue);
+					if(srcError)showToast("Couldn't carry the lead source over to the job: "+srcError.message,true);
+					else job.src=lead.source;
+				}
 				if(!job.unpriced&&job.revenue!=null&&lead&&lead.status!=="Won"&&lead.status!=="Lost"){
-					await sb.from("leads").update({status:"Won",closed_revenue:job.revenue,sale_date:lead.saleDate||job.sold||null}).eq("lead_id",leadId);
+					const{error:wonError}=await sb.from("leads").update({status:"Won",closed_revenue:job.revenue,sale_date:lead.saleDate||job.sold||null}).eq("lead_id",leadId);
+					if(wonError)showToast("Couldn't mark the lead Won: "+wonError.message,true);
 				}
 			}
 		}
@@ -5191,7 +5212,11 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			const jid=await window.createJobFromFields({client_name:lead.name,
 				contract_price:lead.closedRevenue||lead.value||null,manager:lead.manager,
 				explicitClientId:lead.clientId,leadId:lead.id,email:lead.email,phone:lead.phone});
-			if(jid){await sb.from("leads").update({job_id:jid}).eq("lead_id",leadId);setLeadStatus(`Created job ${jid}`,false);}
+			if(jid){
+				const{error:linkError}=await sb.from("leads").update({job_id:jid}).eq("lead_id",leadId);
+				if(linkError)showToast("Job created, but couldn't link it back to the lead: "+linkError.message,true);
+				setLeadStatus(`Created job ${jid}`,false);
+			}
 		}
 		await fetchLeads();drawLeadList();drawLeadReport();
 		if(document.getElementById("leadSaveStatus")?.textContent.startsWith("Created"))setTimeout(()=>setLeadStatus("",false),2500);
