@@ -4913,6 +4913,36 @@ document.querySelectorAll("[data-oauth]").forEach(b=>b.addEventListener("click",
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("filePreview")?.classList.contains("hidden"))closeFilePreview()});
 document.addEventListener("keydown",e=>{const id=e.target.dataset?.fileRenameInput;if(!id)return;if(e.key==="Enter"){e.preventDefault();commitRenameFile(id,e.target.value);}else if(e.key==="Escape"){e.preventDefault();cancelRenameFile(id);}});
 document.addEventListener("keydown",e=>{if(e.target.id!=="confirmModalInput")return;if(e.key==="Enter"){e.preventDefault();document.getElementById("confirmModalOk").click();}else if(e.key==="Escape"){e.preventDefault();resolveConfirmModal(false);}});
+function closeTopmostOverlay(){
+  const overlays=[
+    ["taskModal",closeTaskModal],
+    ["assignmentModal",closeAssignmentModal],
+    ["estBudgetModal",closeEstBudgetModal],
+    ["mergeReviewModal",closeMergeReview],
+    ["retireJobModal",closeRetireJobReview],
+    ["needsReviewModal",closeNeedsReviewModal],
+    ["confirmModal",()=>resolveConfirmModal(false)],
+    ["jobUpdatesPopover",closeJobUpdatesPopover],
+    ["estNotesPopover",closeEstNotesPopover],
+    ["leadNotesPopover",()=>window.closeLeadNotesPopover?.()],
+    ["profilePanel",()=>document.getElementById("profilePanel").classList.add("hidden")],
+    ["notifPanel",()=>document.getElementById("notifPanel").classList.add("hidden")]
+  ];
+  for(const[id,fn]of overlays){
+    const el=document.getElementById(id);
+    if(el&&!el.classList.contains("hidden")){fn();return true}
+  }
+  if(document.getElementById("sidebar").classList.contains("open")){
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebarBackdrop").classList.remove("show");
+    return true;
+  }
+  return false;
+}
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape"||e.defaultPrevented)return;
+  closeTopmostOverlay();
+});
 document.addEventListener("focusout",e=>{const id=e.target.dataset?.fileRenameInput;if(id&&fileRenaming.has(id))commitRenameFile(id,e.target.value);});
 $("#authPass").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();attemptSignIn()}});
 $("#authEmail").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("#authPass").focus()}});
@@ -5166,6 +5196,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 	}
 	let leadNotesId=null;
 	function closeLeadNotesPopover(){document.getElementById("leadNotesPopover").classList.add("hidden");leadNotesId=null}
+	window.closeLeadNotesPopover=closeLeadNotesPopover;
 	function positionLeadNotesPopover(btn){
 		const pop=document.getElementById("leadNotesPopover");
 		pop.classList.remove("hidden");
