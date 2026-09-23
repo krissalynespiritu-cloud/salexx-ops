@@ -74,8 +74,10 @@ const testLogic = `
     renderMatReq();
     document.getElementById('toastStack').innerHTML = '';
     global.mockFailTables.add('material_request_items');
-    await delMatItem('MI-1');
-    await new Promise(r => setTimeout(r, 10));
+    delMatItem('MI-1'); // not awaited -- pauses at the real confirm dialog
+    await new Promise(r => setTimeout(r, 20));
+    document.getElementById('confirmModalOk').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 20));
     check('TEST 1: error toast shown', document.getElementById('toastStack').innerHTML.includes('Simulated material_request_items failure'));
     check('TEST 1: item still in local state after the failed delete', curMatItems.some(i => i.item_id === 'MI-1'));
     global.mockFailTables.delete('material_request_items');
@@ -122,8 +124,10 @@ const testLogic = `
     estBudgetData['EST-1'] = { labor: [{ estimate_id: 'EA-1', crew_name: 'Carlos', est_hours: 10, pay_rate: 20 }], mats: [], settings: {} };
     document.getElementById('toastStack').innerHTML = '';
     global.mockFailTables.add('job_labor_estimates');
-    await delEaLaborRowEst('EST-1', 'EA-1');
-    await new Promise(r => setTimeout(r, 10));
+    delEaLaborRowEst('EST-1', 'EA-1'); // not awaited -- pauses at the real confirm dialog
+    await new Promise(r => setTimeout(r, 20));
+    document.getElementById('confirmModalOk').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 20));
     check('TEST 5: error toast shown', document.getElementById('toastStack').innerHTML.includes('Simulated job_labor_estimates failure'));
     check('TEST 5: labor row still present after the failed delete', estBudgetData['EST-1'].labor.some(r => r.estimate_id === 'EA-1'));
     global.mockFailTables.delete('job_labor_estimates');

@@ -477,7 +477,7 @@ function incompleteBadge(j){
 async function fetchJobs(){
   const [
     {data:jobRows,error:e1},{data:marginRows,error:e2},{data:costRows,error:e3},{data:subRows,error:e4},{data:updateRows,error:e5},
-    {data:viTotalRows},{data:matReqRows},{data:taskRowsForJobs},{data:choRows},{data:punchRows},{data:permitRows}
+    {data:viTotalRows,error:e6},{data:matReqRows,error:e7},{data:taskRowsForJobs,error:e8},{data:choRows,error:e9},{data:punchRows,error:e10},{data:permitRows,error:e11}
   ]=await Promise.all([
     sb.from("jobs").select("*").eq("retired",false),
     sb.from("job_margins").select("*"),
@@ -492,6 +492,11 @@ async function fetchJobs(){
     sb.from("job_permits").select("*")
   ]);
   if(e1||e2||e3||e4||e5){const err=e1||e2||e3||e4||e5;console.error(err);fetchJobs.lastError=err;return false}
+  const secondaryError=e6||e7||e8||e9||e10||e11;
+  if(secondaryError){
+    console.error(secondaryError);
+    showToast("Some job data (invoices, materials, tasks, change orders, punch list, or permits) couldn't be loaded and may show as zero: "+secondaryError.message,true);
+  }
   const viTotalsById=Object.fromEntries((viTotalRows||[]).map(r=>[r.job_id,r]));
   const matReqsById={};
   for(const r of matReqRows||[]){(matReqsById[r.job_id]||=[]).push(r)}
@@ -525,6 +530,11 @@ async function fetchJobs(){
     merged.permits=permitById[j.job_id]||[];
     jobs.push(merged);
   }
+  // fetchJobs() rebuilds every job as a brand-new object, so if a job detail
+  // panel is currently open, `cur` would otherwise keep pointing at the old,
+  // now-detached object -- leaving it stuck showing stale data even after a
+  // per-job cache refresh updates the real (new) object in `jobs`.
+  if(cur){const freshCur=jobs.find(j=>j.id===cur.id);if(freshCur)cur=freshCur;}
   return true;
 }
 const FIELD_TO_CATEGORY=Object.fromEntries(Object.entries(COST_CATEGORY_FIELD).map(([cat,field])=>[field,cat]));
@@ -560,9 +570,18 @@ async function saveCostField(jobId,field,rawValue){
   }else{
     const category=FIELD_TO_CATEGORY[field];
     if(!category)return;
-    ({error}=await sb.from("job_costs").delete().eq("job_id",jobId).eq("category",category));
+    // job_costs has no unique constraint on (job_id, category) to upsert
+    // against, so this can't be one atomic call. Capture the old row IDs
+    // first, insert the new value, and only delete the old rows (by their
+    // captured IDs, never the new one) after a successful insert -- if the
+    // insert fails, the old value is untouched instead of already deleted.
+    const {data:oldRows,error:selError}=await sb.from("job_costs").select("cost_id").eq("job_id",jobId).eq("category",category);
+    error=selError;
     if(!error&&!blank){
       ({error}=await sb.from("job_costs").insert({job_id:jobId,category,amount:Number(rawValue)}));
+    }
+    if(!error&&oldRows&&oldRows.length){
+      ({error}=await sb.from("job_costs").delete().in("cost_id",oldRows.map(r=>r.cost_id)));
     }
   }
   if(error){setCoStatus("Error: "+error.message,true,jobId);return}
@@ -1457,9 +1476,11 @@ async function resolveClientForCreate({name,email,phone,explicitClientId,leadId,
   if(!nName)return{clientId:null,needsReview:false};
   const{data:inserted,error}=await sb.from("clients").insert({name:name.trim(),email:email||null,phone:phone||null}).select("client_id").single();
   if(!error)return{clientId:inserted.client_id,needsReview:false};
-  const{data:existingByName}=await sb.from("clients").select("client_id,name");
-  const match=(existingByName||[]).find(c=>c.name.trim().toLowerCase()===nName);
-  return{clientId:match?match.client_id:null,needsReview:false};
+  // Per CLAUDE.md: a name match alone is never sufficient evidence of identity.
+  // An insert failure here could be an RLS error, a network blip, or anything
+  // else -- not necessarily a genuine duplicate -- so this must never silently
+  // auto-link by name. Flag for human review instead of guessing.
+  return{clientId:null,needsReview:true};
 }
 async function createJob(){
   const name=await promptDialog("New job","Client name for the new job:","","Create");
@@ -1528,6 +1549,7 @@ async function postJobUpdatePopover(){
   const setSt=(m,e)=>{const el=document.getElementById("jupStatus");if(el){el.textContent=m;el.style.color=e?"var(--alert)":"var(--steel)"}};
   setSt("Posting…",false);
   const {data:{user}}=await sb.auth.getUser();
+  if(!user){setSt("Error: your session expired — sign in again and retry.",true);return}
   const author=currentUserProfile?.full_name||currentUserEmail||"Unknown";
   const {error}=await sb.from("job_updates").insert({job_id:jobId,author_id:user.id,author,body});
   if(error){setSt("Error: "+error.message,true);return}
@@ -1791,6 +1813,7 @@ async function postUpdate(){
   const jobId=cur.id;
   setUpdateStatus("Posting…",false);
   const {data:{user}}=await sb.auth.getUser();
+  if(!user){setUpdateStatus("Error: your session expired — sign in again and retry.",true);return}
   const author=currentUserProfile?.full_name||currentUserEmail||"Unknown";
   const {error}=await sb.from("job_updates").insert({job_id:jobId,author_id:user.id,author,body});
   if(error){setUpdateStatus("Error: "+error.message,true);return}
@@ -1900,11 +1923,11 @@ function renderEstActualTab(j){
   const suggestedLaborPrice=estLaborCost*laborMult;
   const suggestedMaterialPrice=estMaterialCost*matMult;
   const clmf=j.crewLeaderFee||0;
-  const estTotalCost=estLaborCost+estMaterialCost;
+  const estTotalCost=estLaborCost+estMaterialCost+clmf;
   const salePrice=suggestedLaborPrice+suggestedMaterialPrice;
   const projectedGP=salePrice-estTotalCost;
   const projectedGPPct=salePrice?projectedGP/salePrice*100:null;
-  const hourlySalesRate=estManHours?estTotalCost/estManHours:null;
+  const hourlySalesRate=estManHours?salePrice/estManHours:null;
 
   const actualHours=currentEstActual.actualByPerson.reduce((s,p)=>s+p.hours,0);
   const actualLaborCost=j.laborCost||0;
@@ -1989,6 +2012,7 @@ async function addEaLaborRow(){
   eaLabor.push(data);drawDetail();
 }
 async function delEaLaborRow(id){
+  if(!await confirmDialog("Delete this labor row?","This can't be undone."))return;
   const {error}=await sb.from("job_labor_estimates").delete().eq("estimate_id",id);
   if(error){showToast("Couldn't delete the labor row: "+error.message,true);return}
   eaLabor=eaLabor.filter(r=>r.estimate_id!==id);drawDetail();
@@ -2013,6 +2037,7 @@ async function addEaMatRow(){
   eaMats.push(data);drawDetail();
 }
 async function delEaMatRow(id){
+  if(!await confirmDialog("Delete this material row?","This can't be undone."))return;
   const {error}=await sb.from("job_material_estimates").delete().eq("estimate_id",id);
   if(error){showToast("Couldn't delete the material row: "+error.message,true);return}
   eaMats=eaMats.filter(r=>r.estimate_id!==id);drawDetail();
@@ -2477,7 +2502,10 @@ function computeDuplicateGroups(clientsList,countsById,valueById){
   return Object.values(byRoot).map(idxs=>{
     const members=idxs.map(i=>clientsList[i]);
     const allReasons=[...new Set(idxs.flatMap(i=>pairs.filter(p=>p.i===i||p.j===i).flatMap(p=>p.reasons)))];
-    const hasStrongSignal=allReasons.some(r=>r.startsWith("Same phone")||r.startsWith("Same email")||r.startsWith("Identical lifetime")||r.startsWith("Identical name"));
+    // Per CLAUDE.md: a name match alone is never sufficient evidence, even an
+    // exact one -- it must not be treated as a "strong" signal on par with a
+    // matching phone/email. Left out of hasStrongSignal deliberately.
+    const hasStrongSignal=allReasons.some(r=>r.startsWith("Same phone")||r.startsWith("Same email")||r.startsWith("Identical lifetime"));
     const allHaveRecords=members.every(m=>(countsById[m.client_id]?.total||0)>0);
     const anyEmpty=members.some(m=>(countsById[m.client_id]?.total||0)===0);
     let confidence;
@@ -3331,6 +3359,7 @@ async function addMatItem(section){
   curMatItems.push(data);renderMatReq();
 }
 async function delMatItem(itemId){
+  if(!await confirmDialog("Delete this item?","This can't be undone."))return;
   const {error}=await sb.from("material_request_items").delete().eq("item_id",itemId);
   if(error){showToast("Couldn't delete the item: "+error.message,true);return}
   curMatItems=curMatItems.filter(x=>x.item_id!==itemId);renderMatReq();
@@ -3805,8 +3834,18 @@ async function saveAssignmentModal(){
   if(affectsToday){await fetchTodayAssignments();drawRoster();}
 }
 let confirmModalResolve=null,confirmModalMode="confirm";
+function settlePendingModal(){
+  // A second confirmDialog()/promptDialog() call before the first is answered
+  // would otherwise silently overwrite confirmModalResolve, leaving the first
+  // call's promise hanging forever. Settle it as cancelled instead.
+  if(confirmModalResolve){
+    const r=confirmModalResolve;confirmModalResolve=null;
+    r(confirmModalMode==="prompt"?null:false);
+  }
+}
 function confirmDialog(title,body,confirmLabel,danger){
   if(danger==null)danger=true;
+  settlePendingModal();
   confirmModalMode="confirm";
   return new Promise(resolve=>{
     confirmModalResolve=resolve;
@@ -3815,6 +3854,7 @@ function confirmDialog(title,body,confirmLabel,danger){
   });
 }
 function promptDialog(title,body,defaultValue,confirmLabel){
+  settlePendingModal();
   confirmModalMode="prompt";
   return new Promise(resolve=>{
     confirmModalResolve=resolve;
@@ -4246,7 +4286,7 @@ async function updateEstField(id,field,rawValue){
       if(r.notes&&r.notes.trim()){
         const {data:{user}}=await sb.auth.getUser();
         const author=currentUserProfile?.full_name||currentUserEmail||"Unknown";
-        const {error:noteError}=await sb.from("job_updates").insert({job_id:jid,author_id:user.id,author,body:`Carried over from the accepted estimate:\n\n${r.notes.trim()}`});
+        const {error:noteError}=user?await sb.from("job_updates").insert({job_id:jid,author_id:user.id,author,body:`Carried over from the accepted estimate:\n\n${r.notes.trim()}`}):{error:{message:"your session expired"}};
         if(noteError)showToast("Job created, but the estimate notes couldn't be carried over: "+noteError.message,true);
       }
       setEst(`Created job ${jid}`,false);setTimeout(()=>setEst("",false),2500);
@@ -4333,7 +4373,7 @@ function renderEstimateBudgetPanel(e){
   const salePrice=suggestedLaborPrice+suggestedMaterialPrice;
   const projectedGP=salePrice-estTotalCost;
   const projectedGPPct=salePrice?projectedGP/salePrice*100:null;
-  const hourlySalesRate=estManHours?estTotalCost/estManHours:null;
+  const hourlySalesRate=estManHours?salePrice/estManHours:null;
   const gpColor=v=>v==null?"#B7C6D6":v<0?"var(--alert)":"var(--good)";
   const id=e.estimate_id;
   return `<div class="grp" style="margin-top:8px">
@@ -4384,6 +4424,7 @@ async function addEaLaborRowEst(estId){
   bd.labor.push(data);refreshEstBudgetPanel(estId);
 }
 async function delEaLaborRowEst(estId,id){
+  if(!await confirmDialog("Delete this labor row?","This can't be undone."))return;
   const bd=estBudgetData[estId];
   const {error}=await sb.from("job_labor_estimates").delete().eq("estimate_id",id);
   if(error){showToast("Couldn't delete the labor row: "+error.message,true);return}
@@ -4411,6 +4452,7 @@ async function addEaMatRowEst(estId){
   bd.mats.push(data);refreshEstBudgetPanel(estId);
 }
 async function delEaMatRowEst(estId,id){
+  if(!await confirmDialog("Delete this material row?","This can't be undone."))return;
   const bd=estBudgetData[estId];
   const {error}=await sb.from("job_material_estimates").delete().eq("estimate_id",id);
   if(error){showToast("Couldn't delete the material row: "+error.message,true);return}
