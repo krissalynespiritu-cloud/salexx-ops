@@ -38,6 +38,30 @@ check(
   bodyRuleMatch && bodyRuleMatch[1]
 );
 
+// Follow-up real-device finding: body{overflow-x:hidden} alone, verified above, was not
+// sufficient on the user's actual iOS Safari to stop page-level horizontal scroll from
+// wide content inside a tab (e.g. the Leads Tracker's dense row layout), even though it
+// correctly fixed the sticky-header bug and worked in simulated desktop-browser testing.
+// html{overflow-x:hidden} was tried and empirically confirmed (live, via getBoundingClientRect
+// before/after a real scroll) to reintroduce the exact same sticky-breaking bug as .wrap did,
+// so it was reverted rather than kept. The actual fix: a new .pageContent wrapper, placed
+// as a SIBLING of <header> (not an ancestor), wraps every tab section and carries its own
+// overflow-x:hidden -- since it doesn't sit between <header> and the true document root,
+// it can't break header's sticky-to-viewport chain, while still giving every section's
+// content a real containing box that can't leak width past the viewport. This is checked
+// as a real jsdom DOM-structure test (jsdom can parse structure even though it can't
+// compute live sticky positioning).
+const { JSDOM } = require('jsdom');
+const dom = new JSDOM(html);
+const doc = dom.window.document;
+const pageContent = doc.querySelector('.pageContent');
+check('TEST 5: a .pageContent wrapper exists', !!pageContent);
+const header = doc.querySelector('header');
+check('TEST 6: header is NOT inside .pageContent (so its sticky-to-viewport chain has no overflow-restricted ancestor)', !!header && pageContent && !pageContent.contains(header));
+const allSections = doc.querySelectorAll('section[id^="s-"]');
+const sectionsInPageContent = pageContent ? pageContent.querySelectorAll('section[id^="s-"]') : [];
+check('TEST 7: every tab section is inside .pageContent', allSections.length > 0 && sectionsInPageContent.length === allSections.length, `${sectionsInPageContent.length} of ${allSections.length}`);
+
 console.log('\n=== PASS (' + results.pass.length + ') ===');
 results.pass.forEach(p => console.log('  ok - ' + p));
 console.log('\n=== FAIL (' + results.fail.length + ') ===');
