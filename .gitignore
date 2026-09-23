@@ -3,3 +3,7 @@
 # raw source images (optimized copies live in assets/)
 /IMG_*.jpg
 /Salexx Logo Transparent.png
+
+# test dependencies + regenerated fixtures (see tests/README.md)
+/node_modules
+/tests/_generated

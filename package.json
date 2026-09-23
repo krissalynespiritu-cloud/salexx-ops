@@ -1,0 +1,11 @@
+{
+  "name": "salexx-ops-hub",
+  "private": true,
+  "description": "Test suite for index.html. See tests/README.md.",
+  "scripts": {
+    "test": "node tests/run-all.js"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.1"
+  }
+}
