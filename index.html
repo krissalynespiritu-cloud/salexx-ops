@@ -4656,13 +4656,35 @@ function renderNotifBell(){
   if(dashAlerts.length){badge.textContent=dashAlerts.length;badge.classList.remove("hidden")}else{badge.classList.add("hidden")}
   panel.innerHTML=dashAlerts.length?`<b style="font-size:12.5px;display:block;margin-bottom:8px">Needs attention</b><ul style="margin:0;padding-left:16px;font-size:12px;line-height:1.5">${dashAlerts.join("")}</ul>`:`<p class="note" style="border:0;padding:0;margin:0;color:var(--steel);font-size:12px">Nothing needs attention right now.</p>`;
 }
+let globalSearchDebounce=null,globalSearchToken=0;
 function runGlobalSearch(q){
-  const query=q.trim().toLowerCase();
+  clearTimeout(globalSearchDebounce);
+  const query=q.trim();
   const box=$("#globalSearchResults");
   if(!query){box.classList.add("hidden");box.innerHTML="";return}
-  const matches=jobs.filter(j=>j.client.toLowerCase().includes(query)||j.id.toLowerCase().includes(query)).slice(0,8);
-  box.innerHTML=matches.length?matches.map(j=>`<button data-search-open="${j.id}" style="display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:9px 12px;background:none;border:0;border-bottom:1px solid var(--line);color:var(--text);cursor:pointer;font:inherit;font-size:12.5px"><span><b>${escapeHtml(j.client)}</b> <span style="color:var(--steel);font-size:11px">${j.id}</span></span><span class="stage ${stClass(j.stage)}" style="font-size:8px">${j.stage}</span></button>`).join(""):`<div style="padding:12px;color:var(--steel);font-size:12px">No jobs match "${escapeHtml(q)}"</div>`;
   box.classList.remove("hidden");
+  box.innerHTML=`<div style="padding:12px;color:var(--steel);font-size:12px">Searching…</div>`;
+  globalSearchDebounce=setTimeout(()=>performGlobalSearch(query),250);
+}
+async function performGlobalSearch(query){
+  const myToken=++globalSearchToken;
+  const box=$("#globalSearchResults");
+  const ql=query.toLowerCase();
+  const jobMatches=jobs.filter(j=>j.client.toLowerCase().includes(ql)||j.id.toLowerCase().includes(ql)).slice(0,5);
+  const [{data:clientRows},{data:estFound},{data:viFound},{data:taskFound}]=await Promise.all([
+    sb.from("clients").select("client_id,name").ilike("name",`%${query}%`).eq("active",true).limit(5),
+    sb.from("estimates").select("estimate_id,client_name,job_id").ilike("client_name",`%${query}%`).limit(5),
+    sb.from("vendor_invoices").select("invoice_id,vendor,job_id,total_amount").ilike("vendor",`%${query}%`).limit(5),
+    sb.from("tasks").select("task_id,title,job_id").ilike("title",`%${query}%`).limit(5)
+  ]);
+  if(myToken!==globalSearchToken)return;
+  const rows=[];
+  jobMatches.forEach(j=>rows.push({label:j.client,sub:`${j.id} · Job`,attr:`data-search-open="${j.id}"`}));
+  (clientRows||[]).forEach(c=>rows.push({label:c.name,sub:"Client",attr:`data-search-open-client="${c.client_id}"`}));
+  (estFound||[]).forEach(e=>rows.push({label:e.client_name,sub:`Estimate${e.job_id?` · linked to ${e.job_id}`:""}`,attr:`data-search-open-tab="estimates"`}));
+  (viFound||[]).forEach(v=>rows.push({label:v.vendor,sub:`Vendor invoice${v.total_amount?` · ${money(v.total_amount)}`:""}`,attr:`data-search-open-tab="vendorpay"`}));
+  (taskFound||[]).forEach(t=>rows.push({label:t.title,sub:"Task",attr:`data-search-open-task="${t.task_id}"`}));
+  box.innerHTML=rows.length?rows.slice(0,20).map(r=>`<button ${r.attr} style="display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:9px 12px;background:none;border:0;border-bottom:1px solid var(--line);color:var(--text);cursor:pointer;font:inherit;font-size:12.5px"><span><b>${escapeHtml(r.label||"")}</b></span><span style="color:var(--steel);font-size:10.5px">${escapeHtml(r.sub)}</span></button>`).join(""):`<div style="padding:12px;color:var(--steel);font-size:12px">No matches for "${escapeHtml(query)}"</div>`;
 }
 async function boot(){
   const {data:{session}}=await sb.auth.getSession();
@@ -4820,6 +4842,12 @@ $("#globalSearch").addEventListener("input",e=>runGlobalSearch(e.target.value));
 document.addEventListener("click",e=>{
   const so=e.target.closest("[data-search-open]");
   if(so){openJob(so.dataset.searchOpen);$("#globalSearch").value="";$("#globalSearchResults").classList.add("hidden");return}
+  const soc=e.target.closest("[data-search-open-client]");
+  if(soc){openClient(soc.dataset.searchOpenClient);$("#globalSearch").value="";$("#globalSearchResults").classList.add("hidden");return}
+  const sot=e.target.closest("[data-search-open-task]");
+  if(sot){openTaskModal(sot.dataset.searchOpenTask);$("#globalSearch").value="";$("#globalSearchResults").classList.add("hidden");return}
+  const sotab=e.target.closest("[data-search-open-tab]");
+  if(sotab){document.querySelector(`.sidebarLink[data-tab="${sotab.dataset.searchOpenTab}"]`)?.click();$("#globalSearch").value="";$("#globalSearchResults").classList.add("hidden");return}
   if(!e.target.closest("#globalSearch")&&!e.target.closest("#globalSearchResults")){$("#globalSearchResults").classList.add("hidden")}
   if(e.target.closest("#notifBell")){$("#notifPanel").classList.toggle("hidden");return}
   if(!e.target.closest("#notifPanel")&&!e.target.closest("#notifBell")){$("#notifPanel").classList.add("hidden")}
