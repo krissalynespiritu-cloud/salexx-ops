@@ -678,6 +678,58 @@ function kpiCardCompact(icon,color,label,value,changeHtml,spark){
   </div>`;
 }
 let activeTab="today";
+const APP_TABS=["today","tasks","mytasks","performance","jobs","labor","leadstracker","teamscorecards","weeklymeeting","marketingperformance","socialplanner","monthlykpi","overhead","estimates","reports","billing","subs","clients","needsreview","datahealth","jobcosting","profitability","vendorpay","materialrequests","warranty","team"];
+function setHash(h){
+  if(location.hash.slice(1)!==h)location.hash=h;
+}
+function currentExpectedHash(){
+  if(!$("#detail").classList.contains("hidden")&&cur)return"job/"+cur.id;
+  return activeTab==="today"?"":activeTab;
+}
+function activateTab(name){
+  if(!APP_TABS.includes(name))name="today";
+  activeTab=name;
+  localStorage.setItem("lastTab",name);
+  document.querySelectorAll(".sidebarLink[data-tab]").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===name?"true":"false"));
+  ["#detail","#payrollDetail","#clientDetail","#matReqDetail"].forEach(s=>$(s)?.classList.add("hidden"));
+  APP_TABS.forEach(n=>$("#s-"+n)?.classList.toggle("hidden",n!==name));
+  if(name==="labor")drawLabor();
+  if(name==="mytasks")drawMyTasks();
+  if(name==="billing")drawBilling();
+  if(name==="subs")drawSubs();
+  if(name==="clients")drawClients();
+  if(name==="jobcosting")drawJobCosting();
+  if(name==="profitability")drawProfitability();
+  if(name==="materialrequests")drawMaterialRequests();
+  if(name==="warranty")drawWarranty();
+  if(name==="team")drawTeam();
+  if(name==="performance")drawPerformance();
+  if(name==="vendorpay")drawVendorPayables();
+  if(name==="marketingperformance")drawMarketingPerformance();
+  if(name==="teamscorecards")drawTeamScorecards();
+  if(name==="weeklymeeting")drawWeeklyMeeting();
+  if(name==="socialplanner")drawSocialPlanner();
+  if(name==="monthlykpi")drawMonthlyKpi();
+  if(name==="overhead")drawOverhead();
+  if(name==="estimates")drawEstimates();
+  if(name==="tasks")drawTaskManagement();
+  if(name==="needsreview")drawNeedsReview();
+  if(name==="datahealth")loadAndRenderDuplicateJobs();
+  setHash(name==="today"?"":name);
+}
+function applyHash(){
+  const h=decodeURIComponent(location.hash.slice(1));
+  if(h.indexOf("job/")===0){
+    const id=h.slice(4);
+    if(jobs.find(j=>j.id===id)){openJob(id);return}
+  }
+  $("#detail").classList.add("hidden");
+  activateTab(h||"today");
+}
+window.addEventListener("hashchange",()=>{
+  if(location.hash.slice(1)===currentExpectedHash())return;
+  applyHash();
+});
 let dashStart=todayPacific().slice(0,4)+"-01-01",dashEnd=todayPacific(),dashReady=false;
 const dashDateInRange=date=>date&&date>=dashStart&&date<=dashEnd;
 async function loadTopKpis(token){
@@ -1420,7 +1472,7 @@ async function createJobFromFields(f){
 }
 window.createJobFromFields=createJobFromFields;
 const F=(k,v,cls="")=>`<div class="fld ${cls}"><span class="k">${k}</span><span class="v">${v}</span></div>`,FI=(k,f,v,ph="—")=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" value="${v??""}" placeholder="${ph}"></div>`,FI2=(k,f,v,jobId)=>`<div class="fld"><span class="k">${k} <span class="src man">edit</span></span><input type="number" data-c="${f}" data-job="${jobId}" value="${v??""}" placeholder="—"></div>`;
-function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";currentUpdates=null;currentPayments=null;currentFiles=null;currentEstActual=null;currentCloseout=null;currentTimeline=null;eaLabor=[];eaMats=[];$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stClass(cur.stage)}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#clientDetail").classList.add("hidden");$("#matReqDetail").classList.add("hidden");$("#detail").classList.remove("hidden");window.scrollTo(0,0)}
+function openJob(id){cur=jobs.find(j=>j.id===id);st="ov";currentUpdates=null;currentPayments=null;currentFiles=null;currentEstActual=null;currentCloseout=null;currentTimeline=null;eaLabor=[];eaMats=[];$("#dName").textContent=cur.client;$("#dSub").innerHTML=`${cur.id} · ${cur.type} · ${cur.loc} <span class="stage ${stClass(cur.stage)}">${cur.stage}</span>`;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="ov"));drawDetail();$("#clientDetail").classList.add("hidden");$("#matReqDetail").classList.add("hidden");$("#detail").classList.remove("hidden");window.scrollTo(0,0);setHash("job/"+id)}
 function openJobUpdates(id){openJob(id);st="up";document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.st==="up"));drawDetail()}
 let jupJobId=null,jupUpdates=null;
 function closeJobUpdatesPopover(){document.getElementById("jobUpdatesPopover").classList.add("hidden");jupJobId=null;jupUpdates=null}
@@ -4689,7 +4741,7 @@ const mrai=e.target.closest("[data-mr-additem]");if(mrai){addMatItem(mrai.datase
 const mrid=e.target.closest("[data-mri-del]");if(mrid){delMatItem(mrid.dataset.mriDel);return}
 const mrs=e.target.closest("[data-mr-status]");if(mrs){setMatReqStatus(mrs.dataset.mrStatus);return}
 if(e.target.closest("[data-mr-delete]")){deleteMatReqRecord();return}
-const dre=e.target.closest("[data-drive-edit]");if(dre){const jb=jobs.find(x=>x.id===dre.dataset.driveEdit);editJobDriveUrl(dre.dataset.driveEdit,jb?.drive||"");return}const jm=e.target.closest("[data-job-menu]");if(jm){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>{if(p.dataset.jobMenuPanel!==jm.dataset.jobMenu)p.classList.add("hidden")});document.querySelector(`[data-job-menu-panel="${jm.dataset.jobMenu}"]`)?.classList.toggle("hidden");return}const dj=e.target.closest("[data-delete-job]");if(dj){const jb=jobs.find(x=>x.id===dj.dataset.deleteJob);deleteJobRecord(dj.dataset.deleteJob,jb?.client||"this job");return}const rj=e.target.closest("[data-retire-job]");if(rj){openRetireJobReview(rj.dataset.retireJob);return}if(!e.target.closest("[data-job-menu-panel]")&&!e.target.closest("[data-job-menu]")){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>p.classList.add("hidden"))}const ju=e.target.closest("[data-job-updates]");if(ju){openJobUpdatesPopover(ju.dataset.jobUpdates,ju);return}if(e.target.id==="jupClose"){closeJobUpdatesPopover();return}if(e.target.id==="jupPostBtn"){postJobUpdatePopover();return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();return}const op=e.target.closest("[data-open-payroll]");if(op){openPayrollPeriod(op.dataset.openPayroll);return}if(e.target.id==="payrollBack"){$("#payrollDetail").classList.add("hidden");drawPayroll();return}const oc=e.target.closest("[data-open-client]");if(oc){openClient(oc.dataset.openClient);return}if(e.target.id==="clientBack"){$("#clientDetail").classList.add("hidden");return}if(e.target.id==="ppToggle"){togglePayrollPaid();return}if(e.target.id==="ppExport"){exportPayrollCsv();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest(".sidebarLink[data-tab]");if(t){if(t.dataset.tab===activeTab){$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}activeTab=t.dataset.tab;localStorage.setItem("lastTab",t.dataset.tab);document.querySelectorAll(".sidebarLink[data-tab]").forEach(b=>b.setAttribute("aria-current",b===t));["#detail","#payrollDetail","#clientDetail","#matReqDetail"].forEach(s=>$(s)?.classList.add("hidden"));["today","tasks","mytasks","performance","jobs","labor","leadstracker","teamscorecards","weeklymeeting","marketingperformance","socialplanner","monthlykpi","overhead","estimates","reports","billing","subs","clients","needsreview","datahealth","jobcosting","profitability","vendorpay","materialrequests","warranty","team"].forEach(n=>$("#s-"+n).classList.toggle("hidden",n!==t.dataset.tab));if(t.dataset.tab==="labor"){if(t.dataset.laborView)laborView=t.dataset.laborView;drawLabor();}if(t.dataset.tab==="mytasks")drawMyTasks();if(t.dataset.tab==="billing")drawBilling();if(t.dataset.tab==="subs")drawSubs();if(t.dataset.tab==="clients")drawClients();if(t.dataset.tab==="jobcosting")drawJobCosting();if(t.dataset.tab==="profitability")drawProfitability();if(t.dataset.tab==="materialrequests")drawMaterialRequests();if(t.dataset.tab==="warranty")drawWarranty();if(t.dataset.tab==="team")drawTeam();if(t.dataset.tab==="performance")drawPerformance();if(t.dataset.tab==="vendorpay")drawVendorPayables();if(t.dataset.tab==="marketingperformance")drawMarketingPerformance();if(t.dataset.tab==="teamscorecards")drawTeamScorecards();if(t.dataset.tab==="weeklymeeting")drawWeeklyMeeting();if(t.dataset.tab==="socialplanner")drawSocialPlanner();if(t.dataset.tab==="monthlykpi")drawMonthlyKpi();if(t.dataset.tab==="overhead")drawOverhead();if(t.dataset.tab==="estimates")drawEstimates();if(t.dataset.tab==="tasks")drawTaskManagement();if(t.dataset.tab==="needsreview")drawNeedsReview();if(t.dataset.tab==="datahealth")loadAndRenderDuplicateJobs();$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}const gt=e.target.closest("[data-goto-tab]");if(gt){document.querySelector(`.sidebarLink[data-tab="${gt.dataset.gotoTab}"]`)?.click();return}const tg=e.target.closest("[data-toggle-group]");if(tg){const body=tg.nextElementSibling;const willOpen=tg.getAttribute("aria-expanded")!=="true";tg.setAttribute("aria-expanded",String(willOpen));body.classList.toggle("collapsed",!willOpen);localStorage.setItem("sidebarGroup:"+tg.dataset.toggleGroup,String(willOpen));return}if(e.target.id==="hamburgerBtn"){$("#sidebar").classList.toggle("open");$("#sidebarBackdrop").classList.toggle("show");return}if(e.target.id==="sidebarBackdrop"){$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}});
+const dre=e.target.closest("[data-drive-edit]");if(dre){const jb=jobs.find(x=>x.id===dre.dataset.driveEdit);editJobDriveUrl(dre.dataset.driveEdit,jb?.drive||"");return}const jm=e.target.closest("[data-job-menu]");if(jm){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>{if(p.dataset.jobMenuPanel!==jm.dataset.jobMenu)p.classList.add("hidden")});document.querySelector(`[data-job-menu-panel="${jm.dataset.jobMenu}"]`)?.classList.toggle("hidden");return}const dj=e.target.closest("[data-delete-job]");if(dj){const jb=jobs.find(x=>x.id===dj.dataset.deleteJob);deleteJobRecord(dj.dataset.deleteJob,jb?.client||"this job");return}const rj=e.target.closest("[data-retire-job]");if(rj){openRetireJobReview(rj.dataset.retireJob);return}if(!e.target.closest("[data-job-menu-panel]")&&!e.target.closest("[data-job-menu]")){document.querySelectorAll("[data-job-menu-panel]").forEach(p=>p.classList.add("hidden"))}const ju=e.target.closest("[data-job-updates]");if(ju){openJobUpdatesPopover(ju.dataset.jobUpdates,ju);return}if(e.target.id==="jupClose"){closeJobUpdatesPopover();return}if(e.target.id==="jupPostBtn"){postJobUpdatePopover();return}const o=e.target.closest("[data-open]");if(o){openJob(o.dataset.open);return}if(e.target.id==="back"){$("#detail").classList.add("hidden");drawToday();drawJobs();setHash(activeTab==="today"?"":activeTab);return}const op=e.target.closest("[data-open-payroll]");if(op){openPayrollPeriod(op.dataset.openPayroll);return}if(e.target.id==="payrollBack"){$("#payrollDetail").classList.add("hidden");drawPayroll();return}const oc=e.target.closest("[data-open-client]");if(oc){openClient(oc.dataset.openClient);return}if(e.target.id==="clientBack"){$("#clientDetail").classList.add("hidden");return}if(e.target.id==="ppToggle"){togglePayrollPaid();return}if(e.target.id==="ppExport"){exportPayrollCsv();return}const t2=e.target.closest("[data-st]");if(t2){st=t2.dataset.st;document.querySelectorAll("#subtabs button").forEach(b=>b.setAttribute("aria-selected",b===t2));drawDetail();return}const t=e.target.closest(".sidebarLink[data-tab]");if(t){if(t.dataset.tab===activeTab){$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}if(t.dataset.laborView)laborView=t.dataset.laborView;activateTab(t.dataset.tab);$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}const gt=e.target.closest("[data-goto-tab]");if(gt){document.querySelector(`.sidebarLink[data-tab="${gt.dataset.gotoTab}"]`)?.click();return}const tg=e.target.closest("[data-toggle-group]");if(tg){const body=tg.nextElementSibling;const willOpen=tg.getAttribute("aria-expanded")!=="true";tg.setAttribute("aria-expanded",String(willOpen));body.classList.toggle("collapsed",!willOpen);localStorage.setItem("sidebarGroup:"+tg.dataset.toggleGroup,String(willOpen));return}if(e.target.id==="hamburgerBtn"){$("#sidebar").classList.toggle("open");$("#sidebarBackdrop").classList.toggle("show");return}if(e.target.id==="sidebarBackdrop"){$("#sidebar").classList.remove("open");$("#sidebarBackdrop").classList.remove("show");return}});
 document.addEventListener("click",e=>{const rs=e.target.closest("[data-report-sort]");if(rs){reportSort=rs.dataset.reportSort;document.querySelectorAll("[data-report-sort]").forEach(b=>b.setAttribute("aria-pressed",b===rs));drawReports();return}});
 document.addEventListener("click",e=>{const range=e.target.closest("[data-report-range]");if(!range)return;const todayStr=todayPacific(),year=todayStr.slice(0,4),month=todayStr.slice(5,7);document.querySelectorAll("[data-report-range]").forEach(button=>button.setAttribute("aria-pressed",button===range));if(range.dataset.reportRange==="month"){reportStart=`${year}-${month}-01`;reportEnd=todayStr;$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="year"){reportStart=`${year}-01-01`;reportEnd=todayStr;$("#reportCustom").style.display="none"}else if(range.dataset.reportRange==="all"){reportStart="0000-01-01";reportEnd="9999-12-31";$("#reportCustom").style.display="none"}else{$("#reportCustom").style.display="block"}drawReports()});
 document.querySelectorAll("[data-toggle-group]").forEach(head=>{const key=head.dataset.toggleGroup;if(localStorage.getItem("sidebarGroup:"+key)==="false"){head.setAttribute("aria-expanded","false");head.nextElementSibling.classList.add("collapsed")}});
@@ -4752,40 +4804,14 @@ async function boot(){
   if(window.refreshLeads)await window.refreshLeads();
   await fetchTodayAssignments();
   drawToday();drawJobs();drawRoster();drawReports();
-  restoreLastTab();
+  if(location.hash)applyHash();else restoreLastTab();
   showApp();
 }
 function restoreLastTab(){
   const name=localStorage.getItem("lastTab");
   if(!name||name==="today")return;
-  const link=document.querySelector(`.sidebarLink[data-tab="${name}"]`);
-  if(!link)return;
-  activeTab=name;
-  document.querySelectorAll(".sidebarLink[data-tab]").forEach(b=>b.setAttribute("aria-current",b===link?"true":"false"));
-  ["#detail","#payrollDetail","#clientDetail","#matReqDetail"].forEach(s=>$(s)?.classList.add("hidden"));
-  ["today","tasks","mytasks","performance","jobs","labor","leadstracker","teamscorecards","weeklymeeting","marketingperformance","socialplanner","monthlykpi","overhead","estimates","reports","billing","subs","clients","needsreview","datahealth","jobcosting","profitability","vendorpay","materialrequests","warranty","team"].forEach(n=>$("#s-"+n)?.classList.toggle("hidden",n!==name));
-  if(name==="labor")drawLabor();
-  if(name==="mytasks")drawMyTasks();
-  if(name==="billing")drawBilling();
-  if(name==="subs")drawSubs();
-  if(name==="clients")drawClients();
-  if(name==="jobcosting")drawJobCosting();
-  if(name==="profitability")drawProfitability();
-  if(name==="materialrequests")drawMaterialRequests();
-  if(name==="warranty")drawWarranty();
-  if(name==="team")drawTeam();
-  if(name==="performance")drawPerformance();
-  if(name==="vendorpay")drawVendorPayables();
-  if(name==="marketingperformance")drawMarketingPerformance();
-  if(name==="teamscorecards")drawTeamScorecards();
-  if(name==="weeklymeeting")drawWeeklyMeeting();
-  if(name==="socialplanner")drawSocialPlanner();
-  if(name==="monthlykpi")drawMonthlyKpi();
-  if(name==="overhead")drawOverhead();
-  if(name==="estimates")drawEstimates();
-  if(name==="tasks")drawTaskManagement();
-  if(name==="needsreview")drawNeedsReview();
-  if(name==="datahealth")loadAndRenderDuplicateJobs();
+  if(!document.querySelector(`.sidebarLink[data-tab="${name}"]`))return;
+  activateTab(name);
 }
 const PROFILE_COLORS=["#3B82F6","#3E9C6D","#D14A3C","#E8A33D","#9B8CD4","#5BA8D4"];
 function avatarInnerHTML(p,initials){
