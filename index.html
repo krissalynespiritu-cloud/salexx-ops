@@ -1352,29 +1352,29 @@ function renderSocialTable(){
   const groups={};list.forEach(p=>{(groups[p.stage]=groups[p.stage]||[]).push(p)});
   const order=SOCIAL_STAGES.filter(s=>groups[s]);
   const F="flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 7px;font:inherit;font-size:11.5px";
-  const header=`<div class="jrow" style="flex-wrap:nowrap;align-items:center;gap:5px;cursor:default;padding:6px 9px;margin-bottom:8px;background:var(--navy-3)">
-      <span style="flex:1 1 200px;min-width:150px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--head-accent);font-weight:600">Content</span>
-      <span style="width:200px;flex-shrink:0;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--head-accent);font-weight:600">Status</span>
-      <span style="width:170px;flex-shrink:0;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--head-accent);font-weight:600">Type</span>
-      <span style="width:130px;flex-shrink:0;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--head-accent);font-weight:600">Date</span>
-      <span style="width:170px;flex-shrink:0;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--head-accent);font-weight:600">Link</span>
-      <span style="width:22px;flex-shrink:0"></span>
+  const header=`<div class="jrow" style="flex-wrap:nowrap;align-items:center;gap:4px;cursor:default;padding:6px 8px;margin-bottom:8px;background:var(--navy-3)">
+      <span style="flex:1 1 110px;min-width:90px;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--head-accent);font-weight:600">Content</span>
+      <span style="width:145px;flex-shrink:0;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--head-accent);font-weight:600">Status</span>
+      <span style="width:100px;flex-shrink:0;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--head-accent);font-weight:600">Type</span>
+      <span style="width:108px;flex-shrink:0;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--head-accent);font-weight:600">Date</span>
+      <span style="width:105px;flex-shrink:0;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--head-accent);font-weight:600">Link</span>
+      <span style="width:20px;flex-shrink:0"></span>
     </div>`;
   $("#socialList").innerHTML=order.length?header+order.map(stage=>{
     const rows=groups[stage].sort((a,b)=>(b.posting_date||"").localeCompare(a.posting_date||""));
     return `<div style="margin-bottom:14px"><p class="lbl" style="color:${socialStageColor(stage)};margin-bottom:6px">${escapeHtml(stage)} · ${rows.length}</p>${rows.map(p=>{
       const hasLink=!!(p.final_video_link&&p.final_video_link.trim());
-      return `<div class="jrow" style="flex-wrap:nowrap;align-items:center;gap:5px;cursor:default;padding:6px 9px;margin-bottom:5px">
-      <input type="text" data-social="title" data-social-id="${p.post_id}" value="${escapeHtml(p.title||"")}" placeholder="Post title" style="flex:1 1 200px;min-width:150px;font-weight:600;font-size:12px;${F}">
-      <select data-social="stage" data-social-id="${p.post_id}" style="width:200px;flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);border-radius:5px;padding:5px 2px;font:inherit;font-size:10.5px;font-weight:600;color:${socialStageColor(p.stage)}">${SOCIAL_STAGES.map(s=>`<option ${s===p.stage?"selected":""}>${escapeHtml(s)}</option>`).join("")}</select>
-      <span style="position:relative;width:170px;flex-shrink:0">
-        <button data-social-type-btn="${p.post_id}" style="width:100%;min-height:26px;background:var(--navy-3);border:1px solid var(--line);border-radius:5px;padding:3px 6px;cursor:pointer;display:flex;flex-wrap:wrap;gap:3px;align-items:center;font:inherit;text-align:left">${socialTypeChipInnerHTML(p)}</button>
+      return `<div class="jrow" style="flex-wrap:nowrap;align-items:center;gap:4px;cursor:default;padding:6px 8px;margin-bottom:5px">
+      <input type="text" data-social="title" data-social-id="${p.post_id}" value="${escapeHtml(p.title||"")}" placeholder="Post title" style="flex:1 1 110px;min-width:90px;font-weight:600;font-size:11.5px;${F}">
+      <select data-social="stage" data-social-id="${p.post_id}" style="width:145px;flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);border-radius:5px;padding:5px 2px;font:inherit;font-size:9.5px;font-weight:600;color:${socialStageColor(p.stage)}">${SOCIAL_STAGES.map(s=>`<option ${s===p.stage?"selected":""}>${escapeHtml(s)}</option>`).join("")}</select>
+      <span style="position:relative;width:100px;flex-shrink:0">
+        <button data-social-type-btn="${p.post_id}" style="width:100%;min-height:26px;background:var(--navy-3);border:1px solid var(--line);border-radius:5px;padding:3px 5px;cursor:pointer;display:flex;flex-wrap:wrap;gap:3px;align-items:center;font:inherit;text-align:left">${socialTypeChipInnerHTML(p)}</button>
         ${socialTypeMenuHTML(p)}
       </span>
-      <input type="date" data-social="posting_date" data-social-id="${p.post_id}" value="${p.posting_date||""}" style="width:130px;${F}">
-      <span style="width:170px;flex-shrink:0;display:flex;align-items:center;gap:4px">
-        <input type="text" data-social="final_video_link" data-social-id="${p.post_id}" value="${escapeHtml(p.final_video_link||"")}" placeholder="Paste video link…" style="flex:1;min-width:0;${F}">
-        ${hasLink?`<a href="${escapeHtml(p.final_video_link)}" target="_blank" rel="noopener" title="Open video link" style="color:var(--hivis);display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid var(--line);border-radius:5px;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></a>`:""}
+      <input type="date" data-social="posting_date" data-social-id="${p.post_id}" value="${p.posting_date||""}" style="width:108px;${F};padding:5px 3px;font-size:10.5px">
+      <span style="width:105px;flex-shrink:0;display:flex;align-items:center;gap:3px">
+        <input type="text" data-social="final_video_link" data-social-id="${p.post_id}" value="${escapeHtml(p.final_video_link||"")}" placeholder="Video link…" style="flex:1;min-width:0;${F}">
+        ${hasLink?`<a href="${escapeHtml(p.final_video_link)}" target="_blank" rel="noopener" title="Open video link" style="color:var(--hivis);display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:1px solid var(--line);border-radius:5px;flex-shrink:0"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></a>`:""}
       </span>
       <span style="position:relative;flex-shrink:0">
         <button data-social-menu="${p.post_id}" aria-label="More options" style="background:none;border:1px solid var(--line);color:var(--steel);border-radius:5px;width:22px;height:22px;cursor:pointer;font-size:13px;line-height:1">⋮</button>
