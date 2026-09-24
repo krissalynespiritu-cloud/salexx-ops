@@ -1316,8 +1316,9 @@ async function deleteSocialPost(id){
 const JOB_TYPES=["Roofing","Siding","Painting","Decking","Windows/Doors","Gutters","Concrete/Hardscape","Patio Cover","Fencing","Flooring","Multi-Trade","Other"];
 const CLOSERS=["Alex","Luke"];
 function jobUpdatesButtonHTML(j,size=22){
+  const iconSize=Math.round(size*0.6);
   return `<button data-job-updates="${j.id}" title="${j.updatesCount?j.updatesCount+" update"+(j.updatesCount===1?"":"s"):"No updates yet"}" style="position:relative;background:none;border:1px solid var(--line);color:${j.updatesCount?"var(--hivis)":"var(--steel)"};border-radius:5px;width:${size}px;height:${size}px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>
+    <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>
     ${j.updatesCount?`<span style="position:absolute;top:-6px;right:-6px;background:var(--hivis);color:#fff;border-radius:8px;min-width:14px;height:14px;font-size:9px;line-height:14px;text-align:center;padding:0 3px;font-weight:700">${j.updatesCount>9?"9+":j.updatesCount}</span>`:""}
   </button>`;
 }
@@ -1523,7 +1524,7 @@ function positionJobUpdatesPopover(btn){
 }
 function renderJobUpdatesPopover(){
   const jb=jobs.find(j=>j.id===jupJobId);
-  const list=jupUpdates===null?`<p class="note" style="border:0;padding:0;margin:0">Loading…</p>`:jupUpdates.length===0?`<p class="note" style="border:0;padding:0;margin:0;color:var(--steel)">No updates yet.</p>`:jupUpdates.map(u=>`<div style="display:flex;gap:8px;margin-bottom:10px"><div style="width:26px;height:26px;border-radius:50%;background:${u.author_color};color:var(--text);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">${escapeHtml(u.author_initials)}</div><div style="flex:1;min-width:0"><div style="display:flex;gap:6px;align-items:baseline;flex-wrap:wrap"><b style="font-size:12px">${escapeHtml(u.author_name)}</b><span style="font-size:10px;color:var(--steel)">${relativeTime(u.posted_at)}${u.edited_at?" · edited":""}</span></div>${jupEditingId===u.update_id?`<textarea data-jup-edit-body="${u.update_id}" style="width:100%;min-height:50px;margin-top:4px;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:6px;font:inherit;font-size:12px;resize:vertical">${escapeHtml(u.body)}</textarea><div style="display:flex;gap:8px;margin-top:4px"><button data-jup-save="${u.update_id}" class="chip" style="font-size:10px;padding:3px 9px">Save</button><button data-jup-cancel-edit aria-label="Cancel" style="background:none;border:0;color:var(--steel);cursor:pointer;font-size:11px">Cancel</button></div>`:`<div style="font-size:12px;margin-top:1px;white-space:pre-wrap;line-height:1.4">${escapeHtml(u.body)}</div><div style="display:flex;gap:10px;margin-top:3px"><button data-jup-edit="${u.update_id}" style="background:none;border:0;color:var(--steel);cursor:pointer;font-size:10.5px;padding:0">Edit</button><button data-jup-del="${u.update_id}" style="background:none;border:0;color:var(--alert);cursor:pointer;font-size:10.5px;padding:0">Delete</button></div>`}</div></div>`).join("");
+  const list=jupUpdates===null?`<p class="note" style="border:0;padding:0;margin:0">Loading…</p>`:jupUpdates.length===0?`<p class="note" style="border:0;padding:0;margin:0;color:var(--steel)">No updates yet.</p>`:jupUpdates.map(u=>`<div style="display:flex;gap:8px;margin-bottom:10px"><div style="width:26px;height:26px;border-radius:50%;background:${u.author_color};color:var(--text);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">${escapeHtml(u.author_initials)}</div><div style="flex:1;min-width:0"><div style="display:flex;gap:6px;align-items:baseline;flex-wrap:wrap"><b style="font-size:12px">${escapeHtml(u.author_name)}</b><span style="font-size:10px;color:var(--steel)">${formatUpdateTime(u.posted_at)}${u.edited_at?" · edited":""}</span></div>${jupEditingId===u.update_id?`<textarea data-jup-edit-body="${u.update_id}" style="width:100%;min-height:50px;margin-top:4px;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:6px;font:inherit;font-size:12px;resize:vertical">${escapeHtml(u.body)}</textarea><div style="display:flex;gap:8px;margin-top:4px"><button data-jup-save="${u.update_id}" class="chip" style="font-size:10px;padding:3px 9px">Save</button><button data-jup-cancel-edit aria-label="Cancel" style="background:none;border:0;color:var(--steel);cursor:pointer;font-size:11px">Cancel</button></div>`:`<div style="font-size:12px;margin-top:1px;white-space:pre-wrap;line-height:1.4">${escapeHtml(u.body)}</div><div style="display:flex;gap:10px;margin-top:3px"><button data-jup-edit="${u.update_id}" style="background:none;border:0;color:var(--steel);cursor:pointer;font-size:10.5px;padding:0">Edit</button><button data-jup-del="${u.update_id}" style="background:none;border:0;color:var(--alert);cursor:pointer;font-size:10.5px;padding:0">Delete</button></div>`}</div></div>`).join("");
   document.getElementById("jobUpdatesPopover").innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:12.5px">${escapeHtml(jb?.client||"")} · updates</b><button id="jupClose" aria-label="Close" style="background:none;border:0;color:var(--steel);cursor:pointer;font-size:16px;line-height:1">×</button></div><div id="jupList" style="max-height:220px;overflow-y:auto;margin-bottom:8px">${list}</div><textarea id="jupNewBody" placeholder="Write an update…" style="width:100%;min-height:50px;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:7px;font:inherit;font-size:12px;resize:vertical"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span id="jupStatus" class="note" style="margin:0;border:0;padding:0;min-height:12px;font-size:10.5px"></span><button id="jupPostBtn" class="chip" style="font-size:11px;padding:5px 11px">Post</button></div>`;
 }
 async function openJobUpdatesPopover(jobId,btn){
@@ -1633,15 +1634,8 @@ if(st==="ea"){
 }
 }
 const escapeHtml=s=>(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function relativeTime(iso){
-  const diffMs=Date.now()-new Date(iso).getTime(),min=Math.floor(diffMs/60000);
-  if(min<1)return"now";
-  if(min<60)return min+"m";
-  const hr=Math.floor(min/60);
-  if(hr<24)return hr+"h";
-  const day=Math.floor(hr/24);
-  if(day<30)return day+"d";
-  return new Date(iso).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+function formatUpdateTime(iso){
+  return new Date(iso).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});
 }
 function setUpdateStatus(msg,isError){
   const el=document.getElementById("updateStatus");if(!el)return;
@@ -3112,7 +3106,7 @@ function drawJobCosting(){
     const marginColor=col(complete?j.marginPct:null);
     return `<tr>
       <td style="width:20px"><button data-jc-expand="${j.id}" aria-label="Expand" style="background:none;border:0;color:var(--steel);cursor:pointer;font-size:13px">${expanded?"▾":"▸"}</button></td>
-      <td style="text-align:left;font-family:'Inter';font-weight:500"><span style="display:flex;align-items:center;gap:6px"><a href="#" data-open="${j.id}" style="color:inherit;text-decoration:none">${escapeHtml(j.client)}</a>${jobUpdatesButtonHTML(j,18)}</span></td>
+      <td style="text-align:left;font-family:'Inter';font-weight:500"><span style="display:flex;align-items:center;gap:6px"><a href="#" data-open="${j.id}" style="color:inherit;text-decoration:none">${escapeHtml(j.client)}</a>${jobUpdatesButtonHTML(j,22)}</span></td>
       <td><span class="stage ${stClass(j.stage)}">${j.stage}</span></td>
       <td>${money(j.contract)}</td>
       <td>${money(j.revenue)}</td>
