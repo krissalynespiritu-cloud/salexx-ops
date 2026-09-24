@@ -66,24 +66,24 @@ const testLogic = `
     check('TEST 1: the old generic repeated message is gone', !body.includes('Nothing here.'));
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
-  // ---- TEST 2: an empty column renders at a real, compact height (not the 80px drag-and-drop min-height meant for Task Management's board) ----
+  // ---- TEST 2: a genuinely empty column renders as a lightweight inline message with no gray-panel/.taskCol wrapper at all ----
   try {
     const cols = document.querySelectorAll('#myTasksBody .taskCol');
-    check('TEST 2: 4 columns rendered', cols.length === 4, String(cols.length));
-    const style = cols[1].getAttribute('style') || '';
-    check('TEST 2: an empty column overrides the 80px min-height', style.includes('min-height:0'), style);
+    check('TEST 2: no .taskCol boxes are rendered when every group is empty', cols.length === 0, String(cols.length));
+    const emptyMsgs = document.querySelectorAll('#myTasksBody p.empty');
+    check('TEST 2: all 4 groups render as plain .empty inline text instead', emptyMsgs.length === 4, String(emptyMsgs.length));
   } catch (e) { check('TEST 2: no throw', false, e.stack); }
 
-  // ---- TEST 3: a column with a real task still renders the full task card, not the compact empty style ----
+  // ---- TEST 3: a column with a real task still renders the full task card in a real .taskCol, using the new "Needs Attention" label ----
   try {
     myTasksPerson = 'Luke';
     renderMyTasksBody();
     await new Promise(r => setTimeout(r, 20));
     const body = document.getElementById('myTasksBody').innerHTML;
     check('TEST 3: the real overdue task card is rendered', body.includes('Overdue task'));
-    check('TEST 3: Overdue count shows 1', body.includes('Overdue <span') && body.includes('(1)'));
-    const overdueCol = document.querySelectorAll('#myTasksBody .taskCol')[0];
-    check('TEST 3: a populated column does NOT get the compact empty-state style override', !(overdueCol.getAttribute('style') || '').includes('min-height:0'));
+    check('TEST 3: uses the "Needs Attention" construction-ops label, not "Overdue"', body.includes('Needs Attention <span') && body.includes('(1)'));
+    const populatedCols = document.querySelectorAll('#myTasksBody .taskCol');
+    check('TEST 3: the populated group renders inside a real .taskCol (not the plain-text empty style)', populatedCols.length === 1, String(populatedCols.length));
   } catch (e) { check('TEST 3: no throw', false, e.stack); }
 
   // ---- unrelated features remain unaffected ----
