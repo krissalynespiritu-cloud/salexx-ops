@@ -65,7 +65,7 @@ const testLogic = `
 (async () => {
   await fetchJobs();
   openJob('SLX-TOAST1');
-  document.querySelector('#subtabs [data-st="cho"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  document.querySelector('#subtabs [data-st="co"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 20));
 
   // ---- TEST 1: clicking Cancel resolves false and the delete does NOT happen ----

@@ -173,9 +173,9 @@ const testLogic = `
 
   // ---- TEST 9: unrelated features remain unaffected ----
   try {
-    document.querySelector('#subtabs [data-st="cho"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('#subtabs [data-st="co"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
-    check('TEST 9: Change Orders tab still works', document.getElementById('dBody').innerHTML.includes('No change orders logged'));
+    check('TEST 9: Change Orders section (now merged into Job Costing) still works', document.getElementById('dBody').innerHTML.includes('No change orders logged'));
     check('TEST 9: Retire Job functions still present', typeof openRetireJobReview === 'function' && typeof confirmRetireJob === 'function');
     check('TEST 9: RETIRE_DEP_LABELS includes the new dependency', RETIRE_DEP_LABELS.some(([k]) => k === 'job_punch_items'));
   } catch (e) { check('TEST 9: no throw', false, e.stack); }

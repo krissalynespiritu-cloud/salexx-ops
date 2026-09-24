@@ -93,7 +93,7 @@ const testLogic = `
 (async () => {
   await fetchJobs();
   openJob('SLX-CO1');
-  document.querySelector('#subtabs [data-st="cho"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  document.querySelector('#subtabs [data-st="co"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 30));
 
   // ---- TEST 1: formula block shows real computed values (only Approved CO counted) ----

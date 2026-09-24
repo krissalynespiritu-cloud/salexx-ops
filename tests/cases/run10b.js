@@ -82,15 +82,15 @@ const testLogic = `
 (async () => {
   await fetchJobs();
 
-  // ---- TEST 1: new subtab button exists ----
+  // ---- TEST 1: the standalone Schedule subtab was folded into Overview's Delivery section ----
   try {
-    check('TEST 1: Schedule subtab button exists', !!document.querySelector('#subtabs [data-st="sch"]'));
+    check('TEST 1: Schedule subtab button no longer exists on its own', !document.querySelector('#subtabs [data-st="sch"]'));
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
-  // ---- TEST 2: opening a job with dates shows them pre-filled and computes real duration ----
+  // ---- TEST 2: opening a job with dates shows them pre-filled (on Overview now) and computes real duration ----
   try {
     openJob('SLX-S1');
-    document.querySelector('#subtabs [data-st="sch"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('#subtabs [data-st="ov"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
     const startInput = document.querySelector('[data-jf="scheduled_start_date"]');
     const endInput = document.querySelector('[data-jf="scheduled_end_date"]');
@@ -123,7 +123,7 @@ const testLogic = `
   // ---- TEST 5: a job with no schedule dates shows no duration row, no crash ----
   try {
     openJob('SLX-S4');
-    document.querySelector('#subtabs [data-st="sch"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('#subtabs [data-st="ov"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
     const body = document.getElementById('dBody').innerHTML;
     check('TEST 5: no duration text shown for a job with no dates', !body.includes('Planned duration'));
