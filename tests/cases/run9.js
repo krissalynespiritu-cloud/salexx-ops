@@ -91,15 +91,15 @@ const testLogic = `
 (async () => {
   await fetchJobs();
 
-  // ---- TEST 1: new subtab button exists ----
+  // ---- TEST 1: the standalone Closeout subtab was folded into Overview ----
   try {
-    check('TEST 1: Closeout subtab button exists', !!document.querySelector('#subtabs [data-st="clo"]'));
+    check('TEST 1: Closeout subtab button no longer exists on its own', !document.querySelector('#subtabs [data-st="clo"]'));
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
-  // ---- TEST 2: a fully-ready job shows all green checks and the "ready" banner, after the async balance-due fetch resolves ----
+  // ---- TEST 2: a fully-ready job shows all green checks and the "ready" banner (now on Overview), after the async balance-due fetch resolves ----
   try {
     openJob('SLX-CL1');
-    document.querySelector('#subtabs [data-st="clo"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('#subtabs [data-st="ov"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
     const body = document.getElementById('dBody').innerHTML;
     check('TEST 2: shows ready banner', body.includes('ready to mark Completed'), body.slice(0,500));
@@ -112,7 +112,7 @@ const testLogic = `
   // ---- TEST 3: a not-ready job shows real blockers pulled from real data, not the ready banner ----
   try {
     openJob('SLX-CL2');
-    document.querySelector('#subtabs [data-st="clo"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('#subtabs [data-st="ov"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
     const body = document.getElementById('dBody').innerHTML;
     check('TEST 3: does NOT show ready banner', !body.includes('ready to mark Completed'));
@@ -125,7 +125,7 @@ const testLogic = `
   // ---- TEST 4: switching jobs correctly re-fetches balance due for the newly opened job (no stale cache leak) ----
   try {
     openJob('SLX-CL1');
-    document.querySelector('#subtabs [data-st="clo"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('#subtabs [data-st="ov"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
     const body = document.getElementById('dBody').innerHTML;
     check('TEST 4: back on SLX-CL1, shows its own $0 balance again, not SLX-CL2\\'s $1,200', body.includes('0.00') && !body.includes('1,200'));

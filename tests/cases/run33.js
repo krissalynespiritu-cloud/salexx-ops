@@ -197,7 +197,7 @@ const testLogic = `
   try {
     global.mockAuthUserIsNull = true;
     cur = jobs.find(j => j.id === 'SLX-CLMF1');
-    st = 'up';
+    st = 'tl';
     drawDetail();
     await new Promise(r => setTimeout(r, 10));
     const ta = document.getElementById('newUpdateBody');
