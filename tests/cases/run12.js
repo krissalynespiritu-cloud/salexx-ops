@@ -94,18 +94,18 @@ const testLogic = `
 (async () => {
   await fetchJobs();
 
-  // ---- TEST 1: new subtab button exists ----
+  // ---- TEST 1: the standalone Permits subtab was folded into Overview ----
   try {
-    check('TEST 1: Permits subtab button exists', !!document.querySelector('#subtabs [data-st="prm"]'));
+    check('TEST 1: Permits subtab button no longer exists on its own', !document.querySelector('#subtabs [data-st="prm"]'));
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
-  // ---- TEST 2: opening a job with a real permit shows all its real fields, and the real permit_required flag ----
+  // ---- TEST 2: opening a job with a real permit shows all its real fields (on Overview now), and the real permit_required flag ----
   try {
     openJob('SLX-PM1');
-    document.querySelector('#subtabs [data-st="prm"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('#subtabs [data-st="ov"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
-    const body = document.getElementById('dBody').innerHTML;
-    check('TEST 2: shows real permit_required = Yes', body.includes('<b>Yes</b>'), body.slice(0,400));
+    const permitCb = document.querySelector('[data-jf="permit_required"][data-job="SLX-PM1"]');
+    check('TEST 2: shows real permit_required = Yes (checked)', permitCb && permitCb.checked === true);
     const typeInput = document.querySelector('[data-perm="permit_type"][data-perm-id="PM-1"]');
     check('TEST 2: permit type pre-filled', typeInput && typeInput.value === 'Building');
     const numInput = document.querySelector('[data-perm="permit_number"][data-perm-id="PM-1"]');
@@ -119,10 +119,11 @@ const testLogic = `
   // ---- TEST 3: a job with no permits logged, and permit_required = No, shows the empty state and correct flag ----
   try {
     openJob('SLX-PM2');
-    document.querySelector('#subtabs [data-st="prm"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('#subtabs [data-st="ov"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
     const body = document.getElementById('dBody').innerHTML;
-    check('TEST 3: shows real permit_required = No', body.includes('<b>No</b>'));
+    const permitCb = document.querySelector('[data-jf="permit_required"][data-job="SLX-PM2"]');
+    check('TEST 3: shows real permit_required = No (unchecked)', permitCb && permitCb.checked === false);
     check('TEST 3: shows empty state', body.includes('No permits logged for this job yet'));
   } catch (e) { check('TEST 3: no throw', false, e.stack); }
 
@@ -185,7 +186,7 @@ const testLogic = `
   // ---- TEST 9: switching back to SLX-PM1 still shows its own original permit untouched ----
   try {
     openJob('SLX-PM1');
-    document.querySelector('#subtabs [data-st="prm"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('#subtabs [data-st="ov"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
     const body = document.getElementById('dBody').innerHTML;
     check('TEST 9: SLX-PM1 permit untouched by SLX-PM2 edits', body.includes('B-2026-001'));
