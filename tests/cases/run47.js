@@ -26,6 +26,11 @@ global.mockSocialPosts = [
   { post_id: 'P-1', title: 'Eating prank', stage: 'Raw Footage / Ideas', posting_date: null, final_video_link: 'https://drive.google.com/x', content_types: ['Skit/Funny'] },
   { post_id: 'P-2', title: 'Sam Before & After 1', stage: 'Stuck', posting_date: null, final_video_link: 'https://drive.google.com/y', content_types: [] }
 ];
+global.mockContentTypes = [
+  { type_id: 'T-1', name: 'Carousel', sort_order: 3 },
+  { type_id: 'T-2', name: 'Talking Head', sort_order: 10 },
+  { type_id: 'T-3', name: 'Skit/Funny', sort_order: 9 }
+];
 global.sbCallLog = [];
 
 function makeChain(table) {
@@ -37,9 +42,28 @@ function makeChain(table) {
     delete() { lastOp = 'delete'; return chain; },
     eq(col, val) { eqVal = val; return chain; },
     order() { return chain; },
-    single() { return Promise.resolve({ data: global.mockSocialPosts[0], error: null }); },
+    single() {
+      if (table === 'social_content_types') {
+        const row = { type_id: 'T-NEW-' + Math.random().toString(36).slice(2, 6), ...lastArg };
+        global.mockContentTypes.push(row);
+        return Promise.resolve({ data: row, error: null });
+      }
+      return Promise.resolve({ data: global.mockSocialPosts[0], error: null });
+    },
     then(resolve) {
       global.sbCallLog.push({ table, op: lastOp || 'select', eqVal, arg: lastArg });
+      if (table === 'social_content_types') {
+        if (lastOp === 'update') {
+          const r = global.mockContentTypes.find(x => x.type_id === eqVal);
+          if (r) Object.assign(r, lastArg);
+          resolve({ data: null, error: null }); return;
+        }
+        if (lastOp === 'delete') {
+          global.mockContentTypes = global.mockContentTypes.filter(x => x.type_id !== eqVal);
+          resolve({ data: null, error: null }); return;
+        }
+        resolve({ data: global.mockContentTypes.slice(), error: null }); return;
+      }
       if (table === 'social_posts') {
         if (lastOp === 'update') {
           const r = global.mockSocialPosts.find(x => x.post_id === eqVal);
