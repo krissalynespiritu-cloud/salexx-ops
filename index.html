@@ -593,19 +593,13 @@ async function saveCostField(jobId,field,rawValue){
   setTimeout(()=>{const el=jobId?document.querySelector(`[data-jc-status="${jobId}"]`):document.getElementById("coSaveStatus");if(el?.textContent==="Saved")setCoStatus("",false,jobId)},2000);
 }
 const STALL_STAGES=["In Progress","Final Walk-through","Punch list / Touch-ups (if needed)","Final payment due","Final payment received","Final Photos / Videos","Review Requested"];
-const GREETINGS={
-  morning:[["Good morning","☀️"],["Rise and grind","🔨"],["Ready to build","🏗️"],["Morning","☕"]],
-  afternoon:[["Good afternoon","🌤️"],["Keep it moving","🔧"],["Afternoon","💪"]],
-  evening:[["Good evening","🌆"],["Wrapping up the day","🌇"],["Evening","🌤️"]],
-  night:[["Burning the midnight oil","🌙"],["Still at it","✨"],["Working late","🌃"]]
-};
+const GREETINGS={morning:"Good morning",afternoon:"Good afternoon",evening:"Good evening",night:"Working late"};
 function greetingLine(){
   const hr=new Date().getHours();
   const bucket=hr<12?"morning":hr<18?"afternoon":hr<22?"evening":"night";
-  const options=GREETINGS[bucket];
-  const[phrase,emoji]=options[Math.floor(Math.random()*options.length)];
+  const phrase=GREETINGS[bucket];
   const name=(currentUserProfile?.full_name||currentUserEmail||"").split(" ")[0]||currentUserEmail||"";
-  return `${name?`${phrase}, ${name}`:phrase} ${emoji}`;
+  return name?`${phrase}, ${name}`:phrase;
 }
 const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
 function monthlySoldCompleted(jobList,startDate,endDate){
@@ -698,20 +692,11 @@ function renderMiniCal(){
 function kpiCard(icon,color,label,value,desc,spark){
   return `<div class="kpi"><div style="display:flex;align-items:center;gap:9px;margin-bottom:8px"><span style="${badgeStyle(color)}">${icon}</span><p class="k" style="margin:0">${label}</p></div><p class="v">${value}</p><p class="d">${desc}</p>${spark?sparklineSVG(spark,color):""}</div>`;
 }
-function miniSpark(values,color){
-  if(!values||values.length<2)return "";
-  const w=60,h=24,max=Math.max(...values,0.01),min=Math.min(...values,0),range=(max-min)||1;
-  const pts=values.map((v,i)=>`${(i/(values.length-1)*w).toFixed(1)},${(h-((v-min)/range)*h).toFixed(1)}`).join(" ");
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="display:block;width:56px;height:24px;flex-shrink:0;overflow:visible"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" style="filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))"/></svg>`;
-}
-function kpiCardCompact(icon,color,label,value,changeHtml,spark){
-  return `<div class="kpi" style="padding:12px 14px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><span style="${badgeStyle(color)}">${icon}</span><p class="k" style="margin:0;font-size:11px">${label}</p></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <span style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:19px">${value}</span>
-      ${spark?miniSpark(spark,color):""}
-    </div>
-    <p style="font-size:11px;margin:5px 0 0">${changeHtml}</p>
+function kpiCardCompact(icon,color,label,value,changeHtml){
+  return `<div class="kpi" style="padding:10px 14px">
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="${badgeStyle(color)}">${icon}</span><p class="k" style="margin:0;font-size:11px">${label}</p></div>
+    <span style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:19px">${value}</span>
+    <p style="font-size:11px;margin:4px 0 0">${changeHtml}</p>
   </div>`;
 }
 let activeTab="today";
@@ -804,29 +789,12 @@ async function loadTopKpis(token){
   const marginCur=marginOf(soldCurJobs),marginPrev=marginOf(soldPrevJobs);
   const soldCurPricedCount=soldCurJobs.filter(j=>j.revenue!=null).length;
   const marginCoverageDesc=soldCurPricedCount?`Based on ${priced(soldCurJobs).length} of ${soldCurPricedCount} sold jobs with complete costing`:null;
-  const trendOf=getter=>{
-    if(allTime)return null;
-    const s=new Date(dashStart+"T00:00:00"),e=new Date(dashEnd+"T00:00:00");
-    const totalDays=Math.max(1,Math.round((e-s)/86400000)+1),n=6,step=totalDays/n;
-    const out=[];
-    for(let i=0;i<n;i++){
-      const bs=new Date(s);bs.setDate(bs.getDate()+Math.floor(i*step));
-      const be=new Date(s);be.setDate(be.getDate()+Math.floor((i+1)*step)-1);
-      out.push(getter(toDateOnlyString(bs),toDateOnlyString(be)));
-    }
-    return out;
-  };
-  const revTrend=trendOf((a,b)=>(payRows||[]).filter(r=>r.paid_on>=a&&r.paid_on<=b).reduce((s,r)=>s+Number(r.amount),0));
-  const leadsTrend=trendOf((a,b)=>(leadRows||[]).filter(l=>l.lead_date>=a&&l.lead_date<=b).length);
-  const doneTrend=trendOf((a,b)=>jobs.filter(j=>j.done&&j.done>=a&&j.done<=b).length);
-  const activeTrend=trendOf((a,b)=>jobs.filter(j=>j.sold&&j.sold>=a&&j.sold<=b).length-jobs.filter(j=>j.done&&j.done>=a&&j.done<=b).length);
-  const marginTrend=trendOf((a,b)=>marginOf(jobs.filter(j=>j.sold&&j.sold>=a&&j.sold<=b)));
   $("#kpis").innerHTML=[
-    kpiCardCompact(svgIcon("money"),"var(--hivis)","Total Revenue",money(revCur),allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(revCur,revPrev)),revTrend),
-    kpiCardCompact(svgIcon("building"),"var(--sky)","Active Jobs",activeNow,allTime?`<span style="color:var(--steel)">current snapshot</span>`:chg(activeChangePct,"vs start of period"),activeTrend),
-    kpiCardCompact(svgIcon("chart"),"var(--violet)","New Leads",leadsCur,allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(leadsCur,leadsPrev)),leadsTrend),
-    kpiCardCompact(svgIcon("alert"),"var(--amber)","Jobs Completed",doneCur,allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(doneCur,donePrev)),doneTrend),
-    kpiCardCompact(svgIcon("chart"),"var(--good)","Profit Margin",marginCur.toFixed(1)+"%",(allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(marginCur,marginPrev)))+(marginCoverageDesc?`<br><span style="color:var(--steel);font-size:10px">${marginCoverageDesc}</span>`:""),marginTrend)
+    kpiCardCompact(svgIcon("money"),"var(--hivis)","Total Revenue",money(revCur),allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(revCur,revPrev))),
+    kpiCardCompact(svgIcon("building"),"var(--sky)","Active Jobs",activeNow,allTime?`<span style="color:var(--steel)">current snapshot</span>`:chg(activeChangePct,"vs start of period")),
+    kpiCardCompact(svgIcon("chart"),"var(--violet)","New Leads",leadsCur,allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(leadsCur,leadsPrev))),
+    kpiCardCompact(svgIcon("alert"),"var(--amber)","Jobs Completed",doneCur,allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(doneCur,donePrev))),
+    kpiCardCompact(svgIcon("chart"),"var(--good)","Profit Margin",marginCur.toFixed(1)+"%",(allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(marginCur,marginPrev)))+(marginCoverageDesc?`<br><span style="color:var(--steel);font-size:10px">${marginCoverageDesc}</span>`:""))
   ].join("");
 }
 let todayLoadToken=0;
