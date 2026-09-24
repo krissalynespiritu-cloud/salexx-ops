@@ -113,7 +113,7 @@ const testLogic = `
     const statusSelect = document.querySelector('[data-cho="status"][data-cho-id="CO-1"]');
     check('TEST 2: status pre-selected to Approved', statusSelect && statusSelect.value === 'Approved');
     const costImpactInput = document.querySelector('[data-cho="cost_impact"][data-cho-id="CO-1"]');
-    check('TEST 2: cost_impact pre-filled with the real internal cost (600), distinct from amount (800)', costImpactInput && costImpactInput.value === '600');
+    check('TEST 2: cost_impact pre-filled with the real internal cost (600), distinct from amount (800)', costImpactInput && costImpactInput.value === '$600.00');
     const approvedDateInput = document.querySelector('[data-cho="approved_date"][data-cho-id="CO-1"]');
     check('TEST 2: approved_date pre-filled', approvedDateInput && approvedDateInput.value === '2026-03-02');
     const pendingStatus = document.querySelector('[data-cho="status"][data-cho-id="CO-2"]');
