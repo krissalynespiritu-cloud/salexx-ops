@@ -1769,7 +1769,7 @@ if(j.permits===undefined)refreshPermitsCache();
 if(st==="co")b.innerHTML=`<p class="note" id="coSaveStatus" style="margin:0 0 11px;min-height:14px;border:0;padding:0"></p><div class="grp"><h5>Revenue breakdown</h5><div class="fields">${FI("Contract price","contract",j.contract)}${FI("Change orders +/−","co",j.co)}${FI("Discounts / credits","disc",j.disc)}${F("Total revenue",money(j.revenue),"tot")}</div></div><div class="grp"><h5>Direct costs</h5><div class="fields">${FI(`Materials${(()=>{const expectedMat=(j.mat||0)+(j.equip||0)+(j.laborSub||0)+(j.sub||0);return Math.abs(expectedMat-j.materialCost)>0.01?` <span class="src zap" title="Total direct cost counts ${money(j.materialCost)} of materials/equipment/subcontractor cost — some of it (job_costs and Subs tab) may be double-logged for this job.">check total</span>`:""})()}`,"mat",j.mat,j.unpriced?"Not logged yet":"—")}${j.laborIn!=null&&Math.abs(j.laborCost-j.laborIn)>0.01?F(`Labor · in-house <span class="src zap">from Time Entry</span>`,money(j.laborCost)):FI("Labor · in-house","laborIn",j.laborIn,j.laborCost===0?"Not logged yet":"—")}${j.sub?F(`Labor · subcontractor <span class="src zap">from Subs tab</span>`,money(j.sub)):FI("Labor · subcontractor","laborSub",j.laborSub)}${FI("Job hours (optional)","mhrs",j.manualHours,"—",false)}${FI("Equipment / rentals","equip",j.equip)}${F("Total direct cost",money(j.laborCost+j.materialCost),"tot")}</div>${j.invoiceCount?`<p class="note" style="border:0;padding:6px 2px 0;margin:0">Vendor invoices logged for this job: <b>${money(j.invoicedTotal)}</b> across ${j.invoiceCount} invoice${j.invoiceCount===1?"":"s"}${j.invoicedMaterials&&Math.abs(j.invoicedMaterials-(j.mat||0))>0.5?` · <button data-vi-usemat="${j.id}" class="chip" style="font-size:10px;padding:2px 8px">Use ${money(j.invoicedMaterials)} as Materials</button>`:""} · <a href="#" data-vi-job="${j.id}" style="color:var(--sky)">view invoices</a></p>`:`<p class="note" style="border:0;padding:6px 2px 0;margin:0"><a href="#" data-vi-job="${j.id}" style="color:var(--sky)">Log a vendor invoice for this job</a></p>`}${matReqCostNote(j)}</div><div class="grp"><h5>Additional costs</h5><div class="fields">${FI("Disposal / dumpster","disp",j.disp)}${FI("Permits / fees","permit",j.permit)}${FI("Fuel / travel","fuel",j.fuel)}${FI("Other / misc","other",j.other)}${F("Total additional",money(j.additionalCost),"tot")}</div></div><div class="grp"><h5>Overhead &amp; profit</h5><div class="fields">${FI("Overhead %","oh",j.oh,"—",false)}${F("Overhead $",money(j.overheadCost))}${F("Total job cost",money(j.totalCost),"tot")}<div class="fld tot"><span class="k">Gross profit</span><span class="v" style="color:${col(jComplete?p:null)}">${j.revenue==null?"—":!jComplete?incompleteBadge(j):money(j.gp)}</span></div><div class="fld tot"><span class="k">Margin %</span><span class="v" style="color:${col(jComplete?p:null)}">${j.revenue==null?"—":!jComplete?incompleteBadge(j):j.revenue?(j.gp/j.revenue*100).toFixed(2)+"%":"—"}</span></div></div></div>${!jComplete?`<div class="flagbox">${j.unpriced?`Margin shows <b>no cost data</b>, not 100%, until at least one cost or hour is entered. A blank cost field is missing data, not free work.`:`<b>Margin unavailable — labor cost not yet recorded.</b> This job has some cost data logged, but no labor hours and no labor cost line item. Check "Reviewed" if this job's costing is actually complete as-is.`}</div>`:""}${jobChangeOrdersBlock(j)}<p class="note">Editing writes straight to Supabase. <b>Labor · in-house</b> and <b>Job hours</b> are used only when no crew time is logged against this job — a logged timesheet always wins.</p>`;
 if(st==="pay"){
   const sum=currentPayments?.summary;
-  const list=currentPayments===null?`<p class="note" style="border:0;padding:0">Loading…</p>`:!currentPayments.rows.length?`<div class="empty">No payments recorded yet.</div>`:currentPayments.rows.map(pmt=>`<div class="fld"><span class="k">${pmt.paid_on} · ${pmt.method||"—"}${pmt.is_deposit?" · deposit":""}${pmt.reference?" · "+escapeHtml(pmt.reference):""}</span><span class="v" style="display:flex;align-items:center;gap:7px">${money(pmt.amount)}<button data-del-payment="${pmt.payment_id}" aria-label="Delete payment" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:20px;height:20px;line-height:1;cursor:pointer;font-size:12px">×</button></span></div>`).join("");
+  const list=currentPayments===null?`<p class="note" style="border:0;padding:0">Loading…</p>`:currentPayments.error?`<div class="empty" style="color:var(--alert)">${icon("alert",14)} Couldn't load payments — ${escapeHtml(currentPayments.error)}</div>`:!currentPayments.rows.length?`<div class="empty">No payments recorded yet.</div>`:currentPayments.rows.map(pmt=>`<div class="fld"><span class="k">${pmt.paid_on} · ${pmt.method||"—"}${pmt.is_deposit?" · deposit":""}${pmt.reference?" · "+escapeHtml(pmt.reference):""}</span><span class="v" style="display:flex;align-items:center;gap:7px">${money(pmt.amount)}<button data-del-payment="${pmt.payment_id}" aria-label="Delete payment" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:20px;height:20px;line-height:1;cursor:pointer;font-size:12px">×</button></span></div>`).join("");
   b.innerHTML=`<div class="grp"><h5>Collected vs owed</h5><div class="fields">${F("Revenue",money(sum?.revenue))}${F("Collected",money(sum?.collected))}${F("Balance due",money(sum?.balance_due),"tot")}</div></div><div class="grp" style="margin-top:16px"><h5>Payments</h5><div class="fields">${list}</div></div><div class="grp" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><h5>Record a payment</h5><input id="newPayAmount" type="number" step="0.01" placeholder="Amount" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><input id="newPayDate" type="date" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><select id="newPayMethod" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><option value="">Method…</option>${["Check","Card","ACH / Transfer","Cash","Financing","Other"].map(m=>`<option value="${m}">${m}</option>`).join("")}</select><input id="newPayRef" placeholder="Reference (optional)" style="width:100%;margin-bottom:6px;background:var(--navy-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font:inherit"><label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--steel);margin-bottom:8px"><input id="newPayDeposit" type="checkbox"> Deposit</label><div style="display:flex;justify-content:space-between;align-items:center"><span id="payStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px"></span><button id="addPaymentBtn" class="chip">Add payment</button></div></div>`;
   if(currentPayments===null)loadPayments();
 }
@@ -1788,6 +1788,7 @@ if(st==="tl"){
 if(st==="pnl")b.innerHTML=jobPunchListBlock(j);
 if(st==="ea"){
   if(currentEstActual===null){b.innerHTML=`<div class="empty">Loading…</div>`;loadEstActual();}
+  else if(currentEstActual.error){b.innerHTML=`<div class="empty" style="color:var(--alert)">${icon("alert",14)} Couldn't load — ${escapeHtml(currentEstActual.error)}</div>`;}
   else b.innerHTML=renderEstActualTab(j);
 }
 }
@@ -1809,8 +1810,9 @@ async function loadPayments(){
     sb.from("payments").select("*").eq("job_id",jobId).order("paid_on",{ascending:false}),
     sb.from("job_payments").select("*").eq("job_id",jobId).single()
   ]);
-  currentPayments={rows:rowsRes.data||[],summary:sumRes.data||null};
-  if(cur&&cur.id===jobId&&st==="pay")drawDetail();
+  if(!cur||cur.id!==jobId)return;
+  currentPayments=rowsRes.error?{error:rowsRes.error.message}:{rows:rowsRes.data||[],summary:sumRes.data||null};
+  if(st==="pay")drawDetail();
 }
 async function addPayment(){
   const jobId=cur.id;
@@ -1982,13 +1984,21 @@ async function postUpdate(){
 }
 async function loadEstActual(){
   const jobId=cur.id;
-  const [{data:labor},{data:mats},{data:settingsRow},{data:actualRows}]=await Promise.all([
+  const [{data:labor,error:e1},{data:mats,error:e2},{data:settingsRow,error:e3},{data:actualRows,error:e4}]=await Promise.all([
     sb.from("job_labor_estimates").select("*").eq("job_id",jobId).order("sort"),
     sb.from("job_material_estimates").select("*").eq("job_id",jobId).order("sort"),
     sb.from("settings").select("*").eq("id",1).single(),
     sb.from("time_entry_costs").select("person,hours,labor_cost").eq("job_id",jobId)
   ]);
   if(!cur||cur.id!==jobId)return;
+  // A fetch error here must never be mistaken for "no rows yet" -- that
+  // would trigger the default-row seeding below on every failed load.
+  if(e1||e2||e3||e4){
+    showToast("Couldn't load Est. vs Actual: "+(e1||e2||e3||e4).message,true);
+    currentEstActual={error:(e1||e2||e3||e4).message};
+    if(cur.id===jobId&&st==="ea")drawDetail();
+    return;
+  }
   eaLabor=labor||[];eaMats=mats||[];
   if(eaLabor.length===0){
     const {data:seeded,error:seedError}=await sb.from("job_labor_estimates").insert([0,1,2].map(i=>({job_id:jobId,sort:i}))).select();
@@ -3443,12 +3453,12 @@ async function openMatReq(id){
   $("#mrBody").innerHTML=`<div class="empty">Loading…</div>`;
   $("#detail").classList.add("hidden");$("#clientDetail").classList.add("hidden");
   $("#matReqDetail").classList.remove("hidden");window.scrollTo(0,0);
-  const [{data:req},{data:items},{data:invoices}]=await Promise.all([
+  const [{data:req,error:reqError},{data:items},{data:invoices}]=await Promise.all([
     sb.from("material_requests").select("*").eq("request_id",id).single(),
     sb.from("material_request_items").select("*").eq("request_id",id).order("sort"),
     sb.from("vendor_invoices").select("invoice_id,vendor,total_amount,amount_paid,payment_status").eq("request_id",id)
   ]);
-  if(!req){$("#mrBody").innerHTML=`<div class="empty">Not found.</div>`;return}
+  if(!req){$("#mrBody").innerHTML=reqError?`<div class="empty" style="color:var(--alert)">${icon("alert",14)} Couldn't load — ${escapeHtml(reqError.message)}</div>`:`<div class="empty">Not found.</div>`;return}
   curMatReq=req;curMatItems=items||[];curMatInvoices=invoices||[];renderMatReq();
 }
 function matItemRow(it){
@@ -3732,6 +3742,8 @@ async function loadTimeline(){
   }
   events.sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.time||"").localeCompare(a.time||""));
   currentTimeline=events;
+  const tlError=[teRes,muRes,payRes,viRes,mrRes].map(r=>r.error).find(Boolean);
+  if(tlError)showToast("Some activity for this job couldn't be loaded and may be missing from the feed: "+tlError.message,true);
   if(cur&&cur.id===jobId&&st==="tl")drawDetail();
 }
 function renderTimelineTab(){
