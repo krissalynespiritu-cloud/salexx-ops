@@ -2410,6 +2410,12 @@ async function drawBilling(){
 let billingErr=null;
 function renderBilling(){
   const error=billingErr;
+  if(error){
+    $("#billingSummary").innerHTML="";
+    $("#billPayJob").innerHTML=`<option value="">Job…</option>`;
+    $("#billingList").innerHTML=`<div class="empty" style="color:var(--alert)">${icon("alert",14)} Couldn't load billing data — ${escapeHtml(error.message)}</div>`;
+    return;
+  }
   const owed=billingRows.reduce((s,r)=>s+Number(r.balance_due||0),0);
   const collected=billingRows.reduce((s,r)=>s+Number(r.collected||0),0);
   const nothing=billingRows.filter(r=>r.payment_status==="Nothing collected").length;
@@ -2429,7 +2435,7 @@ function renderBilling(){
   $("#billingList").innerHTML=list.map(r=>{
     const badge=r.payment_status==="Paid in full"?"st-paid":r.payment_status==="Nothing collected"?"st-pay":"st-sched";
     return `<button class="jrow" data-open="${r.job_id}" style="width:100%"><div class="mid"><div class="cn">${escapeHtml(r.client_name)}</div><span class="stage ${badge}">${r.payment_status}</span></div><div class="rt"><div class="rv">${money(r.balance_due)}</div><div class="mt">${money(r.collected)} collected</div></div></button>`;
-  }).join("")||`<div class="empty">${error?"Couldn't load billing data.":"No jobs match."}</div>`;
+  }).join("")||`<div class="empty">No jobs match.</div>`;
 }
 async function billAddPayment(){
   const jobId=$("#billPayJob").value,amount=parseFloat($("#billPayAmount").value),paidOn=$("#billPayDate").value;
@@ -4800,14 +4806,17 @@ async function drawPerformance(){
   const s=localISO(start),e=localISO(end);
   $("#perfRange").textContent=`${start.toLocaleDateString("en-US")} – ${end.toLocaleDateString("en-US")}`;
   if(!perfData){
-    const [wk,est,fol,ad,ld]=await Promise.all([
+    const perfResults=await Promise.all([
       sb.from("weekly_metrics").select("*"),
       sb.from("estimate_status_monthly").select("*"),
       sb.from("social_followers").select("*"),
       sb.from("ad_spend").select("month,platform,spend,leads"),
       sb.from("leads").select("source,status,lead_date,estimate_booked,shown,closed_revenue,sale_date,design_sent_date,design_sold_date")
     ]);
-    perfData={wk:wk.data||[],est:est.data||[],fol:fol.data||[],ad:ad.data||[],ld:ld.data||[],wkErr:wk.error?.message};
+    const[wk,est,fol,ad,ld]=perfResults;
+    const perfError=perfResults.map(r=>r.error).find(Boolean);
+    if(perfError)showToast("Some performance data couldn't be loaded and may show as zero or incomplete: "+perfError.message,true);
+    perfData={wk:wk.data||[],est:est.data||[],fol:fol.data||[],ad:ad.data||[],ld:ld.data||[]};
   }
   const {wk,est,fol,ad,ld}=perfData;
   const inR=d=>d&&d>=s&&d<=e;
