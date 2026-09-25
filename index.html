@@ -669,11 +669,12 @@ function lineChartSVG(months){
 }
 async function loadBalanceCard(token){
   const allTime=dashStart==="0000-01-01"&&dashEnd==="9999-12-31";
-  const [{data:balRows},{data:payRows}]=await Promise.all([
+  const [{data:balRows,error:e1},{data:payRows,error:e2}]=await Promise.all([
     sb.from("job_payments").select("revenue,balance_due,payment_count"),
-    allTime?Promise.resolve({data:[]}):sb.from("payments").select("amount,paid_on").gte("paid_on",dashStart).lte("paid_on",dashEnd)
+    allTime?Promise.resolve({data:[],error:null}):sb.from("payments").select("amount,paid_on").gte("paid_on",dashStart).lte("paid_on",dashEnd)
   ]);
   if(token!==undefined&&token!==todayLoadToken)return;
+  if(e1||e2){$("#balOwedCard").innerHTML=`<div style="display:flex;align-items:center;gap:9px;margin-bottom:8px"><span style="${badgeStyle("var(--alert)")}">${svgIcon("alert")}</span><p class="lbl" style="margin:0">Total Balance</p></div><p class="note" style="border:0;padding:0;margin:0;color:var(--alert)">Couldn't load — ${escapeHtml((e1||e2).message)}</p>`;return}
   const pricedBal=(balRows||[]).filter(r=>r.revenue!=null);
   const balanceNow=pricedBal.reduce((s,r)=>s+Number(r.balance_due||0),0);
   const balCoveragePct=paymentCoveragePct(pricedBal);
@@ -807,11 +808,12 @@ async function loadTopKpis(token){
   const pct=(c,p)=>p?((c-p)/p*100):(c>0?100:0);
   const chg=(d,label="vs prior period")=>`<span style="color:${d>=0?"var(--good)":"var(--alert)"}">${icon(d>=0?"trendUp":"trendDown",11)} ${Math.abs(d).toFixed(1)}%</span> <span style="color:var(--steel)">${label}</span>`;
   const fetchFrom=allTime?"0000-01-01":prevStart;
-  const [{data:payRows},{data:leadRows}]=await Promise.all([
+  const [{data:payRows,error:e1},{data:leadRows,error:e2}]=await Promise.all([
     sb.from("payments").select("amount,paid_on").gte("paid_on",fetchFrom).lte("paid_on",dashEnd),
     sb.from("leads").select("lead_date").gte("lead_date",fetchFrom).lte("lead_date",dashEnd)
   ]);
   if(token!==undefined&&token!==todayLoadToken)return;
+  const errVal=`<span style="color:var(--alert)">${icon("alert",13)} Couldn't load</span>`;
   const revCur=(payRows||[]).filter(r=>inCur(r.paid_on)).reduce((s,r)=>s+Number(r.amount),0);
   const revPrev=(payRows||[]).filter(r=>inPrev(r.paid_on)).reduce((s,r)=>s+Number(r.amount),0);
   const soldCurJobs=jobs.filter(j=>inCur(j.sold)),soldPrevJobs=jobs.filter(j=>inPrev(j.sold));
@@ -828,9 +830,9 @@ async function loadTopKpis(token){
   const soldCurPricedCount=soldCurJobs.filter(j=>j.revenue!=null).length;
   const marginCoverageDesc=soldCurPricedCount?`Based on ${priced(soldCurJobs).length} of ${soldCurPricedCount} sold jobs with complete costing`:null;
   $("#kpis").innerHTML=[
-    kpiCardCompact(svgIcon("money"),"var(--hivis)","Total Revenue",money(revCur),allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(revCur,revPrev))),
+    kpiCardCompact(svgIcon("money"),"var(--hivis)","Total Revenue",e1?errVal:money(revCur),e1?"":(allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(revCur,revPrev)))),
     kpiCardCompact(svgIcon("building"),"var(--sky)","Active Jobs",activeNow,allTime?`<span style="color:var(--steel)">current snapshot</span>`:chg(activeChangePct,"vs start of period")),
-    kpiCardCompact(svgIcon("chart"),"var(--violet)","New Leads",leadsCur,allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(leadsCur,leadsPrev))),
+    kpiCardCompact(svgIcon("chart"),"var(--violet)","New Leads",e2?errVal:leadsCur,e2?"":(allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(leadsCur,leadsPrev)))),
     kpiCardCompact(svgIcon("alert"),"var(--amber)","Jobs Completed",doneCur,allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(doneCur,donePrev))),
     kpiCardCompact(svgIcon("chart"),"var(--good)","Profit Margin",marginCur.toFixed(1)+"%",(allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(marginCur,marginPrev)))+(marginCoverageDesc?`<br><span style="color:var(--steel);font-size:10px">${marginCoverageDesc}</span>`:""))
   ].join("");
@@ -854,7 +856,7 @@ async function drawToday(){$("#greeting").textContent=greetingLine();
     miniCalReady=true;
   }
   renderMiniCal();
-  const [{data:teRows},{data:payRows},{data:allPay},{data:leadRows},{data:adPerf},{data:crewRows},{data:jcRows},{data:spRows},{data:weekRows},{data:topClients}]=await Promise.all([
+  const dashResults=await Promise.all([
     sb.from("time_entries").select("job_id,work_date").not("job_id","is",null),
     sb.from("job_payments").select("job_id,client_name,balance_due,payment_status").gt("balance_due",0),
     sb.from("job_payments").select("job_id,revenue,collected,payment_count"),
@@ -866,6 +868,9 @@ async function drawToday(){$("#greeting").textContent=greetingLine();
     (()=>{const now=parseDateOnly(todayPacific()),d=now.getDay(),mon=new Date(now);mon.setDate(now.getDate()-(d===0?6:d-1));const sun=new Date(mon);sun.setDate(mon.getDate()+6);return sb.from("time_entries").select("hours").gte("work_date",toDateOnlyString(mon)).lte("work_date",toDateOnlyString(sun))})(),
     sb.from("client_value").select("name,lifetime_value,projects").order("lifetime_value",{ascending:false,nullsFirst:false}).limit(5)
   ]);
+  const [{data:teRows},{data:payRows},{data:allPay},{data:leadRows},{data:adPerf},{data:crewRows},{data:jcRows},{data:spRows},{data:weekRows},{data:topClients}]=dashResults;
+  const dashError=dashResults.map(r=>r.error).find(Boolean);
+  if(dashError)showToast("Some dashboard data couldn't be loaded and may show as zero or incomplete: "+dashError.message,true);
   if(myToken!==todayLoadToken)return;
   const lastByJob={};
   for(const r of teRows||[]){if(!lastByJob[r.job_id]||r.work_date>lastByJob[r.job_id])lastByJob[r.job_id]=r.work_date}
@@ -925,12 +930,13 @@ function renderUpcomingSchedule(){
 const mondayOf=dateStr=>{const d=parseDateOnly(dateStr);d.setDate(d.getDate()-((d.getDay()+6)%7));return toDateOnlyString(d)};
 const EARLY_STAGES=["Designs Sold","Permitting / Drawings","Ready For Scheduling","Project Scheduled"];
 async function drawMoneyAndBreakdowns(token){
-  const [{data:pay},{data:adminD},{data:closerD}]=await Promise.all([
+  const [{data:pay,error:e1},{data:adminD,error:e2},{data:closerD,error:e3}]=await Promise.all([
     sb.from("job_payments").select("job_id,revenue,collected,balance_due,payment_count"),
     sb.from("admin_daily").select("log_date,leads_assigned,appointments_set"),
     sb.from("closer_daily").select("log_date,shows_received,closed_deals,revenue")
   ]);
   if(token!==undefined&&token!==todayLoadToken)return;
+  const kpiErr=msg=>`<p class="note" style="border:0;padding:0;margin:0;color:var(--alert)">${icon("alert",13)} Couldn't load — ${escapeHtml(msg)}</p>`;
   const stageById=Object.fromEntries(jobs.map(j=>[j.id,j.stage]));
   // ---------- Money & collections ----------
   const priced=(pay||[]).filter(r=>r.revenue!=null);
@@ -948,7 +954,7 @@ async function drawMoneyAndBreakdowns(token){
   const collectedDesc=lowCoverage?`Not enough data yet — payment data recorded for ${coveragePct.toFixed(0)}% of priced jobs`:`${booked?(collected/booked*100).toFixed(1):0}% of booked`;
   const arDesc=lowCoverage?`Based on ${coveragePct.toFixed(0)}% of priced jobs — actual A/R may be higher`:`across ${withBal} jobs with a balance`;
   const overdueDesc=overdueNoRecord.length?`${money(overdueConfirmedSum)} confirmed (partial payment) · ${money(overdueNoRecordSum)} with no payment record${overdueNoRecord.length?" — may be missing data, not confirmed unpaid":""}`:`${overdue.length} finished jobs still owed`;
-  $("#kpisMoney").innerHTML=[
+  $("#kpisMoney").innerHTML=e1?kpiErr(e1.message):[
     kpiCard(svgIcon("money"),"var(--hivis)","Booked revenue",money(booked),`${priced.length} priced jobs`),
     kpiCard(svgIcon("wallet"),"var(--good)","Collected",money(collected),collectedDesc),
     kpiCard(svgIcon("alert"),"var(--alert)","Outstanding A/R",money(booked-collected),arDesc),
@@ -965,14 +971,16 @@ async function drawMoneyAndBreakdowns(token){
     kpiCard(svgIcon("building"),"var(--sky)","Backlog value",money(backlogVal),`${openPriced.length} jobs signed, not completed`),
     kpiCard(svgIcon("chart"),"var(--amber)","In progress",money(inProgVal),`contract value on the boards now`),
     kpiCard(svgIcon("target"),"var(--violet)","Sold, not started",notStarted,`in design / permitting / scheduling`),
-    kpiCard(svgIcon("alert"),"var(--alert)","Backlog, $0 collected",noDeposit,`open jobs with no deposit logged`)
+    kpiCard(svgIcon("alert"),"var(--alert)","Backlog, $0 collected",e1?icon("alert",13):noDeposit,e1?"couldn't load payment data":`open jobs with no deposit logged`)
   ].join("");
   // ---------- Sales activity, last 6 weeks ----------
   const wk={},ensure=w=>wk[w]||={leads:0,appts:0,shows:0,closed:0,rev:0};
   for(const r of adminD||[]){const w=mondayOf(r.log_date);ensure(w);wk[w].leads+=r.leads_assigned||0;wk[w].appts+=r.appointments_set||0}
   for(const r of closerD||[]){const w=mondayOf(r.log_date);ensure(w);wk[w].shows+=r.shows_received||0;wk[w].closed+=r.closed_deals||0;wk[w].rev+=Number(r.revenue||0)}
   const weeks=Object.keys(wk).sort().slice(-6);
-  $("#salesActivityTable").innerHTML=weeks.length
+  $("#salesActivityTable").innerHTML=(e2||e3)
+    ?`<tbody><tr><td style="color:var(--alert)">${icon("alert",13)} Couldn't load — ${escapeHtml((e2||e3).message)}</td></tr></tbody>`
+    :weeks.length
     ?`<thead><tr><th>Week of</th><th>Leads</th><th>Appts set</th><th>Shows</th><th>Closed</th><th>Revenue</th></tr></thead><tbody>${weeks.map(w=>{const d=wk[w];return `<tr><td>${w}</td><td>${d.leads}</td><td>${d.appts}</td><td>${d.shows}</td><td>${d.closed}</td><td>${d.rev?money(d.rev):"—"}</td></tr>`}).join("")}</tbody>`
     :`<tbody><tr><td>No activity logged yet</td></tr></tbody>`;
   // ---------- Job type breakdown ----------
