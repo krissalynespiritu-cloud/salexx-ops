@@ -40,6 +40,15 @@ check('TEST 8: no more triangle characters standing in for an expand caret in th
 check('TEST 9: a shared expandCaret rotation transition exists, within the 150-300ms range', /\.expandCaret svg\{transition:transform (\d+)ms/.exec(html) && (() => { const ms = Number(/\.expandCaret svg\{transition:transform (\d+)ms/.exec(html)[1]); return ms >= 150 && ms <= 300; })());
 check('TEST 10: the rotation respects prefers-reduced-motion', /@media \(prefers-reduced-motion:reduce\)/.test(html));
 
+// Increment 2: the remaining pages' prev/next arrows, back-button arrows,
+// the Clients page's duplicate-review toggle, and the Profitability
+// drill-down caret.
+check('TEST 11: no more single-guillemet characters standing in for prev/next arrows', !html.includes('‹'));
+check('TEST 12: no more left-arrow characters standing in for a back icon', !html.includes('←'));
+check('TEST 13: the breadcrumb separator (real typography, not an icon) is untouched', html.includes('>›</span>'));
+check('TEST 14: the duplicate-review toggle now uses innerHTML with real icons, not textContent with a warning emoji-ish glyph', /btn\.innerHTML=dupClientsVisible\?`\$\{icon\("chevronLeft",12\)\} Back to client list`:`\$\{icon\("alert",12\)\} Review Possible Duplicates`/.test(html));
+check('TEST 15: the Profitability drill-down row uses the shared expandCaret rotation, not a triangle swap', /class="expandCaret\$\{open\?" open":""\}"/.test(html));
+
 console.log('\n=== PASS (' + results.pass.length + ') ===');
 results.pass.forEach(p => console.log('  ok - ' + p));
 console.log('\n=== FAIL (' + results.fail.length + ') ===');
