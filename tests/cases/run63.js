@@ -27,6 +27,9 @@ check('TEST 4: it keeps the full stage name available via a title attribute', /t
 const nameInput = (jobsRow.match(/<input type="text" data-jf="client_name"[^>]*>/) || [''])[0];
 check('TEST 5: the client name field no longer grows unbounded (flex-grow 1) to eat all row space', !/flex:1 1/.test(nameInput), nameInput);
 
+const locationInput = (jobsRow.match(/<input type="text" data-jf="address_city"[^>]*>/) || [''])[0];
+check('TEST 6: the Location field grows to absorb leftover row space instead of leaving a dead gap before the icons', /flex:1 1/.test(locationInput), locationInput);
+
 console.log('\n=== PASS (' + results.pass.length + ') ===');
 results.pass.forEach(p => console.log('  ok - ' + p));
 console.log('\n=== FAIL (' + results.fail.length + ') ===');
