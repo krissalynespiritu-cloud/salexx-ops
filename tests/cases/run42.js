@@ -88,7 +88,7 @@ const testLogic = `
   try {
     const toggle = document.querySelector('[data-job-expand="SLX-QR1"]');
     check('TEST 1: the row has an expand toggle', !!toggle);
-    check('TEST 1: it starts collapsed (closed triangle)', toggle && toggle.textContent === '▸');
+    check('TEST 1: it starts collapsed (no open class)', toggle && !toggle.classList.contains('open'));
     check('TEST 1: no quick-review panel is rendered yet', !document.querySelector('[data-jf="scheduled_start_date"]'));
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
@@ -101,7 +101,7 @@ const testLogic = `
     check('TEST 2: permit checkbox exists and starts unchecked (unset)', permitCb && permitCb.checked === false);
     check('TEST 2: shows a real cost-status note, not a fabricated health score', /No (contract price|cost data logged) yet/.test(document.getElementById('jobList').innerHTML));
     const toggle = document.querySelector('[data-job-expand="SLX-QR1"]');
-    check('TEST 2: the toggle now shows open (down triangle)', toggle.textContent === '▾');
+    check('TEST 2: the toggle now shows open (rotated chevron via the open class)', toggle.classList.contains('open'));
   } catch (e) { check('TEST 2: no throw', false, e.stack); }
 
   // ---- TEST 3: editing a field inline saves through the normal job-field save path ----
