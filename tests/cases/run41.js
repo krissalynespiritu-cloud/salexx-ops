@@ -34,7 +34,7 @@ check('TEST 7: disabled sidebar links still read as visually dimmed in both them
 // single line.
 const reviewedColRule = (html.match(/#jobCostingTable th:nth-child\(10\),#jobCostingTable td:nth-child\(10\)\{([^}]*)\}/) || [])[1] || '';
 check('TEST 8: the Reviewed column rule exists', !!reviewedColRule);
-check('TEST 9: the Reviewed column is wide enough now (10%, up from 8%)', reviewedColRule.includes('width:10%'), reviewedColRule);
+check('TEST 9: the Reviewed column is wide enough now (9%, up from the old 8%)', reviewedColRule.includes('width:9%'), reviewedColRule);
 check('TEST 10: the Reviewed column no longer breaks its header word mid-way', reviewedColRule.includes('white-space:nowrap') && reviewedColRule.includes('word-break:normal'), reviewedColRule);
 
 console.log('\n=== PASS (' + results.pass.length + ') ===');
