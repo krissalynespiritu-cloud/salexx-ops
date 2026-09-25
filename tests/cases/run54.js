@@ -112,6 +112,26 @@ const testLogic = `
     check('TEST 3: Total direct cost is correct for this job too', body.includes('$1,100.00'), body.match(/Total direct cost[\\s\\S]{0,120}/)?.[0]);
   } catch (e) { check('TEST 3: no throw', false, e.stack); }
 
+  // ---- TEST 4: the Job Costing table's own row-expand view shows the same explanation ----
+  try {
+    document.getElementById('detail').classList.add('hidden');
+    activateTab('jobcosting');
+    drawJobCosting();
+    document.querySelector('[data-jc-expand="SLX-OV1"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const body = document.getElementById('jobCostingTable').innerHTML;
+    check('TEST 4: it now shows a Total Direct Cost line, and it is correct', body.includes('Total Direct Cost:') && body.includes('$1,669.50'), body.match(/Total Direct Cost:[\\s\\S]{0,80}/)?.[0]);
+    check('TEST 4: the Labor (In-House) row explains the timesheet override here too', /timesheet wins/.test(body) && body.includes('$1,194.50'));
+  } catch (e) { check('TEST 4: no throw', false, e.stack); }
+
+  // ---- TEST 5: same view for a job with no override stays clean ----
+  try {
+    document.querySelector('[data-jc-expand="SLX-OV1"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('[data-jc-expand="SLX-OV2"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const body = document.getElementById('jobCostingTable').innerHTML;
+    check('TEST 5: no override badge for the clean job', !/timesheet wins/.test(body));
+    check('TEST 5: its Total Direct Cost is correct too', body.includes('Total Direct Cost:') && body.includes('$1,100.00'));
+  } catch (e) { check('TEST 5: no throw', false, e.stack); }
+
   console.log('\\n=== PASS (' + results.pass.length + ') ===');
   results.pass.forEach(p => console.log('  ok - ' + p));
   console.log('\\n=== FAIL (' + results.fail.length + ') ===');

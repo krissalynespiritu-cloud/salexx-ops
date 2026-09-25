@@ -3184,9 +3184,13 @@ function jobCostRowDetail(j){
   const rowInput=(label,field,value,ph="—",isMoney=true)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px"><span style="color:var(--steel)">${label}</span><input type="${isMoney?"text":"number"}"${isMoney?' inputmode="decimal" class="moneyField"':""} data-c="${field}" data-job="${j.id}" value="${isMoney?moneyPrecise(value):(value??"")}" placeholder="${ph}" style="border:0;background:none;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;text-align:right;width:90px;padding:2px"></div>`;
   const matPh=j.unpriced?"Not logged yet":"—";
   const laborPh=j.laborCost===0?"Not logged yet":"—";
+  const expectedMat=(j.mat||0)+(j.equip||0)+(j.laborSub||0)+(j.sub||0);
+  const matMismatch=Math.abs(expectedMat-j.materialCost)>0.01;
+  const laborOverridden=j.laborIn!=null&&Math.abs(j.laborCost-j.laborIn)>0.01;
+  const zap=(title,text)=>` <span class="src zap" title="${title}">${text}</span>`;
   return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
     <div>${heading("Revenue Breakdown")}${rowInput("Contract Price:","contract",j.contract)}${rowInput("Change Orders:","co",j.co)}${rowInput("Discounts/Credits:","disc",j.disc)}</div>
-    <div>${heading("Direct Costs")}${rowInput("Materials:","mat",j.mat,matPh)}${rowInput("Labor (In-House):","laborIn",j.laborIn,laborPh)}${j.sub?row("Labor (Subcontractor):",money(j.sub)+" · Subs tab"):rowInput("Labor (Subcontractor):","laborSub",j.laborSub)}${rowInput("Job Hours:","mhrs",j.manualHours,"—",false)}${rowInput("Equipment Rentals:","equip",j.equip)}</div>
+    <div>${heading("Direct Costs")}${rowInput(`Materials:${matMismatch?zap(`Total direct cost counts ${money(j.materialCost)} of materials/equipment/subcontractor cost — some of it (job_costs and Subs tab) may be double-logged for this job.`,"check total"):""}`,"mat",j.mat,matPh)}${rowInput(`Labor (In-House):${laborOverridden?zap(`A timesheet is logged for this job, so Total Direct Cost uses ${money(j.laborCost)} from Time Entry instead of this entered figure.`,`timesheet wins: ${money(j.laborCost)}`):""}`,"laborIn",j.laborIn,laborPh)}${j.sub?row("Labor (Subcontractor):",money(j.sub)+" · Subs tab"):rowInput("Labor (Subcontractor):","laborSub",j.laborSub)}${rowInput("Job Hours:","mhrs",j.manualHours,"—",false)}${rowInput("Equipment Rentals:","equip",j.equip)}${row("Total Direct Cost:",`<b style="color:var(--text)">${money(j.laborCost+j.materialCost)}</b>`)}</div>
     <div>${heading("Additional Costs")}${rowInput("Disposal/Dumpster:","disp",j.disp)}${rowInput("Permits/Fees:","permit",j.permit)}${rowInput("Fuel/Travel:","fuel",j.fuel)}${rowInput("Other/Misc:","other",j.other)}</div>
   </div>
   <div style="display:flex;align-items:center;gap:22px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap">
