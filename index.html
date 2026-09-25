@@ -2338,6 +2338,7 @@ function fmtRange(start){const end=addDays(start,13),opts={month:"short",day:"2-
 async function drawPayroll(){
   $("#payrollList").innerHTML=`<div class="empty">Loading…</div>`;
   const [teRes,ppRes]=await Promise.all([sb.from("time_entries").select("person,work_date,hours"),sb.from("payroll_periods").select("*")]);
+  if(teRes.error||ppRes.error){$("#payrollList").innerHTML=`<div class="empty" style="color:var(--alert)">${icon("alert",14)} Couldn't load payroll — ${escapeHtml((teRes.error||ppRes.error).message)}</div>`;return}
   payrollPaid=Object.fromEntries((ppRes.data||[]).map(r=>[r.period_start,r]));
   const rateOf=name=>{const p=people.find(x=>x.n===name);return p?.rate??RATE};
   const weeks={};
@@ -2459,6 +2460,7 @@ async function drawSubs(){
     sb.from("subcontractors").select("*").order("name"),
     sb.from("sub_payments").select("*,jobs(client_name),subcontractors(name)").order("created_at",{ascending:false})
   ]);
+  if(error){$("#subsList").innerHTML=`<div class="empty" style="color:var(--alert)">${icon("alert",14)} Couldn't load subcontractors — ${escapeHtml(error.message)}</div>`;return}
   subcontractors=data||[];
   const SF="flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 7px;font:inherit;font-size:11.5px";
   const si=(id,f,v,w,ph="",type="text")=>`<input type="${type}" data-sub="${id}" data-f="${f}" value="${v==null?"":escapeHtml(String(v))}" placeholder="${ph}" style="${w.includes(":")?w:"width:"+w};${SF}">`;
@@ -2486,7 +2488,8 @@ async function drawSubs(){
       ${si(s.sub_id,"notes",s.notes,"flex:1 1 150px;min-width:120px","Notes")}
     </div>`:""}
   </div>`;}).join(""):`<div class="empty">No subcontractors yet.<br>Add one below.</div>`;
-  renderSubPayments(spRes.data||[]);
+  if(spRes.error){$("#subPaymentsList").innerHTML=`<div class="empty" style="color:var(--alert)">${icon("alert",14)} Couldn't load contracts &amp; payments — ${escapeHtml(spRes.error.message)}</div>`;}
+  else renderSubPayments(spRes.data||[]);
 }
 function setSubStatus(msg,isError){
   const el=document.getElementById("subStatus");if(!el)return;
@@ -2675,13 +2678,16 @@ function computeDuplicateGroups(clientsList,countsById,valueById){
 }
 async function loadAndRenderDuplicateClients(){
   $("#dupClientsPanel").innerHTML=`<div class="empty">Checking for duplicates…</div>`;
-  const [{data:activeClients},{data:leadsAll},{data:estAll},{data:tasksAll},{data:cv}]=await Promise.all([
+  const dupResults=await Promise.all([
     sb.from("clients").select("*").eq("active",true),
     sb.from("leads").select("lead_id,client_id"),
     sb.from("estimates").select("estimate_id,client_id"),
     sb.from("tasks").select("task_id,client_id"),
     sb.from("client_value").select("client_id,lifetime_value")
   ]);
+  const dupError=dupResults.map(r=>r.error).find(Boolean);
+  if(dupError){dupGroupsCache={error:dupError.message};renderDuplicateClientsPanel();return}
+  const [{data:activeClients},{data:leadsAll},{data:estAll},{data:tasksAll},{data:cv}]=dupResults;
   const countsById={};
   const bump=(id,key)=>{if(!id)return;countsById[id]=countsById[id]||{jobs:0,leads:0,estimates:0,tasks:0,total:0};countsById[id][key]++;countsById[id].total++;};
   jobs.forEach(j=>bump(j.clientId,"jobs"));
@@ -2693,6 +2699,7 @@ async function loadAndRenderDuplicateClients(){
   renderDuplicateClientsPanel();
 }
 function renderDuplicateClientsPanel(){
+  if(dupGroupsCache&&dupGroupsCache.error){$("#dupClientsPanel").innerHTML=`<div class="empty" style="color:var(--alert)">${icon("alert",14)} Couldn't check for duplicates — ${escapeHtml(dupGroupsCache.error)}. This is not "no duplicates found" -- the check itself failed.</div>`;return}
   const groups=dupGroupsCache||[];
   const badgeColor=c=>c==="High"?"var(--alert)":c==="Medium"?"var(--amber)":"var(--steel)";
   const fieldRow=(label,members,key,fmt)=>{
@@ -4230,10 +4237,11 @@ const adNumCell=(id,field,v,step,isMoney=!!step)=>`<input type="${isMoney?"text"
 async function drawFbAds(){
   $("#adTable").innerHTML=`<tr><td>Loading…</td></tr>`;
   if(!$("#newAdMonth").value)$("#newAdMonth").value=todayPacific().slice(0,7);
-  const [{data:perf},{data:raw}]=await Promise.all([
+  const [{data:perf,error:adErr1},{data:raw,error:adErr2}]=await Promise.all([
     sb.from("ad_performance").select("*").order("month",{ascending:false}),
     sb.from("ad_spend").select("spend_id,month,platform,campaign,spend")
   ]);
+  if(adErr1||adErr2){$("#adSummary").innerHTML="";$("#adTable").innerHTML=`<tr><td style="color:var(--alert)">${icon("alert",14)} Couldn't load ad performance — ${escapeHtml((adErr1||adErr2).message)}</td></tr>`;return}
   adSpendRows=raw||[];
   const idOf=r=>(adSpendRows.find(x=>x.month===r.month&&x.platform===r.platform&&(x.campaign||"")===(r.campaign||""))||{}).spend_id;
   const totalSpend=(perf||[]).reduce((s,r)=>s+Number(r.spend||0),0);
@@ -4300,10 +4308,11 @@ const setOh=(m,e)=>{const el=$("#ohStatus");if(!el)return;el.textContent=m;el.st
 async function drawOverhead(){
   $("#ohTable").innerHTML=`<tr><td>Loading…</td></tr>`;
   $("#newOhCategory").innerHTML=OH_CATEGORIES.map(c=>`<option>${c}</option>`).join("");
-  const [{data:rows},{data:chk}]=await Promise.all([
+  const [{data:rows,error:ohErr1},{data:chk,error:ohErr2}]=await Promise.all([
     sb.from("overhead_expenses").select("*").order("yearly_cost",{ascending:false}),
     sb.from("overhead_rate_check").select("*").single()
   ]);
+  if(ohErr1||ohErr2){$("#ohSummary").innerHTML="";$("#ohTable").innerHTML=`<tr><td style="color:var(--alert)">${icon("alert",14)} Couldn't load overhead — ${escapeHtml((ohErr1||ohErr2).message)}</td></tr>`;return}
   ohRows=rows||[];
   const c=chk||{};
   const card=(k,v,d)=>`<div class="kpi"><p class="k">${k}</p><p class="v">${v}</p><p class="d">${d}</p></div>`;
@@ -4495,13 +4504,16 @@ async function deleteEstimate(id){
   drawEstimates();
 }
 async function loadEstimateBudget(estId){
-  const [{data:labor},{data:mats},{data:settingsRow}]=await Promise.all([
+  const [{data:labor,error:eb1},{data:mats,error:eb2},{data:settingsRow,error:eb3}]=await Promise.all([
     sb.from("job_labor_estimates").select("*").eq("linked_estimate_id",estId).order("sort"),
     sb.from("job_material_estimates").select("*").eq("linked_estimate_id",estId).order("sort"),
     sb.from("settings").select("*").eq("id",1).single()
   ]);
-  let laborRows=labor||[],matRows=mats||[];
   if(estBudgetModalId!==estId)return;
+  // A fetch error must never be mistaken for "no rows yet" -- that would
+  // trigger the default-row seeding below on every failed load.
+  if(eb1||eb2||eb3){estBudgetData[estId]={error:(eb1||eb2||eb3).message};renderEstBudgetModal();return}
+  let laborRows=labor||[],matRows=mats||[];
   if(laborRows.length===0){
     const {data:seeded,error:seedError}=await sb.from("job_labor_estimates").insert([0,1,2].map(i=>({linked_estimate_id:estId,sort:i}))).select();
     if(estBudgetModalId!==estId)return;
@@ -4544,6 +4556,7 @@ function closeEstBudgetModal(){
 function renderEstimateBudgetPanel(e){
   const bd=estBudgetData[e.estimate_id];
   if(!bd)return `<div class="grp" style="margin-top:8px"><p class="note" style="border:0;padding:0;margin:0">Loading…</p></div>`;
+  if(bd.error)return `<div class="grp" style="margin-top:8px"><p class="note" style="border:0;padding:0;margin:0;color:var(--alert)">${icon("alert",14)} Couldn't load — ${escapeHtml(bd.error)}</p></div>`;
   const burdenPct=Number(bd.settings.labor_burden_pct)||0;
   const laborMult=Number(bd.settings.labor_multiplier)||1;
   const matMult=Number(bd.settings.material_multiplier)||1;
