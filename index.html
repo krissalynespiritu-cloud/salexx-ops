@@ -1507,19 +1507,19 @@ function jobQuickReviewHTML(j){
 function jobCardHTML(j){
   const inp=(field,val,ph,width)=>`<input type="text" data-jf="${field}" data-job="${j.id}" value="${val==null?"":escapeHtml(String(val))}" placeholder="${ph}" style="width:${width};flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 7px;font:inherit;font-size:11.5px">`;
   const jt=j.type==="—"?"":j.type;
-  const typeSelect=`<select data-jf="job_type" data-job="${j.id}" style="width:110px;flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 2px;font:inherit;font-size:11.5px"><option value="">Type…</option>${JOB_TYPES.map(o=>`<option ${o===jt?"selected":""}>${o}</option>`).join("")}${jt&&!JOB_TYPES.includes(jt)?`<option selected>${escapeHtml(jt)}</option>`:""}</select>`;
+  const typeSelect=`<select data-jf="job_type" data-job="${j.id}" style="width:95px;flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 2px;font:inherit;font-size:11.5px"><option value="">Type…</option>${JOB_TYPES.map(o=>`<option ${o===jt?"selected":""}>${o}</option>`).join("")}${jt&&!JOB_TYPES.includes(jt)?`<option selected>${escapeHtml(jt)}</option>`:""}</select>`;
   const expanded=jobsExpanded.has(j.id);
   return `<div class="jrow" style="flex-wrap:wrap;align-items:center;gap:5px;cursor:default;padding:6px 9px;margin-bottom:${expanded?"0":"5px"}">
     <button data-job-expand="${j.id}" aria-label="Quick review" title="Quick review" class="expandCaret${expanded?" open":""}" style="background:none;border:0;color:var(--steel);cursor:pointer;display:flex;align-items:center;flex-shrink:0;padding:0 2px">${icon("chevronRight",13)}</button>
-    <input type="text" data-jf="client_name" data-job="${j.id}" value="${escapeHtml(j.client)}" placeholder="Client name" style="flex:1 1 90px;min-width:90px;font-weight:600;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 6px;font:inherit;font-size:12px">
-    ${inp("contract_price",moneyPrecise(j.contract),"Contract $","80px")}
+    <input type="text" data-jf="client_name" data-job="${j.id}" value="${escapeHtml(j.client)}" placeholder="Client name" style="flex:0 1 170px;min-width:90px;font-weight:600;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 6px;font:inherit;font-size:12px">
+    ${inp("contract_price",moneyPrecise(j.contract),"Contract $","72px")}
     ${typeSelect}
-    <select data-jf="crew" data-job="${j.id}" style="width:78px;flex-shrink:0;border-radius:5px;padding:5px 2px;font:inherit;font-size:11px;font-weight:600;${j.crew==="In House"?"background:rgba(62,156,109,.18);color:var(--good);border:1px solid rgba(62,156,109,.4)":j.crew==="Sub out"?"background:rgba(155,140,212,.2);color:var(--violet);border:1px solid rgba(155,140,212,.4)":"background:var(--navy-3);color:var(--text);border:1px solid var(--line)"}"><option value="">Crew…</option><option value="In House" ${j.crew==="In House"?"selected":""}>In House</option><option value="Sub out" ${j.crew==="Sub out"?"selected":""}>Sub out</option></select>
-    ${inp("address_city",j.loc==="—"?"":j.loc,"Location","115px")}
+    <select data-jf="crew" data-job="${j.id}" style="width:68px;flex-shrink:0;border-radius:5px;padding:5px 2px;font:inherit;font-size:11px;font-weight:600;${j.crew==="In House"?"background:rgba(62,156,109,.18);color:var(--good);border:1px solid rgba(62,156,109,.4)":j.crew==="Sub out"?"background:rgba(155,140,212,.2);color:var(--violet);border:1px solid rgba(155,140,212,.4)":"background:var(--navy-3);color:var(--text);border:1px solid var(--line)"}"><option value="">Crew…</option><option value="In House" ${j.crew==="In House"?"selected":""}>In House</option><option value="Sub out" ${j.crew==="Sub out"?"selected":""}>Sub out</option></select>
+    ${inp("address_city",j.loc==="—"?"":j.loc,"Location","85px")}
     <span style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:auto">
       ${jobUpdatesButtonHTML(j)}
       ${jobTasksButtonHTML(j)}
-      <select data-jf="stage" data-job="${j.id}" class="stage ${stClass(j.stage)}" style="border:0;cursor:pointer;font-family:inherit;appearance:none;-webkit-appearance:none;padding:5px 9px">${STAGES.map(s=>`<option value="${s}" ${s===j.stage?"selected":""}>${s}</option>`).join("")}</select>
+      <select data-jf="stage" data-job="${j.id}" class="stage ${stClass(j.stage)}" title="${escapeHtml(j.stage)}" style="border:0;cursor:pointer;font-family:inherit;appearance:none;-webkit-appearance:none;padding:5px 9px;width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${STAGES.map(s=>`<option value="${s}" ${s===j.stage?"selected":""}>${s}</option>`).join("")}</select>
       <span data-job-status="${j.id}" style="font-size:10px;color:var(--steel);min-height:12px"></span>
       <button data-open="${j.id}" class="chip" style="padding:3px 8px;font-size:10px;flex-shrink:0">Open →</button>
       <span style="position:relative;flex-shrink:0">
