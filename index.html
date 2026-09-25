@@ -5480,16 +5480,20 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 	const trackerPanel = $("#s-leadstracker");
 	const trackerHTML = document.createElement("div");
 	trackerHTML.innerHTML = `<div class="kpis" id="leadSummary" style="margin-bottom:16px"></div>
-	<p class="lbl">New lead</p>
-	<p class="note" id="leadSaveStatus" style="margin:0 0 9px;min-height:14px;border:0;padding:0"></p>
-	<div class="fields" style="margin-bottom:18px">
-		<div class="fld"><span class="k">Name</span><input type="text" id="newLeadName" placeholder="Lead name" style="width:170px"></div>
-		<div class="fld"><span class="k">Source</span><select id="newLeadSource" style="width:170px"><option value="">Source…</option>${sourceOptions.map(s=>`<option>${s}</option>`).join("")}</select></div>
-		<div class="fld"><span class="k">Owner</span><select id="newLeadOwner" style="width:170px"><option value="">Owner…</option>${CLOSERS.map(c=>`<option>${c}</option>`).join("")}</select></div>
-		<div class="fld"><span class="k">Lead date</span><input type="date" id="newLeadDate" style="width:170px"></div>
-		<div class="fld"><span class="k">Value</span><input type="number" id="newLeadValue" placeholder="—" style="width:170px"></div>
+	<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px">
+		<p class="note" id="leadSaveStatus" style="margin:0;min-height:14px;border:0;padding:0;flex:1"></p>
+		<button id="newLeadToggleBtn" class="chip" style="flex-shrink:0">＋ Add lead</button>
 	</div>
-	<button id="addLeadBtn" class="chip" style="margin-bottom:22px">Add lead</button>
+	<div id="newLeadPanel" class="hidden" style="margin:10px 0 18px">
+		<div class="fields" style="margin-bottom:12px">
+			<div class="fld"><span class="k">Name</span><input type="text" id="newLeadName" placeholder="Lead name" style="width:170px"></div>
+			<div class="fld"><span class="k">Source</span><select id="newLeadSource" style="width:170px"><option value="">Source…</option>${sourceOptions.map(s=>`<option>${s}</option>`).join("")}</select></div>
+			<div class="fld"><span class="k">Owner</span><select id="newLeadOwner" style="width:170px"><option value="">Owner…</option>${CLOSERS.map(c=>`<option>${c}</option>`).join("")}</select></div>
+			<div class="fld"><span class="k">Lead date</span><input type="date" id="newLeadDate" style="width:170px"></div>
+			<div class="fld"><span class="k">Value</span><input type="number" id="newLeadValue" placeholder="—" style="width:170px"></div>
+		</div>
+		<button id="addLeadBtn" class="chip">Add lead</button>
+	</div>
 	<p class="lbl">All leads · <span id="totalLeadsCount">0</span> shown</p>
 	<div class="chips" id="leadStatusChips" style="margin-bottom:10px"></div>
 	<input class="search" id="leadSearch" placeholder="Search lead name…">
@@ -5558,20 +5562,20 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 			const hasNote = !!(lead.notes && lead.notes.trim());
 			const li = (field,val,ph,w,type="text") => `<input type="${type}" data-lead-id="${lead.id}" data-field="${field}" value="${val==null?"":escapeHtml(String(val))}" placeholder="${ph}" aria-label="${ph||field}" style="${w};${F}">`;
 			const sel = (field,ph,opts,w,extra="") => `<select data-lead-id="${lead.id}" data-field="${field}" aria-label="${ph}" style="width:${w};flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 2px;font:inherit;font-size:11px;${extra}"><option value="">${ph}</option>${opts}</select>`;
-			const tog = (field,label) => `<label title="${label}" style="display:flex;align-items:center;gap:3px;font-size:10px;color:${lead[field]?"var(--good)":"var(--steel)"};flex-shrink:0"><input type="checkbox" data-lead-id="${lead.id}" data-field="${field}" ${lead[field]?"checked":""} style="width:13px;height:13px">${label}</label>`;
+			const tog = (field,label) => `<label title="${label}" style="display:flex;align-items:center;flex-shrink:0"><input type="checkbox" data-lead-id="${lead.id}" data-field="${field}" ${lead[field]?"checked":""} aria-label="${label}" style="width:14px;height:14px;cursor:pointer${lead[field]?";accent-color:var(--good)":""}"></label>`;
 			return `<div class="jrow" style="flex-wrap:nowrap;align-items:center;gap:5px;cursor:default;padding:6px 9px;margin-bottom:5px">
-				<input type="text" data-lead-id="${lead.id}" data-field="name" value="${escapeHtml(lead.name)}" placeholder="Lead name" aria-label="Lead name" style="flex:1 1 85px;min-width:75px;font-weight:600;font-size:12px;${F}">
+				<input type="text" data-lead-id="${lead.id}" data-field="name" value="${escapeHtml(lead.name)}" placeholder="Lead name" aria-label="Lead name" style="flex:1 1 75px;min-width:65px;font-weight:600;font-size:12px;${F}">
 				<button data-lead-notes="${lead.id}" title="${hasNote?"Notes":"No notes yet"}" aria-label="Notes" style="position:relative;background:none;border:1px solid ${hasNote?"var(--hivis)":"var(--line)"};color:${hasNote?"var(--hivis)":"var(--steel)"};border-radius:5px;width:24px;height:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
 					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>
 				</button>
-				${li("leadDate",lead.leadDate,"","104px","date")}
+				${li("leadDate",lead.leadDate,"","96px","date")}
 				${sel("source","Source",sourceOptions.map(o=>`<option ${lead.source===o?"selected":""}>${o}</option>`).join(""),"90px",`color:${sourceColor};background:${sourceBg};border-color:${sourceColor};font-weight:600`)}
 				${sel("status","Status",statusOptions.map(o=>`<option ${lead.status===o?"selected":""}>${o}</option>`).join(""),"84px",`color:${statusColor};background:${statusBg};border-color:${statusColor};font-weight:600`)}
-				<span style="display:flex;gap:6px;flex-shrink:0;padding:0 2px">${tog("estimateBooked","Appt")}${tog("shown","Shown")}</span>
+				<span style="display:flex;gap:4px;flex-shrink:0" title="Appt booked / Shown up">${tog("estimateBooked","Appt")}${tog("shown","Shown")}</span>
 				${li("closedRevenue",lead.closedRevenue,"$","width:70px","number")}
-				${tog("designSent","Design sent")}${tog("designSold","Design sold")}
-				${sel("lossReason","Why lost…",LOSS_REASONS.map(o=>`<option ${lead.lossReason===o?"selected":""}>${o}</option>`).join(""),"110px")}
-				<select data-lead-id="${lead.id}" data-field="jobId" aria-label="Linked job" style="width:140px;flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:${lead.jobId?"var(--good)":"var(--steel)"};border-radius:5px;padding:5px 2px;font:inherit;font-size:11px"><option value="">Link to a job…</option>${[...jobs].sort((a,b)=>(a.client||"").localeCompare(b.client||"")).map(j=>`<option value="${j.id}" ${lead.jobId===j.id?"selected":""}>${escapeHtml(j.id+" · "+j.client)}</option>`).join("")}</select>
+				<span style="display:flex;gap:4px;flex-shrink:0" title="Design sent / Design sold">${tog("designSent","Design sent")}${tog("designSold","Design sold")}</span>
+				${sel("lossReason","Why lost…",LOSS_REASONS.map(o=>`<option ${lead.lossReason===o?"selected":""}>${o}</option>`).join(""),"98px")}
+				<select data-lead-id="${lead.id}" data-field="jobId" aria-label="Linked job" style="width:122px;flex-shrink:0;background:var(--navy-3);border:1px solid var(--line);color:${lead.jobId?"var(--good)":"var(--steel)"};border-radius:5px;padding:5px 2px;font:inherit;font-size:11px"><option value="">Link to a job…</option>${[...jobs].sort((a,b)=>(a.client||"").localeCompare(b.client||"")).map(j=>`<option value="${j.id}" ${lead.jobId===j.id?"selected":""}>${escapeHtml(j.id+" · "+j.client)}</option>`).join("")}</select>
 				<span style="position:relative;flex-shrink:0">
 					<button data-lead-menu="${lead.id}" aria-label="More options" style="background:none;border:1px solid var(--line);color:var(--steel);border-radius:5px;width:22px;height:22px;cursor:pointer;font-size:13px;line-height:1">⋮</button>
 					<div data-lead-menu-panel="${lead.id}" class="hidden" style="position:absolute;right:0;top:26px;z-index:20;background:var(--navy-2);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.4);min-width:110px;overflow:hidden">
@@ -5786,6 +5790,11 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		if (sf) { leadStatusFilter = sf.dataset.leadStatusFilter; leadVisibleCount = leadPageSize; drawLeadList(); return; }
 		if (event.target.id === "leadDateClear") { leadDateFrom = ""; leadDateTo = ""; $("#leadDateFrom").value = ""; $("#leadDateTo").value = ""; drawLeadList(); return; }
 		if (event.target.id === "leadLoadMoreBtn") { leadVisibleCount += leadPageSize; drawLeadList(); return; }
+		if (event.target.id === "newLeadToggleBtn") {
+			document.getElementById("newLeadPanel").classList.toggle("hidden");
+			if (!document.getElementById("newLeadPanel").classList.contains("hidden")) document.getElementById("newLeadName").focus();
+			return;
+		}
 		const preset = event.target.id;
 		if (preset === "lsrRangeMonth" || preset === "lsrRangeYear" || preset === "lsrRangeAll") {
 			document.getElementById("lsrCustomRange").style.display = "none";
@@ -5815,6 +5824,9 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 				document.getElementById("newLeadSource").value = "";
 				document.getElementById("newLeadOwner").value = "";
 				document.getElementById("newLeadValue").value = "";
+				if (!document.getElementById("leadSaveStatus")?.textContent.startsWith("Error")) {
+					document.getElementById("newLeadPanel").classList.add("hidden");
+				}
 			});
 		}
 	});
