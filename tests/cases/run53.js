@@ -160,7 +160,7 @@ setTimeout(() => {
   check('TEST 7: lead date column narrower than the old 104px', leadDateW < 104, leadDateW);
   const lossReasonW = Number((rawHtml.match(/LOSS_REASONS\.map\(o=>`<option \$\{lead\.lossReason===o\?"selected":""\}>\$\{o\}<\/option>`\)\.join\(""\),"(\d+)px"\)/) || [])[1] || 999);
   check('TEST 7: why-lost column narrower than the old 110px', lossReasonW < 110, lossReasonW);
-  const jobSelectW = Number((rawHtml.match(/data-field="jobId" aria-label="Linked job" style="width:(\d+)px/) || [])[1] || 999);
+  const jobSelectW = Number((rawHtml.match(/data-field="jobId" aria-label="Linked job"[\s\S]{0,450}?"width:(\d+)px/) || [])[1] || 999);
   check('TEST 7: linked-job column narrower than the old 140px', jobSelectW < 140, jobSelectW);
 
   console.log('\n=== PASS (' + results.pass.length + ') ===');
