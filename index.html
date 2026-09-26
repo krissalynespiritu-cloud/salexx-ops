@@ -2271,7 +2271,7 @@ async function downloadBackup(){
   setBackupStatus("Downloaded",false);
   setTimeout(()=>{if(document.getElementById("backupStatus")?.textContent==="Downloaded")setBackupStatus("",false)},2000);
 }
-const hoursOf=e=>{if(!e||!e.in||!e.out)return 0;const[a,b]=e.in.split(":").map(Number),[c,d]=e.out.split(":").map(Number);return Math.max(((c*60+d)-(a*60+b))/60,0)};
+const hoursOf=e=>{if(!e)return 0;if(e.manualHours!=null&&e.manualHours!=="")return Math.max(Number(e.manualHours)||0,0);if(!e.in||!e.out)return 0;const[a,b]=e.in.split(":").map(Number),[c,d]=e.out.split(":").map(Number);return Math.max(((c*60+d)-(a*60+b))/60,0)};
 function currentDate(){return document.getElementById("workDate")?.value||todayPacific()}
 function setTimeStatus(msg,isError){
   const el=document.getElementById("timeSaveStatus");if(!el)return;
@@ -2337,7 +2337,7 @@ $("#roster").innerHTML=people.map(p=>{
   const blocks=p.r==="Admin"?[blocksOf(p.n)[0]||{}]:blocksOf(p.n);
   const rows=blocks.map((e,i)=>{
     const h=hoursOf(e),needsJob=p.r!=="Admin"&&h>0&&!e.job;
-    return `<div class="fld" style="border:1px solid var(--line);border-radius:10px;margin-bottom:5px;background:${p.r==="Admin"?"var(--highlight-bg)":"var(--navy-2)"};flex-wrap:wrap">${i===0?`<span class="k" style="min-width:76px"><b style="color:var(--text);font-size:14px">${p.n}</b><br>${p.r}${todayScheduleHint(p.n)}</span>`:`<span class="k" style="min-width:76px"></span>`}${p.r==="Admin"?`<span class="v" style="color:var(--steel);font-size:11px">overhead</span>`:`<select data-p="${p.n}" data-i="${i}" data-f="job" style="flex:1;min-width:118px"><option value="">Job…</option>${opts}</select>`}<input type="time" data-p="${p.n}" data-i="${i}" data-f="in" value="${e.in||""}" style="width:90px"><input type="time" data-p="${p.n}" data-i="${i}" data-f="out" value="${e.out||""}" style="width:90px"><span class="v" style="color:${h?"var(--hivis)":"#3D5273"};min-width:50px">${h?h.toFixed(2):"—"}</span>${p.r!=="Admin"&&blocks.length>1?`<button data-remove-block="${p.n}:${i}" aria-label="Remove block" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:22px;height:22px;line-height:1;cursor:pointer;font-size:13px">×</button>`:""}${needsJob?'<span class="warn" style="flex-basis:100%">pick a job before this saves</span>':""}</div>`;
+    return `<div class="fld" style="border:1px solid var(--line);border-radius:10px;margin-bottom:5px;background:${p.r==="Admin"?"var(--highlight-bg)":"var(--navy-2)"};flex-wrap:wrap">${i===0?`<span class="k" style="min-width:76px"><b style="color:var(--text);font-size:14px">${p.n}</b><br>${p.r}${todayScheduleHint(p.n)}</span>`:`<span class="k" style="min-width:76px"></span>`}${p.r==="Admin"?`<span class="v" style="color:var(--steel);font-size:11px">overhead</span>`:`<select data-p="${p.n}" data-i="${i}" data-f="job" style="flex:1;min-width:118px"><option value="">Job…</option>${opts}</select>`}<input type="time" data-p="${p.n}" data-i="${i}" data-f="in" value="${e.in||""}" style="width:90px" ${e.manualHours?"disabled":""}><input type="time" data-p="${p.n}" data-i="${i}" data-f="out" value="${e.out||""}" style="width:90px" ${e.manualHours?"disabled":""}><input type="number" step="0.25" min="0" data-p="${p.n}" data-i="${i}" data-f="manualHours" value="${e.manualHours??""}" placeholder="or hrs" title="Type total hours directly instead of clock in/out — for when hours are reported after the fact, not logged live" style="width:62px" ${e.in||e.out?"disabled":""}><span class="v" style="color:${h?"var(--hivis)":"#3D5273"};min-width:50px">${h?h.toFixed(2):"—"}</span>${p.r!=="Admin"&&blocks.length>1?`<button data-remove-block="${p.n}:${i}" aria-label="Remove block" style="background:none;border:1px solid var(--alert);color:var(--alert);border-radius:50%;width:22px;height:22px;line-height:1;cursor:pointer;font-size:13px">×</button>`:""}${needsJob?'<span class="warn" style="flex-basis:100%">pick a job before this saves</span>':""}</div>`;
   }).join("");
   const addBtn=p.r!=="Admin"?`<button data-add-block="${p.n}" class="chip" style="padding:3px 8px;font-size:10px;margin-bottom:9px">+ Add another job</button>`:"";
   const saveBtn=`<button data-save-person="${p.n}" class="chip" style="padding:3px 8px;font-size:10px;margin-bottom:9px;margin-left:6px;background:var(--hivis);color:var(--navy);border-color:var(--hivis)">Save</button>`;
@@ -5403,20 +5403,21 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 })();
 </script>
 <script>
-(() => {
-	const dateStore = {[todayPacific()]: day};
+(async () => {
+	const dateStore = {};
 	const dateInput = document.createElement("input");
 	dateInput.type = "date";
 	dateInput.id = "workDate";
 	dateInput.setAttribute("aria-label", "Work date");
-	dateInput.value = Object.keys(dateStore)[0];
+	dateInput.value = todayPacific();
+	dateInput.max = todayPacific();
 	dateInput.style.cssText = "width:150px";
 	const dateRow = document.createElement("div");
 	dateRow.className = "fld";
 	dateRow.style.cssText = "margin-bottom:12px;border:1px solid var(--line);border-radius:10px";
-	dateRow.innerHTML = '<span class="k">Work date</span>';
+	dateRow.innerHTML = '<span class="k">Work date <span style="font-weight:400;color:var(--steel)">— backfill a past day if it wasn\'t logged live</span></span>';
 	dateRow.append(dateInput);
-	$("#s-time .lbl").after(dateRow);
+	document.getElementById("roster").before(dateRow);
 
 	const syncRoster = () => {
 		document.querySelectorAll('#roster select[data-f="job"]').forEach(select => {
@@ -5424,12 +5425,38 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		});
 	};
 
-	dateInput.addEventListener("change", () => {
-		dateStore[dateInput.value] ||= {};
-		day = dateStore[dateInput.value];
+	// Real saved hours for a date were never fetched back into the roster --
+	// reopening the page (or switching to a past date) showed blank rows
+	// regardless of what was already logged, and saving from that blank
+	// state would have deleted the real entries for that person/date. Loads
+	// what's actually in time_entries so backfilling a past day is safe.
+	async function loadDayFromServer(dateStr) {
+		const { data, error } = await sb.from("time_entries").select("*").eq("work_date", dateStr);
+		if (error) { setTimeStatus("Couldn't load " + dateStr + ": " + error.message, true); return {}; }
+		const grouped = {};
+		for (const r of data || []) {
+			(grouped[r.person] ||= []).push({
+				job: r.job_id || "",
+				in: r.clock_in ? r.clock_in.slice(0, 5) : "",
+				out: r.clock_out ? r.clock_out.slice(0, 5) : "",
+				manualHours: (!r.clock_in && !r.clock_out && r.hours) ? r.hours : undefined
+			});
+		}
+		return grouped;
+	}
+
+	async function setWorkDate(dateStr) {
+		if (!dateStore[dateStr]) {
+			setTimeStatus("Loading " + dateStr + "…", false);
+			dateStore[dateStr] = await loadDayFromServer(dateStr);
+			setTimeStatus("", false);
+		}
+		day = dateStore[dateStr];
 		drawRoster();
 		syncRoster();
-	});
+	}
+
+	dateInput.addEventListener("change", () => setWorkDate(dateInput.value));
 
 	document.addEventListener("input", event => {
 		if (event.target.dataset.p) {
@@ -5439,7 +5466,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 	});
 
 	window.syncRoster = syncRoster;
-	syncRoster();
+	await setWorkDate(dateInput.value);
 })();
 </script>
 <script>

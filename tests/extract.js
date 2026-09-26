@@ -12,11 +12,12 @@ function extract() {
   const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
   if (scripts.length !== 3) {
     throw new Error(`Expected 3 inline <script> blocks in index.html, found ${scripts.length}. ` +
-      `The test harness assumes: [0] main app script, [1] a tiny inline script, [2] the Leads Tracker IIFE. ` +
-      `If that structure changed, update this comment and the test cases that reference block2.js.`);
+      `The test harness assumes: [0] main app script, [1] the Labor work-date picker IIFE, [2] the Leads Tracker IIFE. ` +
+      `If that structure changed, update this comment and the test cases that reference block1.js/block2.js.`);
   }
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(path.join(outDir, "mainscript.js"), scripts[0]);
+  fs.writeFileSync(path.join(outDir, "block1.js"), scripts[1]);
   fs.writeFileSync(path.join(outDir, "block2.js"), scripts[2]);
 
   const bodyMatch = html.replace(/<script>[\s\S]*?<\/script>/g, "").match(/<body[^>]*>([\s\S]*?)<\/body>/);
