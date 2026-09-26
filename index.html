@@ -497,7 +497,7 @@ async function fetchJobStages(){
 }
 const stClass=s=>stKey[s]||"st-hold";
 const jobs=[];
-const people=[{n:"Carlos",r:"Crew"},{n:"Tito",r:"Crew"},{n:"Roberto",r:"Crew"},{n:"Ronald",r:"Crew"},{n:"Avelino",r:"Crew"},{n:"Edy",r:"Crew"},{n:"Rosa",r:"Admin"},{n:"Krissalyn",r:"Admin"}];
+const people=[{n:"Carlos",r:"Crew"},{n:"Carlos Jr.",r:"Crew"},{n:"Tito",r:"Crew"},{n:"Roberto",r:"Crew"},{n:"Ronald",r:"Crew"},{n:"Avelino",r:"Crew"},{n:"Edy",r:"Crew"},{n:"Rosa",r:"Admin"},{n:"Krissalyn",r:"Admin"}];
 async function fetchCrewRates(){
   const {data,error}=await sb.from("crew").select("name,hourly_wage");
   if(error||!data)return;
