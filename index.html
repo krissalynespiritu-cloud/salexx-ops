@@ -573,7 +573,7 @@ function incompleteBadge(j){
 async function fetchJobs(){
   const [
     {data:jobRows,error:e1},{data:marginRows,error:e2},{data:costRows,error:e3},{data:subRows,error:e4},{data:updateRows,error:e5},
-    {data:viTotalRows,error:e6},{data:matReqRows,error:e7},{data:taskRowsForJobs,error:e8},{data:choRows,error:e9},{data:punchRows,error:e10},{data:permitRows,error:e11}
+    {data:viTotalRows,error:e6},{data:matReqRows,error:e7},{data:taskRowsForJobs,error:e8},{data:choRows,error:e9},{data:punchRows,error:e10},{data:permitRows,error:e11},{data:workDaysRows,error:e12}
   ]=await Promise.all([
     sb.from("jobs").select("*").eq("retired",false),
     sb.from("job_margins").select("*"),
@@ -585,14 +585,16 @@ async function fetchJobs(){
     sb.from("tasks").select("*"),
     sb.from("job_change_orders").select("*"),
     sb.from("job_punch_items").select("*"),
-    sb.from("job_permits").select("*")
+    sb.from("job_permits").select("*"),
+    sb.from("job_work_days").select("*")
   ]);
   if(e1||e2||e3||e4||e5){const err=e1||e2||e3||e4||e5;console.error(err);fetchJobs.lastError=err;return false}
-  const secondaryError=e6||e7||e8||e9||e10||e11;
+  const secondaryError=e6||e7||e8||e9||e10||e11||e12;
   if(secondaryError){
     console.error(secondaryError);
-    showToast("Some job data (invoices, materials, tasks, change orders, punch list, or permits) couldn't be loaded and may show as zero: "+secondaryError.message,true);
+    showToast("Some job data (invoices, materials, tasks, change orders, punch list, permits, or days worked) couldn't be loaded and may show as zero: "+secondaryError.message,true);
   }
+  const workDaysById=Object.fromEntries((workDaysRows||[]).map(r=>[r.job_id,r]));
   const viTotalsById=Object.fromEntries((viTotalRows||[]).map(r=>[r.job_id,r]));
   const matReqsById={};
   for(const r of matReqRows||[]){(matReqsById[r.job_id]||=[]).push(r)}
@@ -624,6 +626,10 @@ async function fetchJobs(){
     merged.changeOrders=choById[j.job_id]||[];
     merged.punchItems=punchById[j.job_id]||[];
     merged.permits=permitById[j.job_id]||[];
+    const wd=workDaysById[j.job_id];
+    merged.daysWorked=wd?Number(wd.days_worked)||0:0;
+    merged.firstWorkDate=wd?.first_work_date||null;
+    merged.lastWorkDate=wd?.last_work_date||null;
     jobs.push(merged);
   }
   // fetchJobs() rebuilds every job as a brand-new object, so if a job detail
@@ -637,15 +643,19 @@ const FIELD_TO_CATEGORY=Object.fromEntries(Object.entries(COST_CATEGORY_FIELD).m
 const JOB_COLUMN={co:"change_orders",disc:"discounts",oh:"overhead_pct",contract:"contract_price",mhrs:"manual_hours",clf:"crew_leader_fee",upsell:"upsell_amount"};
 const NULLABLE_JOB_COLUMN=new Set(["contract","mhrs"]);
 async function refreshJob(jobId){
-  const [{data:j,error:e1},{data:m,error:e2},{data:costRows,error:e3},{data:subRows,error:e4}]=await Promise.all([
+  const [{data:j,error:e1},{data:m,error:e2},{data:costRows,error:e3},{data:subRows,error:e4},{data:wd,error:e5}]=await Promise.all([
     sb.from("jobs").select("*").eq("job_id",jobId).single(),
     sb.from("job_margins").select("*").eq("job_id",jobId).single(),
     sb.from("job_costs").select("*").eq("job_id",jobId),
-    sb.from("sub_payments").select("contract_amount").eq("job_id",jobId)
+    sb.from("sub_payments").select("contract_amount").eq("job_id",jobId),
+    sb.from("job_work_days").select("*").eq("job_id",jobId).maybeSingle()
   ]);
-  if(e1||e2||e3||e4){console.error(e1||e2||e3||e4);return false}
+  if(e1||e2||e3||e4||e5){console.error(e1||e2||e3||e4||e5);return false}
   const subTotal=(subRows||[]).reduce((s,r)=>s+Number(r.contract_amount),0);
   const fresh=mergeJobRecord(j,m||{},costRows,subTotal);
+  fresh.daysWorked=wd?Number(wd.days_worked)||0:0;
+  fresh.firstWorkDate=wd?.first_work_date||null;
+  fresh.lastWorkDate=wd?.last_work_date||null;
   const i=jobs.findIndex(x=>x.id===jobId);
   if(i>-1)Object.assign(jobs[i],fresh);
   if(cur&&cur.id===jobId)Object.assign(cur,fresh);
@@ -3340,12 +3350,13 @@ function jobCostRowDetail(j){
   const zap=(title,text)=>` <span class="src zap" title="${title}">${text}</span>`;
   return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
     <div>${heading("Revenue Breakdown")}${rowInput("Contract Price:","contract",j.contract)}${rowInput("Change Orders:","co",j.co)}${rowInput("Discounts/Credits:","disc",j.disc)}</div>
-    <div>${heading("Direct Costs")}${rowInput(`Materials:${matMismatch?zap(`Total direct cost counts ${money(j.materialCost)} of materials/equipment/subcontractor cost — some of it (job_costs and Subs tab) may be double-logged for this job.`,"check total"):""}`,"mat",j.mat,matPh)}${laborOverridden?row("Labor (In-House):",money(j.laborCost)+" · Time Entry"):rowInput("Labor (In-House):","laborIn",j.laborIn,laborPh)}${j.sub?row("Labor (Subcontractor):",money(j.sub)+" · Subs tab"):rowInput("Labor (Subcontractor):","laborSub",j.laborSub)}${rowInput("Job Hours:","mhrs",j.manualHours,"—",false)}${rowInput("Equipment Rentals:","equip",j.equip)}</div>
+    <div>${heading("Direct Costs")}${rowInput(`Materials:${matMismatch?zap(`Total direct cost counts ${money(j.materialCost)} of materials/equipment/subcontractor cost — some of it (job_costs and Subs tab) may be double-logged for this job.`,"check total"):""}`,"mat",j.mat,matPh)}${laborOverridden?row("Labor (In-House):",money(j.laborCost)+" · Time Entry"):rowInput("Labor (In-House):","laborIn",j.laborIn,laborPh)}${j.sub?row("Labor (Subcontractor):",money(j.sub)+" · Subs tab"):rowInput("Labor (Subcontractor):","laborSub",j.laborSub)}${j.hrs?row("Hours Worked:",j.hrs.toFixed(1)+" hrs · Time Entry"):""}${rowInput("Job Hours:","mhrs",j.manualHours,"—",false)}${rowInput("Equipment Rentals:","equip",j.equip)}</div>
     <div>${heading("Additional Costs")}${rowInput("Disposal/Dumpster:","disp",j.disp)}${rowInput("Permits/Fees:","permit",j.permit)}${rowInput("Fuel/Travel:","fuel",j.fuel)}${rowInput("Other/Misc:","other",j.other)}</div>
   </div>
   <div style="display:flex;align-items:center;gap:22px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap">
     <span style="font-size:12.5px;color:var(--steel)">Overhead %: <input type="number" data-c="oh" data-job="${j.id}" value="${j.oh??""}" style="border:0;background:none;color:var(--text);font-family:'Inter',sans-serif;font-size:12.5px;width:40px"></span>
     <span style="font-size:12.5px;color:var(--steel)">Overhead $: <b style="color:var(--text);font-family:'Inter',sans-serif">${money(j.overheadCost)}</b></span>
+    ${j.daysWorked?`<span style="font-size:12.5px;color:var(--steel)" title="${j.firstWorkDate} to ${j.lastWorkDate}">Days Worked: <b style="color:var(--text);font-family:'Inter',sans-serif">${j.daysWorked} day${j.daysWorked===1?"":"s"}</b></span>`:""}
     <span data-jc-status="${j.id}" style="font-size:11px;color:var(--steel);flex:1;min-width:60px"></span>
     <span class="stage" style="background:var(--navy-3);color:var(--steel)">${escapeHtml(j.type)}</span>
   </div>${!complete?`<div class="flagbox" style="margin-top:10px">${j.unpriced?`<b>No cost data yet.</b> Margin will show once at least one cost or hour is entered.`:`<b>Margin unavailable — labor cost not yet recorded.</b> This job has some cost data logged, but no labor hours and no labor cost line item, so a margin would be misleading. Check "Reviewed" if this job's costing is actually complete as-is.`}</div>`:""}`;
@@ -3396,15 +3407,16 @@ function drawJobCosting(){
       <td>${money(j.revenue)}</td>
       <td>${money(directCost)}</td>
       <td>${j.totalCost==null?"—":money(j.totalCost)}</td>
+      <td title="${j.daysWorked?`${j.daysWorked} day${j.daysWorked===1?"":"s"} logged, ${j.firstWorkDate} to ${j.lastWorkDate}`:"No hours logged yet"}">${j.hrs?j.hrs.toFixed(1):"—"}</td>
       <td style="color:${marginColor}">${j.revenue==null?"—":!complete?incompleteBadge(j):money(j.gp)}</td>
       <td style="color:${marginColor}">${j.revenue==null?"—":!complete?incompleteBadge(j):j.revenue?(j.gp/j.revenue*100).toFixed(2)+"%":"—"}</td>
       <td><input type="checkbox" data-jc-reviewed="${j.id}" ${j.reviewed?"checked":""} title="Costing reviewed"></td>
       <td><input type="checkbox" data-jc-approved="${j.id}" ${j.approved?"checked":""} title="Costing approved"></td>
-    </tr><tr data-jc-row="${j.id}" class="${expanded?"":"hidden"}"><td colspan="11" style="padding:12px 16px;background:var(--navy-3)">${expanded?jobCostRowDetail(j):""}</td></tr>`;
+    </tr><tr data-jc-row="${j.id}" class="${expanded?"":"hidden"}"><td colspan="12" style="padding:12px 16px;background:var(--navy-3)">${expanded?jobCostRowDetail(j):""}</td></tr>`;
   }).join("");
   const jcRemaining=list.length-visibleList.length;
-  const loadMoreRow=jcRemaining>0?`<tr><td colspan="11" style="text-align:center;padding:10px"><button id="jcLoadMoreBtn" class="chip">Load ${Math.min(jcPageSize,jcRemaining)} more (${jcRemaining} remaining)</button></td></tr>`:"";
-  $("#jobCostingTable").innerHTML=`<thead><tr><th></th><th style="text-align:left">Client Name</th><th>Status</th><th>Contract Price</th><th>Total Revenue</th><th>Direct Cost</th><th>Job Cost</th><th>Gross Profit</th><th>Margin %</th><th>Reviewed</th><th>Approved</th></tr></thead><tbody>${rows||'<tr><td colspan="11">No jobs match.</td></tr>'}${loadMoreRow}</tbody>`;
+  const loadMoreRow=jcRemaining>0?`<tr><td colspan="12" style="text-align:center;padding:10px"><button id="jcLoadMoreBtn" class="chip">Load ${Math.min(jcPageSize,jcRemaining)} more (${jcRemaining} remaining)</button></td></tr>`:"";
+  $("#jobCostingTable").innerHTML=`<thead><tr><th></th><th style="text-align:left">Client Name</th><th>Status</th><th>Contract Price</th><th>Total Revenue</th><th>Direct Cost</th><th>Job Cost</th><th>Hours</th><th>Gross Profit</th><th>Margin %</th><th>Reviewed</th><th>Approved</th></tr></thead><tbody>${rows||'<tr><td colspan="12">No jobs match.</td></tr>'}${loadMoreRow}</tbody>`;
   $("#jobCostingCount").textContent=`${visibleList.length} of ${list.length} shown · ${jobs.length} total jobs`;
 }
 let pfGran="year",pfBasis="done",pfScope="priced",pfShowGaps=false;
