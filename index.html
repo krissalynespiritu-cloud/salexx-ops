@@ -3287,7 +3287,8 @@ function renderDuplicateJobsPanel(){
       </div>`;
     }).join(""):`<div class="empty">No likely duplicate jobs found.</div>`}`;
 }
-function openClient(clientId){
+async function openClient(clientId){
+  if(!clientValues.length)await drawClients();
   const c=clientValues.find(x=>x.client_id===clientId);if(!c)return;
   const clientJobs=jobs.filter(j=>j.clientId===clientId).sort((a,b)=>(a.sold||"9999").localeCompare(b.sold||"9999"));
   $("#clName").textContent=c.name;
@@ -3387,7 +3388,7 @@ function drawJobCosting(){
     const marginColor=col(complete?j.marginPct:null);
     return `<tr>
       <td style="width:20px"><button data-jc-expand="${j.id}" aria-label="Expand" class="expandCaret${expanded?" open":""}" style="background:none;border:0;color:var(--steel);cursor:pointer;display:flex;align-items:center">${icon("chevronRight",13)}</button></td>
-      <td style="text-align:left;font-family:'Inter';font-weight:500"><span style="display:flex;align-items:center;gap:6px"><a href="#" data-open="${j.id}" style="color:inherit;text-decoration:none">${escapeHtml(j.client)}</a>${jobUpdatesButtonHTML(j,22)}</span></td>
+      <td style="text-align:left;font-family:'Inter';font-weight:500"><span style="display:flex;align-items:center;gap:6px">${j.clientId?`<button data-open-client="${j.clientId}" title="View client" style="background:none;border:0;padding:0;margin:0;color:inherit;font:inherit;font-weight:inherit;cursor:pointer;text-decoration:none">${escapeHtml(j.client)}</button>`:`<span>${escapeHtml(j.client)}</span>`}<button data-open="${j.id}" aria-label="Open job" title="Open job" style="background:none;border:1px solid var(--line);color:var(--steel);border-radius:5px;width:22px;height:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon("externalLink",12)}</button>${jobUpdatesButtonHTML(j,22)}</span></td>
       <td><span class="stage ${stClass(j.stage)}">${j.stage}</span></td>
       <td>${money(j.contract)}</td>
       <td>${money(j.revenue)}</td>
