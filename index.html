@@ -538,17 +538,19 @@ function mergeJobRecord(j,m,costRows,subTotal){
 // Centralized costing-completeness check, used everywhere a margin/GP/profit
 // figure is displayed or rolled up. A job counts as complete when it has
 // verified labor evidence through ANY valid method -- real logged hours, a
-// manual hours estimate, or a manually-entered Labor cost line (how the
+// manual hours estimate, a manually-entered Labor cost line (how the
 // "Job Costing sheet" imports recorded labor for many jobs with no
-// timesheet behind it) -- not hours specifically. `reviewed` is a manual
-// human override and always wins.
+// timesheet behind it), or a subcontractor cost (a sub-out job has no
+// in-house hours or Labor line by design -- the Subs tab total IS its
+// labor cost) -- not hours specifically. `reviewed` is a manual human
+// override and always wins.
 function costingComplete(j){
   if(j.reviewed)return true;
   if(j.unpriced)return false;
-  return j.laborCost>0||j.hrs>0||j.manualHours>0;
+  return j.laborCost>0||j.hrs>0||j.manualHours>0||j.sub>0;
 }
 function laborCostComplete(j){
-  return j.reviewed||j.laborCost>0||j.hrs>0;
+  return j.reviewed||j.laborCost>0||j.hrs>0||j.sub>0;
 }
 // Shared payment-coverage check for the Collected/A-R/Overdue KPIs -- what
 // share of priced jobs have at least one real payment row logged. Below
