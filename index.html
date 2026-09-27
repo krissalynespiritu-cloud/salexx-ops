@@ -2992,15 +2992,15 @@ const RETIRE_DEP_LABELS=[
   ["job_punch_items","Punch list items"],["job_permits","Permits"],["warranty_claims","Warranty claims"],
   ["crew_assignments","Crew schedule assignments"]
 ];
-let retireJobId=null,retireJobDeps=null,retireJobLoading=false;
+let retireJobId=null,retireJobDeps=null,retireJobLoading=false,retireJobForceConfirm=false;
 function openRetireJobReview(jobId){
-  retireJobId=jobId;retireJobDeps=null;retireJobLoading=true;
+  retireJobId=jobId;retireJobDeps=null;retireJobLoading=true;retireJobForceConfirm=false;
   document.getElementById("retireJobModal").classList.remove("hidden");
   renderRetireJobModal();
   loadRetireJobDeps();
 }
 function closeRetireJobReview(){
-  retireJobId=null;retireJobDeps=null;retireJobLoading=false;
+  retireJobId=null;retireJobDeps=null;retireJobLoading=false;retireJobForceConfirm=false;
   document.getElementById("retireJobModal").classList.add("hidden");
 }
 async function loadRetireJobDeps(){
@@ -3041,9 +3041,30 @@ function renderRetireJobModal(){
       ${rows.length?rows.map(r=>`<div class="fld"><span class="k">${r.label}</span><span class="v" style="color:var(--alert);font-weight:600">${r.n}</span></div>`).join(""):`<div class="fld"><span class="k">Linked records</span><span class="v" style="color:#3ba55c">None found</span></div>`}
     </div>`;
   if(total>0){
+    if(retireJobForceConfirm){
+      card.innerHTML=header+depTable+
+        `<p class="note" style="border-color:var(--alert);color:var(--alert);font-size:12px"><b>This permanently deletes ${j.id} and every linked record listed above (${total} row${total===1?"":"s"}) forever.</b> This is not a soft retire — it cannot be undone or recovered from within the app. A snapshot is kept in an internal audit log for accountability, but the deleted rows themselves are gone.</p>
+        <label style="display:block;margin-bottom:10px"><span class="note" style="border:0;padding:0;margin:0 0 4px;font-size:10.5px">Reason (required)</span>
+          <textarea id="forceDeleteReason" rows="2" placeholder="e.g. Test job, never real — confirmed with Alex" style="width:100%;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:8px;font:inherit;font-size:12px;box-sizing:border-box"></textarea>
+        </label>
+        <label style="display:block;margin-bottom:12px"><span class="note" style="border:0;padding:0;margin:0 0 4px;font-size:10.5px">Type <b>${j.id}</b> to confirm</span>
+          <input id="forceDeleteConfirmId" type="text" placeholder="${j.id}" style="width:100%;background:var(--navy-3);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:8px;font:inherit;font-size:12px;box-sizing:border-box">
+        </label>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span id="forceDeleteStatus" class="note" style="margin:0;border:0;padding:0;min-height:14px;font-size:11px"></span>
+          <div style="display:flex;gap:8px">
+            <button id="forceDeleteCancel" class="chip" style="background:none">Cancel</button>
+            <button id="forceDeleteConfirm" class="chip" style="background:var(--alert);border-color:var(--alert)">Permanently delete ${j.id}</button>
+          </div>
+        </div>`;
+      return;
+    }
     card.innerHTML=header+depTable+
       `<p class="note" style="border-color:var(--alert);color:var(--alert);font-size:12px">Blocked — ${total} linked record${total===1?"":"s"} still reference this job. Nothing here is deleted or reassigned automatically. Resolve or move these first, elsewhere in the app, then reopen this dialog.</p>
-      <div style="display:flex;justify-content:flex-end"><button id="retireJobCancel" class="chip" style="background:none">Close</button></div>`;
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button id="forceDeleteStart" style="background:none;border:0;color:var(--alert);cursor:pointer;font-size:11px;text-decoration:underline;padding:0">Force delete this job and everything linked to it</button>
+        <button id="retireJobCancel" class="chip" style="background:none">Close</button>
+      </div>`;
     return;
   }
   card.innerHTML=header+depTable+
@@ -3075,6 +3096,22 @@ async function confirmRetireJob(){
     return;
   }
   closeRetireJobReview();
+  await fetchJobs();drawJobs();drawToday();
+}
+async function confirmForceDeleteJob(){
+  const jobId=retireJobId;
+  const reasonEl=document.getElementById("forceDeleteReason");
+  const idEl=document.getElementById("forceDeleteConfirmId");
+  const statusEl=document.getElementById("forceDeleteStatus");
+  const reason=(reasonEl?.value||"").trim();
+  if(!reason){statusEl.textContent="A reason is required.";statusEl.style.color="var(--alert)";return}
+  if((idEl?.value||"").trim()!==jobId){statusEl.textContent=`Type ${jobId} exactly to confirm.`;statusEl.style.color="var(--alert)";return}
+  statusEl.textContent="Deleting…";statusEl.style.color="var(--steel)";
+  const deletedBy=currentUserProfile?.full_name||currentUserEmail||"Unknown";
+  const{error}=await sb.rpc("force_delete_job",{p_job_id:jobId,p_deleted_by:deletedBy,p_reason:reason});
+  if(error){statusEl.textContent="Error: "+error.message;statusEl.style.color="var(--alert)";return}
+  closeRetireJobReview();
+  showToast(`Permanently deleted ${jobId} and its linked records.`,false);
   await fetchJobs();drawJobs();drawToday();
 }
 // ---------- Needs Review: ambiguous client matches from job/lead creation ----------
@@ -5498,6 +5535,9 @@ document.addEventListener("click",e=>{
   if(e.target.id==="retireJobClose"||e.target.id==="retireJobCancel"){closeRetireJobReview();return}
   if(e.target.id==="retireJobModal"){closeRetireJobReview();return}
   if(e.target.id==="retireJobConfirm"){confirmRetireJob();return}
+  if(e.target.id==="forceDeleteStart"){retireJobForceConfirm=true;renderRetireJobModal();return}
+  if(e.target.id==="forceDeleteCancel"){retireJobForceConfirm=false;renderRetireJobModal();return}
+  if(e.target.id==="forceDeleteConfirm"){confirmForceDeleteJob();return}
   const nro=e.target.closest("[data-nr-open]");if(nro){const[kind,id]=nro.dataset.nrOpen.split(":");openNeedsReviewItem(kind,id);return}
   const nrp=e.target.closest("[data-nr-pick]");if(nrp){nrPickClient(nrp.dataset.nrPick);return}
   if(e.target.id==="nrClose"||e.target.id==="nrCancel"){closeNeedsReviewModal();return}
