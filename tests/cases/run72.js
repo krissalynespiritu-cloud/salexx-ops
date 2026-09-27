@@ -27,11 +27,13 @@ global.results = results;
 
 // Feature: Job Costing showed labor cost but nothing about total hours
 // worked, or how long (in real calendar days someone actually logged time)
-// the crew was on a job. Added a "Hours" column to the main table (real
-// hours from Time Entry, via job_margins.hours) and a "Days Worked" stat
-// to each row's expanded detail (distinct days logged, from the new
-// job_work_days view, supabase/86_job_work_days.sql) -- first/last work
-// date shown as a tooltip on both.
+// the crew was on a job. A "Hours" column was tried on the main table but
+// removed again (it pushed the Reviewed/Approved checkboxes off-screen and
+// duplicated what the expanded detail already showed). The real hours
+// (from Time Entry) and the day count (from the new job_work_days view,
+// supabase/86_job_work_days.sql) are shown together in a single merged
+// "Hours Worked: X hrs over N days · Time Entry" line in each row's
+// expanded detail, instead of two separate, redundant stats.
 global.mockJobsData = [
   { job_id: 'SLX-DW1', client_name: 'Days Worked Client', client_id: null, address_city: '1 Test St', job_type: 'Roofing', stage: 'Completed', contract_price: 10000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-01-01', completed_date: '2026-02-01', monday_item_id: null, retired: false },
   { job_id: 'SLX-DW2', client_name: 'No Hours Client', client_id: null, address_city: '2 Test St', job_type: 'Siding', stage: 'In Progress', contract_price: 4000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-01-02', completed_date: null, monday_item_id: null, retired: false }
@@ -92,29 +94,29 @@ const testLogic = `
     check('TEST 2: a job with no time entries defaults daysWorked to 0', j2.daysWorked === 0, j2.daysWorked);
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
-  // ---- TEST 2: the main Job Costing table shows an Hours column ----
+  // ---- TEST 2: the main Job Costing table has no separate Hours column (removed as redundant clutter) ----
   try {
     activateTab('jobcosting');
     drawJobCosting();
     const html = document.getElementById('jobCostingTable').innerHTML;
-    check('TEST 2: the Hours column header exists', html.includes('>Hours<'));
-    check('TEST 2: shows 60.0 hours for the worked job', html.includes('60.0'), html.match(/Days Worked Client[\\s\\S]{0,400}/)?.[0]);
-    check('TEST 2: shows a dash for the job with no hours', html.match(/No Hours Client[\\s\\S]{0,1600}/)?.[0].includes('title="No hours logged yet">—'));
+    check('TEST 2: no Hours column header', !html.includes('>Hours<'), html.match(/<thead>[\\s\\S]{0,400}/)?.[0]);
   } catch (e) { check('TEST 2: no throw', false, e.stack); }
 
-  // ---- TEST 3: expanding the worked job's row shows Days Worked and Hours Worked ----
+  // ---- TEST 3: expanding the worked job's row shows one merged Hours Worked + days line ----
   try {
     document.querySelector('[data-jc-expand="SLX-DW1"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const body = document.getElementById('jobCostingTable').innerHTML;
-    check('TEST 3: shows Days Worked: 6 days', body.includes('Days Worked:') && body.includes('6 days'), body.match(/Days Worked[\\s\\S]{0,60}/)?.[0]);
-    check('TEST 3: shows the real Hours Worked line from Time Entry', body.includes('Hours Worked:') && body.includes('60.0 hrs') && body.includes('Time Entry'));
+    check('TEST 3: shows the real hours', body.includes('60.0 hrs'), body.match(/Hours Worked[\\s\\S]{0,140}/)?.[0]);
+    check('TEST 3: shows the day count merged into the same line', body.includes('over 6 days'), body.match(/Hours Worked[\\s\\S]{0,140}/)?.[0]);
+    check('TEST 3: labeled as coming from Time Entry', body.includes('Time Entry'));
+    check('TEST 3: no separate standalone "Days Worked:" stat anymore', !body.includes('Days Worked:'));
   } catch (e) { check('TEST 3: no throw', false, e.stack); }
 
-  // ---- TEST 4: a job with no logged days shows no Days Worked stat (nothing to report) ----
+  // ---- TEST 4: a job with no logged hours shows no Hours Worked line at all ----
   try {
     document.querySelector('[data-jc-expand="SLX-DW2"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const body = document.getElementById('jobCostingTable').innerHTML;
-    check('TEST 4: no Days Worked line for the job with zero days logged', !body.match(/No Hours Client[\\s\\S]{0,900}/)?.[0].includes('Days Worked:'));
+    check('TEST 4: no Hours Worked line for the job with zero hours logged', !body.match(/No Hours Client[\\s\\S]{0,900}/)?.[0].includes('Hours Worked:'));
   } catch (e) { check('TEST 4: no throw', false, e.stack); }
 
   // ---- TEST 5: refreshJob() (the per-job save-triggered refresh) also picks up days worked ----
