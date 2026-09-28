@@ -26,15 +26,27 @@ global.results = results;
 
 const sbCallLog = [];
 global.sbCallLog = sbCallLog;
-// Today is 2026-09-23 (Wednesday) per the system clock; Monday of that week is 2026-09-21
+// Dates computed relative to whenever this test actually runs (mirroring
+// the app's own mondayOf()/addDays() logic locally, since those real
+// functions aren't available until mainScript is eval'd below) -- a
+// hardcoded literal week silently goes stale once enough real time
+// passes, which is exactly what broke this file before this fix.
+function ymd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function addDaysToDate(d, n) { const nd = new Date(d); nd.setDate(nd.getDate() + n); return nd; }
+function shortLabel(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+const monday = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; })();
+const mondayStr = ymd(monday);
+const tuesdayStr = ymd(addDaysToDate(monday, 1));
+const mondayLabel = shortLabel(monday);
+const nextMondayLabel = shortLabel(addDaysToDate(monday, 7));
 global.mockJobsData = [
-  { job_id: 'SLX-CS1', client_name: 'Scheduled Job Client', client_id: null, address_city: '1 Test St', job_type: 'Roofing', stage: 'In Progress', contract_price: 5000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-01-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: '2026-09-21', scheduled_end_date: '2026-09-25' },
+  { job_id: 'SLX-CS1', client_name: 'Scheduled Job Client', client_id: null, address_city: '1 Test St', job_type: 'Roofing', stage: 'In Progress', contract_price: 5000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-01-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: mondayStr, scheduled_end_date: ymd(addDaysToDate(monday, 4)) },
   { job_id: 'SLX-CS2', client_name: 'Other Job Client', client_id: null, address_city: '2 Test St', job_type: 'Siding', stage: 'Designs Sold', contract_price: 3000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-02-01', completed_date: null, monday_item_id: null, retired: false }
 ];
 global.mockCrewAssignments = [
-  { assignment_id: 'CA-1', job_id: 'SLX-CS1', person: 'Carlos', assignment_date: '2026-09-21', shift: 'Full Day' },
-  { assignment_id: 'CA-2', job_id: 'SLX-CS2', person: 'Carlos', assignment_date: '2026-09-22', shift: 'Morning' },
-  { assignment_id: 'CA-3', job_id: 'SLX-CS1', person: 'Carlos', assignment_date: '2026-09-22', shift: 'Afternoon' }
+  { assignment_id: 'CA-1', job_id: 'SLX-CS1', person: 'Carlos', assignment_date: mondayStr, shift: 'Full Day' },
+  { assignment_id: 'CA-2', job_id: 'SLX-CS2', person: 'Carlos', assignment_date: tuesdayStr, shift: 'Morning' },
+  { assignment_id: 'CA-3', job_id: 'SLX-CS1', person: 'Carlos', assignment_date: tuesdayStr, shift: 'Afternoon' }
 ];
 
 function makeChain(table) {
@@ -111,11 +123,11 @@ const testLogic = `
     check('TEST 1: Crew Schedule chip exists', !!document.querySelector('[data-labor-view="sched"]'));
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
-  // ---- TEST 2: switching to Crew Schedule shows the real assignments for the current week (Mon 2026-09-21) ----
+  // ---- TEST 2: switching to Crew Schedule shows the real assignments for the current week (Mon ${mondayStr}) ----
   try {
     document.querySelector('[data-labor-view="sched"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
-    check('TEST 2: week label shows the real Monday-anchored week', document.getElementById('crewSchedLabel').textContent.includes('Sep 21'));
+    check('TEST 2: week label shows the real Monday-anchored week', document.getElementById('crewSchedLabel').textContent.includes('${mondayLabel}'));
     const table = document.getElementById('crewScheduleTable').innerHTML;
     check('TEST 2: shows real assigned job chip for Carlos on Mon', table.includes('SLX-CS1'));
     check('TEST 2: shows real assigned job chip for Carlos on Tue (both AM and PM)', table.includes('SLX-CS2 AM') && table.includes('SLX-CS1 PM'), table.slice(0,2000));
@@ -129,7 +141,7 @@ const testLogic = `
 
   // ---- TEST 4: unstaffed jobs list shows the real job scheduled this week with a staffed day, but flags days aren't checked -- job SLX-CS1 already has assignments so should NOT appear; verify a genuinely unstaffed scheduled job does appear ----
   try {
-    global.mockJobsData.push({ job_id: 'SLX-CS3', client_name: 'Unstaffed Client', client_id: null, address_city: '3 Test St', job_type: 'Deck', stage: 'Project Scheduled', contract_price: 1000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-03-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: '2026-09-22', scheduled_end_date: '2026-09-23' });
+    global.mockJobsData.push({ job_id: 'SLX-CS3', client_name: 'Unstaffed Client', client_id: null, address_city: '3 Test St', job_type: 'Deck', stage: 'Project Scheduled', contract_price: 1000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-03-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: '${tuesdayStr}', scheduled_end_date: '${ymd(addDaysToDate(monday, 2))}' });
     await fetchJobs();
     await drawCrewSchedule();
     const body = document.getElementById('unstaffedJobs').innerHTML;
@@ -139,12 +151,12 @@ const testLogic = `
 
   // ---- TEST 5: clicking + on an empty cell opens the assignment modal pre-targeted to that person/date ----
   try {
-    const addBtn = document.querySelector('[data-new-assignment="Tito"][data-assign-date="2026-09-21"]');
+    const addBtn = document.querySelector('[data-new-assignment="Tito"][data-assign-date="${mondayStr}"]');
     check('TEST 5 setup: add button exists for an empty cell', !!addBtn);
     addBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
     check('TEST 5: modal opened', !document.getElementById('assignmentModal').classList.contains('hidden'));
-    check('TEST 5: shows the correct person and date', document.getElementById('assignmentModalCard').innerHTML.includes('Tito') && document.getElementById('assignmentModalCard').innerHTML.includes('2026-09-21'));
+    check('TEST 5: shows the correct person and date', document.getElementById('assignmentModalCard').innerHTML.includes('Tito') && document.getElementById('assignmentModalCard').innerHTML.includes('${mondayStr}'));
   } catch (e) { check('TEST 5: no throw', false, e.stack); }
 
   // ---- TEST 6: saving a new assignment inserts correctly and appears immediately, creating a real conflict since Carlos already has Full Day that Monday -- test with a clean person instead ----
@@ -153,14 +165,14 @@ const testLogic = `
     document.getElementById('assignmentModalShift').value = 'Full Day';
     document.getElementById('assignmentModalSave').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
-    check('TEST 6: insert sent with correct person, date, job, shift', sbCallLog.some(c => c.table === 'crew_assignments' && c.op === 'insert' && c.arg.person === 'Tito' && c.arg.assignment_date === '2026-09-21' && c.arg.job_id === 'SLX-CS2' && c.arg.shift === 'Full Day'), JSON.stringify(sbCallLog.filter(c=>c.table==='crew_assignments'&&c.op==='insert')));
+    check('TEST 6: insert sent with correct person, date, job, shift', sbCallLog.some(c => c.table === 'crew_assignments' && c.op === 'insert' && c.arg.person === 'Tito' && c.arg.assignment_date === '${mondayStr}' && c.arg.job_id === 'SLX-CS2' && c.arg.shift === 'Full Day'), JSON.stringify(sbCallLog.filter(c=>c.table==='crew_assignments'&&c.op==='insert')));
     const table = document.getElementById('crewScheduleTable').innerHTML;
     check('TEST 6: new assignment appears immediately', table.includes('data-open-assignment="CA-NEW"'));
   } catch (e) { check('TEST 6: no throw', false, e.stack); }
 
   // ---- TEST 7: double-booking the same person with two overlapping Full Day assignments IS flagged ----
   try {
-    const addBtn2 = document.querySelector('[data-new-assignment="Tito"][data-assign-date="2026-09-21"]');
+    const addBtn2 = document.querySelector('[data-new-assignment="Tito"][data-assign-date="${mondayStr}"]');
     check('TEST 7 setup: add button still available on the same cell (multiple assignments allowed)', !!addBtn2);
     addBtn2.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
@@ -193,10 +205,10 @@ const testLogic = `
   try {
     document.getElementById('crewSchedNext').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
-    check('TEST 9: next week label updated', document.getElementById('crewSchedLabel').textContent.includes('Sep 28'));
+    check('TEST 9: next week label updated', document.getElementById('crewSchedLabel').textContent.includes('${nextMondayLabel}'));
     document.getElementById('crewSchedPrev').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
-    check('TEST 9: back to the original week', document.getElementById('crewSchedLabel').textContent.includes('Sep 21'));
+    check('TEST 9: back to the original week', document.getElementById('crewSchedLabel').textContent.includes('${mondayLabel}'));
   } catch (e) { check('TEST 9: no throw', false, e.stack); }
 
   // ---- TEST 10: unrelated features remain unaffected ----

@@ -1181,6 +1181,12 @@ async function drawMyTasks(){
   $("#myTasksPersonSelect").innerHTML=TASK_PEOPLE.map(p=>`<option value="${escapeHtml(p)}" ${p===myTasksPerson?"selected":""}>${escapeHtml(p)}</option>`).join("");
   renderMyTasksBody();
 }
+const MY_TASKS_SECTION_META={
+  "Needs Attention":{icon:"alert",color:"var(--alert)"},
+  "Due Today":{icon:"clock",color:"var(--amber)"},
+  "Up Next":{icon:"chevronRight",color:"var(--hivis)"},
+  "Completed":{icon:"checkSquare",color:"var(--good)"}
+};
 function renderMyTasksBody(){
   const jobById=Object.fromEntries(jobs.map(j=>[j.id,j]));
   const mine=taskRows.filter(t=>(t.assignees||[]).includes(myTasksPerson));
@@ -1192,7 +1198,17 @@ function renderMyTasksBody(){
     ["Up Next",open.filter(t=>!t.due_date||t.due_date>todayStr),"Nothing scheduled yet."],
     ["Completed",mine.filter(t=>t.status==="Completed"),"No completed tasks yet."]
   ];
-  $("#myTasksBody").innerHTML=groups.map(([label,list,emptyMsg],i)=>`<p class="lbl" style="margin:${i===0?"0":"22px"} 0 8px;font-size:14px">${label} <span style="color:var(--steel);font-weight:400">(${list.length})</span></p>${list.length?`<div class="taskCol">${list.map(t=>taskCardHTML(t,jobById)).join("")}</div>`:`<p class="empty">${emptyMsg}</p>`}`).join("");
+  $("#myTasksBody").innerHTML=groups.map(([label,list,emptyMsg])=>{
+    const meta=MY_TASKS_SECTION_META[label];
+    return `<div class="myTaskGroup" style="background:var(--navy-2);border:1px solid var(--line);border-left:3px solid ${meta.color};border-radius:11px;padding:14px 16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:${list.length?"10px":"2px"}">
+        ${icon(meta.icon,15,meta.color)}
+        <span style="font-size:13px;font-weight:700;color:var(--text)">${label}</span>
+        <span class="myTaskGroupCount" style="font-size:12px;color:var(--steel);font-weight:400">${list.length}</span>
+      </div>
+      ${list.length?`<div class="taskCol" style="background:none;border:0;padding:0;min-height:0">${list.map(t=>taskCardHTML(t,jobById)).join("")}</div>`:`<p class="empty" style="margin:0">${emptyMsg}</p>`}
+    </div>`;
+  }).join("");
 }
 function drawTaskTimeline(){
   const today=parseDateOnly(todayPacific());

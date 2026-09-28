@@ -26,11 +26,19 @@ global.results = results;
 
 const sbCallLog = [];
 global.sbCallLog = sbCallLog;
-// today is 2026-09-23 per the system clock
+// Dates computed relative to whenever this test actually runs, not a
+// hardcoded literal -- a fixed date silently goes stale and starts
+// failing for reasons unrelated to any real regression once enough
+// real time passes (exactly what broke this file before this fix).
+function addDays(n) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 global.mockJobsData = [
-  { job_id: 'SLX-S1', client_name: 'Running Job Client', client_id: null, address_city: '1 Test St', job_type: 'Roofing', stage: 'In Progress', contract_price: 5000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-01-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: '2026-09-20', scheduled_end_date: '2026-09-30' },
-  { job_id: 'SLX-S2', client_name: 'Upcoming Job Client', client_id: null, address_city: '2 Test St', job_type: 'Siding', stage: 'Designs Sold', contract_price: 3000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-02-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: '2026-09-28', scheduled_end_date: '2026-10-02' },
-  { job_id: 'SLX-S3', client_name: 'Far Future Client', client_id: null, address_city: '3 Test St', job_type: 'Paint', stage: 'Designs Sold', contract_price: 2000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-03-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: '2026-12-01', scheduled_end_date: '2026-12-05' },
+  { job_id: 'SLX-S1', client_name: 'Running Job Client', client_id: null, address_city: '1 Test St', job_type: 'Roofing', stage: 'In Progress', contract_price: 5000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-01-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: addDays(-5), scheduled_end_date: addDays(5) },
+  { job_id: 'SLX-S2', client_name: 'Upcoming Job Client', client_id: null, address_city: '2 Test St', job_type: 'Siding', stage: 'Designs Sold', contract_price: 3000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-02-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: addDays(3), scheduled_end_date: addDays(7) },
+  { job_id: 'SLX-S3', client_name: 'Far Future Client', client_id: null, address_city: '3 Test St', job_type: 'Paint', stage: 'Designs Sold', contract_price: 2000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-03-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: addDays(60), scheduled_end_date: addDays(64) },
   { job_id: 'SLX-S4', client_name: 'No Schedule Client', client_id: null, address_city: '4 Test St', job_type: 'Deck', stage: 'Designs Sold', contract_price: 1500, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-04-01', completed_date: null, monday_item_id: null, retired: false, scheduled_start_date: null, scheduled_end_date: null }
 ];
 
@@ -94,8 +102,8 @@ const testLogic = `
     await new Promise(r => setTimeout(r, 20));
     const startInput = document.querySelector('[data-jf="scheduled_start_date"]');
     const endInput = document.querySelector('[data-jf="scheduled_end_date"]');
-    check('TEST 2: start date pre-filled with real value', startInput && startInput.value === '2026-09-20');
-    check('TEST 2: end date pre-filled with real value', endInput && endInput.value === '2026-09-30');
+    check('TEST 2: start date pre-filled with real value', startInput && startInput.value === global.mockJobsData[0].scheduled_start_date, startInput && startInput.value);
+    check('TEST 2: end date pre-filled with real value', endInput && endInput.value === global.mockJobsData[0].scheduled_end_date, endInput && endInput.value);
     const body = document.getElementById('dBody').innerHTML;
     check('TEST 2: computed duration is correct (11 days inclusive)', body.includes('11 days'), body);
   } catch (e) { check('TEST 2: no throw', false, e.stack); }

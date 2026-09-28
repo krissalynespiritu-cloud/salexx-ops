@@ -66,12 +66,14 @@ const testLogic = `
     check('TEST 1: the old generic repeated message is gone', !body.includes('Nothing here.'));
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
-  // ---- TEST 2: a genuinely empty column renders as a lightweight inline message with no gray-panel/.taskCol wrapper at all ----
+  // ---- TEST 2: every group -- empty or not -- renders inside its own bordered/colored card (professional-look redesign), with an .empty message when there's nothing in it ----
   try {
+    const groupCards = document.querySelectorAll('#myTasksBody .myTaskGroup');
+    check('TEST 2: all 4 groups render as their own card', groupCards.length === 4, String(groupCards.length));
     const cols = document.querySelectorAll('#myTasksBody .taskCol');
     check('TEST 2: no .taskCol boxes are rendered when every group is empty', cols.length === 0, String(cols.length));
     const emptyMsgs = document.querySelectorAll('#myTasksBody p.empty');
-    check('TEST 2: all 4 groups render as plain .empty inline text instead', emptyMsgs.length === 4, String(emptyMsgs.length));
+    check('TEST 2: all 4 groups show their contextual .empty message', emptyMsgs.length === 4, String(emptyMsgs.length));
   } catch (e) { check('TEST 2: no throw', false, e.stack); }
 
   // ---- TEST 3: a column with a real task still renders the full task card in a real .taskCol, using the new "Needs Attention" label ----
@@ -81,9 +83,11 @@ const testLogic = `
     await new Promise(r => setTimeout(r, 20));
     const body = document.getElementById('myTasksBody').innerHTML;
     check('TEST 3: the real overdue task card is rendered', body.includes('Overdue task'));
-    check('TEST 3: uses the "Needs Attention" construction-ops label, not "Overdue"', body.includes('Needs Attention <span') && body.includes('(1)'));
+    check('TEST 3: uses the "Needs Attention" construction-ops label, not "Overdue"', body.includes('>Needs Attention<') && /myTaskGroupCount"[^>]*>1</.test(body));
     const populatedCols = document.querySelectorAll('#myTasksBody .taskCol');
     check('TEST 3: the populated group renders inside a real .taskCol (not the plain-text empty style)', populatedCols.length === 1, String(populatedCols.length));
+    const groupCards = document.querySelectorAll('#myTasksBody .myTaskGroup');
+    check('TEST 3: still exactly 4 group cards (populated + 3 empty)', groupCards.length === 4, String(groupCards.length));
   } catch (e) { check('TEST 3: no throw', false, e.stack); }
 
   // ---- unrelated features remain unaffected ----

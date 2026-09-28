@@ -103,7 +103,7 @@ const testLogic = `
     check('TEST 2: no-due-date task for Luke bucketed into Upcoming (still shown)', body.includes('T-NODATE'));
     check('TEST 2: Completed task for Luke rendered', body.includes('T-DONE'));
     check('TEST 2: task assigned to someone else NOT shown', !body.includes('T-OTHER'));
-    check('TEST 2: group counts shown correctly', body.includes('Overdue') && body.includes('(1)') && body.includes('Today') && body.includes('Completed'));
+    check('TEST 2: group counts shown correctly', body.includes('Overdue') && /myTaskGroupCount"[^>]*>\\d+</.test(body) && body.includes('Today') && body.includes('Completed'));
   } catch (e) { check('TEST 2: no throw', false, e.stack); }
 
   // ---- TEST 3: switching the person select re-filters to a different assignee ----
