@@ -19,7 +19,10 @@ check('TEST 1: the shared .empty rule exists', !!match);
 const rule = match ? match[1] : '';
 check('TEST 2: no dashed/solid border box around empty states anymore', !/border:/.test(rule), rule);
 check('TEST 3: no rounded-card corners on empty states anymore', !/border-radius/.test(rule), rule);
-check('TEST 4: padding is tight (inline-message weight), not a large panel', /padding:7px/.test(rule), rule);
+// padding value later remapped from 7px/2px to 8px/4px when the whole app
+// was normalized onto a strict 4/8/16/24/32 spacing scale -- still tight
+// inline-message weight, just the nearest allowed scale values.
+check('TEST 4: padding is tight (inline-message weight), not a large panel', /padding:8px/.test(rule), rule);
 check('TEST 5: text is left-aligned like a normal status line, not centered like a decorative card', /text-align:left/.test(rule), rule);
 
 console.log('\n=== PASS (' + results.pass.length + ') ===');
