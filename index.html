@@ -549,18 +549,44 @@ function mergeJobRecord(j,m,costRows,subTotal){
   };
 }
 // Centralized costing-completeness check, used everywhere a margin/GP/profit
-// figure is displayed or rolled up. A job counts as complete when it has
-// verified labor evidence through ANY valid method -- real logged hours, a
-// manual hours estimate, a manually-entered Labor cost line (how the
-// "Job Costing sheet" imports recorded labor for many jobs with no
-// timesheet behind it), or a subcontractor cost (a sub-out job has no
-// in-house hours or Labor line by design -- the Subs tab total IS its
-// labor cost) -- not hours specifically. `reviewed` is a manual human
-// override and always wins.
+// figure is displayed or rolled up.
+//
+// A fully sub-out job (no in-house hours, no manual hours, no in-house Labor
+// cost line -- the Subs tab total IS its entire labor cost) is complete as
+// soon as that subcontractor cost is logged, full stop. There's no in-house
+// hours figure to sanity-check against the contract, and a sub-out job can
+// legitimately be a small fraction of the contract price if the business
+// marks the sub's work up significantly -- see run71.js, reproducing a real
+// reported case (Jane Vitek Dixon: $21,723.74 contract, $3,500 sub cost,
+// 16% direct-cost ratio, fully priced).
+//
+// Every other job counts as complete only when BOTH:
+//  (1) it has verified in-house labor evidence -- real logged hours, a
+//      manual hours estimate, or a manually-entered Labor cost line (how
+//      the "Job Costing sheet" imports recorded labor for many jobs with
+//      no timesheet behind it), AND
+//  (2) its direct cost (labor + material + additional, excluding overhead)
+//      is at least DIRECT_COST_MIN_RATIO of the contract price -- a job
+//      with, say, $339 of cost against an $8,068 contract has clearly not
+//      had materials/labor entered yet, whatever the labor-evidence check
+//      above says. `reviewed` does NOT override this -- see Fix Plan v2,
+//      P0.2: several jobs had been ticked Reviewed despite obviously
+//      missing costs, which let a false 90%+ margin display and roll up
+//      into every average (the reviewer's own examples cluster at 4-11%;
+//      40% was chosen against the business's real ~55-65% typical direct-
+//      cost ratio implied by its verified 22.7% weighted gross margin).
+//      Ticking Reviewed is blocked in the UI while a job fails this test
+//      (see the jc-reviewed change handler) so once a job legitimately
+//      passes, checking it back off never happens.
+const DIRECT_COST_MIN_RATIO=0.4;
+function directCostOf(j){return(j.laborCost||0)+(j.materialCost||0)+(j.additionalCost||0);}
 function costingComplete(j){
-  if(j.reviewed)return true;
   if(j.unpriced)return false;
-  return j.laborCost>0||j.hrs>0||j.manualHours>0||j.sub>0;
+  if(!j.contract)return false;
+  const subOut=j.sub>0&&!(j.hrs>0)&&!(j.manualHours>0)&&!(j.laborCost>0);
+  if(subOut)return true;
+  const hasLaborEvidence=j.laborCost>0||j.hrs>0||j.manualHours>0;
+  return hasLaborEvidence&&directCostOf(j)/j.contract>=DIRECT_COST_MIN_RATIO;
 }
 function laborCostComplete(j){
   return j.reviewed||j.laborCost>0||j.hrs>0||j.sub>0;
@@ -771,11 +797,16 @@ async function loadBalanceCard(token){
   if(balLowCoverage)changeHtml+=`<br><span style="color:var(--steel);font-size:10px">Based on ${balCoveragePct.toFixed(0)}% of priced jobs — actual balance may be higher</span>`;
   $("#balOwedCard").innerHTML=`<div style="display:flex;align-items:center;gap:9px;margin-bottom:8px"><span style="${badgeStyle("var(--sky)")}">${svgIcon("wallet")}</span><p class="lbl" style="margin:0">Total Balance</p></div><p style="font-family:'Inter',sans-serif;font-weight:600;font-size:22px;margin:0">${money(balanceNow)}</p><p style="font-size:11.5px;margin:4px 0 0">${changeHtml}</p>`;
 }
-async function loadBudgetDonut(token){
-  const {data:costRows}=await sb.from("job_costs").select("category,amount");
-  if(token!==undefined&&token!==todayLoadToken)return;
+function loadBudgetDonut(){
+  // Reuses the per-category totals fetchJobs() already merged onto every job
+  // (COST_CATEGORY_FIELD) instead of re-querying job_costs -- same numbers,
+  // one fewer Supabase round trip on every Dashboard load. See Fix Plan v2, P0.1.
   const byCat={};
-  for(const r of costRows||[]){const c=r.category||"Other";byCat[c]=(byCat[c]||0)+Number(r.amount);}
+  for(const cat in COST_CATEGORY_FIELD){
+    const field=COST_CATEGORY_FIELD[cat];
+    const total=jobs.reduce((s,j)=>s+(Number(j[field])||0),0);
+    if(total)byCat[cat]=total;
+  }
   const entries=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const total=entries.reduce((s,[,v])=>s+v,0);
   const colors=["var(--hivis)","var(--good)","var(--amber)","var(--violet)","var(--sky)"];
@@ -845,6 +876,9 @@ function activateTab(name){
   document.querySelectorAll(".sidebarLink[data-tab]").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===name?"true":"false"));
   ["#detail","#payrollDetail","#clientDetail","#matReqDetail"].forEach(s=>$(s)?.classList.add("hidden"));
   APP_TABS.forEach(n=>$("#s-"+n)?.classList.toggle("hidden",n!==name));
+  if(name==="today")drawToday();
+  if(name==="jobs")drawJobs();
+  if(name==="reports")drawReports();
   if(name==="labor")drawLabor();
   if(name==="mytasks")drawMyTasks();
   if(name==="billing")drawBilling();
@@ -940,7 +974,7 @@ async function drawToday(){$("#greeting").textContent=greetingLine();
   loadTopKpis(myToken);
   $("#revenueChart").innerHTML=lineChartSVG(monthData);
   loadBalanceCard(myToken);
-  loadBudgetDonut(myToken);
+  loadBudgetDonut();
   if(!miniCalReady){
     $("#miniCalPrev").addEventListener("click",()=>{miniCalDate=new Date(miniCalDate.getFullYear(),miniCalDate.getMonth()-1,1);renderMiniCal()});
     $("#miniCalNext").addEventListener("click",()=>{miniCalDate=new Date(miniCalDate.getFullYear(),miniCalDate.getMonth()+1,1);renderMiniCal()});
@@ -3468,6 +3502,11 @@ function jobCostRowDetail(j){
 }
 async function toggleCostingReviewed(jobId,checked){
   const jrec=jobs.find(x=>x.id===jobId);
+  if(checked&&jrec&&!costingComplete(jrec)){
+    showToast("Can't mark Reviewed yet — direct cost is under "+(DIRECT_COST_MIN_RATIO*100)+"% of the contract price, or no labor cost/hours are logged. Enter the missing costs first.",true);
+    drawJobCosting();
+    return;
+  }
   if(jrec)jrec.reviewed=checked;
   const {error}=await sb.from("jobs").update({costing_reviewed:checked}).eq("job_id",jobId);
   if(error){showToast("Couldn't save Reviewed: "+error.message,true);if(jrec)jrec.reviewed=!checked;drawJobCosting()}
@@ -3502,7 +3541,7 @@ function drawJobCosting(){
   const rows=visibleList.map(j=>{
     const expanded=jcExpanded.has(j.id);
     const complete=costingComplete(j);
-    const directCost=j.laborCost+j.materialCost+j.additionalCost;
+    const directCost=directCostOf(j);
     const marginColor=col(complete?j.marginPct:null);
     return `<tr>
       <td style="width:20px"><button data-jc-expand="${j.id}" aria-label="Expand" class="expandCaret${expanded?" open":""}" style="background:none;border:0;color:var(--steel);cursor:pointer;display:flex;align-items:center">${icon("chevronRight",13)}</button></td>
@@ -3514,7 +3553,7 @@ function drawJobCosting(){
       <td>${j.totalCost==null?"—":money(j.totalCost)}</td>
       <td style="color:${marginColor}">${j.revenue==null?"—":!complete?incompleteBadge(j):money(j.gp)}</td>
       <td style="color:${marginColor}">${j.revenue==null?"—":!complete?incompleteBadge(j):j.revenue?(j.gp/j.revenue*100).toFixed(2)+"%":"—"}</td>
-      <td><input type="checkbox" data-jc-reviewed="${j.id}" ${j.reviewed?"checked":""} title="Costing reviewed"></td>
+      <td><input type="checkbox" data-jc-reviewed="${j.id}" ${j.reviewed?"checked":""} title="${complete?"Costing reviewed":"Can't be marked Reviewed until enough direct cost and labor/hours are logged"}"></td>
       <td><input type="checkbox" data-jc-approved="${j.id}" ${j.approved?"checked":""} title="Costing approved"></td>
     </tr><tr data-jc-row="${j.id}" class="${expanded?"":"hidden"}"><td colspan="11" style="padding:12px 16px;background:var(--navy-3)">${expanded?jobCostRowDetail(j):""}</td></tr>`;
   }).join("");
@@ -4185,7 +4224,8 @@ function renderLaborView(){
   $("#laborHoursView").classList.toggle("hidden",laborView!=="hours");
   $("#laborPayrollView").classList.toggle("hidden",laborView!=="payroll");
   $("#laborSchedView").classList.toggle("hidden",laborView!=="sched");
-  if(laborView==="hours")drawProjectHours();
+  if(laborView==="time")drawRoster();
+  else if(laborView==="hours")drawProjectHours();
   else if(laborView==="payroll")drawPayroll();
   else if(laborView==="sched")drawCrewSchedule();
 }
@@ -5354,15 +5394,14 @@ async function boot(){
   if(!ok){const detail=fetchJobs.lastError?.message||fetchJobs.lastError?.code||"unknown error";showAuthGate(`Couldn't load data (${detail}) — check your connection and try again.`);return}
   if(window.refreshLeads)await window.refreshLeads();
   await fetchTodayAssignments();
-  drawToday();drawJobs();drawRoster();drawReports();
   if(location.hash)applyHash();else restoreLastTab();
   showApp();
 }
 function restoreLastTab(){
-  const name=localStorage.getItem("lastTab");
-  if(!name||name==="today")return;
-  if(!document.querySelector(`.sidebarLink[data-tab="${name}"]`))return;
-  activateTab(name);
+  // Each tab's own data loads inside activateTab() (added below), not here --
+  // landing on any tab only pays for that tab's own fetches, never every
+  // other tab's too. See Salexx Ops Hub Fix Plan v2, P0.1.
+  activateTab(localStorage.getItem("lastTab")||"today");
 }
 const PROFILE_COLORS=["#3B82F6","#3E9C6D","#D14A3C","#E8A33D","#9B8CD4","#5BA8D4"];
 function avatarInnerHTML(p,initials){

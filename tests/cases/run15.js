@@ -51,7 +51,7 @@ global.mockTasksData = [
   { task_id: 'T-1', job_id: 'SLX-R1', title: 'Overdue thing', status: 'To-do', due_date: '2026-09-01', assignees: ['Luke'], progress: 0, priority: 'High', notes: '' }
 ];
 global.mockJobMargins = [
-  { job_id: 'SLX-H1', revenue: 5000, labor_cost: 1000, material_cost: 500, margin_pct: 55, total_job_cost: 2250, gross_profit: 2750, hours: 20, unpriced: false },
+  { job_id: 'SLX-H1', revenue: 5000, labor_cost: 1000, material_cost: 1500, margin_pct: 41, total_job_cost: 2950, gross_profit: 2050, hours: 20, unpriced: false },
   { job_id: 'SLX-A1', revenue: 3000, labor_cost: 0, material_cost: 0, margin_pct: null, total_job_cost: 0, gross_profit: null, hours: 0, unpriced: true },
   { job_id: 'SLX-R1', revenue: 2000, labor_cost: 400, material_cost: 200, margin_pct: 55, total_job_cost: 900, gross_profit: 1100, hours: 10, unpriced: false },
   { job_id: 'SLX-OH1', revenue: 1500, labor_cost: 300, material_cost: 150, margin_pct: 55, total_job_cost: 675, gross_profit: 825, hours: 8, unpriced: false },

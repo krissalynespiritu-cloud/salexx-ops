@@ -33,6 +33,15 @@ global.mockJobsData = [
   { job_id: 'SLX-JC2', client_name: 'Bravo Unreviewed', client_id: null, address_city: '2 Test St', job_type: 'Siding', stage: 'In Progress', contract_price: 4000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-01-02', completed_date: null, monday_item_id: null, retired: false, costing_reviewed: false, updated_at: '2026-03-15T00:00:00Z' },
   { job_id: 'SLX-JC3', client_name: 'Charlie Unreviewed', client_id: null, address_city: '3 Test St', job_type: 'Painting', contract_price: 3000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-01-03', completed_date: null, monday_item_id: null, retired: false, costing_reviewed: false, updated_at: '2026-02-01T00:00:00Z' }
 ];
+// Real, complete cost data clearing the P0.2 completeness bar (direct cost
+// >= 40% of contract, real hours logged) for all three -- this file tests
+// filter/sort behavior, not completeness, and TEST 5 needs SLX-JC2 to pass
+// costingComplete() before the Reviewed checkbox will accept a check.
+global.mockJobMargins = [
+  { job_id: 'SLX-JC1', revenue: 5000, labor_cost: 1500, material_cost: 1500, margin_pct: 41, total_job_cost: 2950, gross_profit: 2050, hours: 20, unpriced: false },
+  { job_id: 'SLX-JC2', revenue: 4000, labor_cost: 1200, material_cost: 1200, margin_pct: 41, total_job_cost: 2360, gross_profit: 1640, hours: 16, unpriced: false },
+  { job_id: 'SLX-JC3', revenue: 3000, labor_cost: 900, material_cost: 900, margin_pct: 41, total_job_cost: 1770, gross_profit: 1230, hours: 12, unpriced: false }
+];
 
 function makeChain(table) {
   let lastOp = null, lastArg = null, eqVal = null;
@@ -51,7 +60,7 @@ function makeChain(table) {
         if (row) Object.assign(row, lastArg);
         resolve({ data: null, error: null }); return;
       }
-      resolve({ data: table === 'jobs' ? global.mockJobsData : [], error: null });
+      resolve({ data: table === 'jobs' ? global.mockJobsData : table === 'job_margins' ? global.mockJobMargins : [], error: null });
     }
   };
   return chain;

@@ -28,6 +28,13 @@ global.mockFailTables = new Set();
 global.mockJobsData = [
   { job_id: 'SLX-1', client_name: 'Costing Client', client_id: null, address_city: '1 Test St', job_type: 'Roofing', stage: 'In Progress', contract_price: 5000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-01-01', completed_date: null, monday_item_id: null, retired: false, costing_reviewed: false }
 ];
+// Real, complete cost data clearing the P0.2 completeness bar (direct cost
+// >= 40% of contract, real hours logged) -- this test is about the failed-
+// write-reverts-the-checkbox path, not completeness, so the job needs to
+// pass costingComplete() to even reach the toggle attempt.
+global.mockJobMargins = [
+  { job_id: 'SLX-1', revenue: 5000, labor_cost: 1500, material_cost: 1500, margin_pct: 41, total_job_cost: 2950, gross_profit: 2050, hours: 20, unpriced: false }
+];
 
 function makeChain(table) {
   let lastOp = null, lastArg = null, eqVal = null;
@@ -52,7 +59,7 @@ function makeChain(table) {
         resolve({ data: null, error: null });
         return;
       }
-      let src = table === 'jobs' ? global.mockJobsData : [];
+      let src = table === 'jobs' ? global.mockJobsData : table === 'job_margins' ? global.mockJobMargins : [];
       resolve({ data: src, error: null });
     }
   };
