@@ -509,12 +509,28 @@ async function fetchJobStages(){
 }
 const stClass=s=>stKey[s]||"st-hold";
 const jobs=[];
-const people=[{n:"Carlos",r:"Crew"},{n:"Carlos Jr.",r:"Crew"},{n:"Tito",r:"Crew"},{n:"Roberto",r:"Crew"},{n:"Ronald",r:"Crew"},{n:"Avelino",r:"Crew"},{n:"Edy",r:"Crew"},{n:"Rosa",r:"Admin"},{n:"Krissalyn",r:"Admin"}];
+// Built from the crew table (fetchCrewRates, below), not hardcoded -- a
+// hardcoded list of names drifts from the real crew table the moment
+// someone's added or removed there without a matching code change (exactly
+// what happened with Salvador: a real, active, wage-earning crew row that
+// this array simply didn't know about, so there was no row to log his
+// hours against). Starts on the crew table's own baseline rows so the
+// roster is never blank pre-fetch; fetchCrewRates() replaces this with the
+// real, current crew list at boot.
+const FALLBACK_PEOPLE=[{n:"Carlos",r:"Crew"},{n:"Carlos Jr.",r:"Crew"},{n:"Tito",r:"Crew"},{n:"Roberto",r:"Crew"},{n:"Ronald",r:"Crew"},{n:"Avelino",r:"Crew"},{n:"Edy",r:"Crew"},{n:"Rosa",r:"Admin"},{n:"Krissalyn",r:"Admin"}];
+const people=[...FALLBACK_PEOPLE];
 async function fetchCrewRates(){
-  const {data,error}=await sb.from("crew").select("name,hourly_wage");
-  if(error||!data)return;
-  const byName=Object.fromEntries(data.map(c=>[c.name,c.hourly_wage]));
-  for(const p of people)p.rate=byName[p.n]??RATE;
+  const {data,error}=await sb.from("crew").select("name,role,hourly_wage,active").eq("active",true).in("role",["Crew","Admin"]);
+  if(error||!data||!data.length){
+    // Fallback so the roster isn't blank if this fetch ever fails or
+    // returns nothing -- matches the crew table's own baseline rows.
+    if(!people.length)people.push(...FALLBACK_PEOPLE);
+    return;
+  }
+  people.length=0;
+  const rolePriority={Crew:0,Admin:1};
+  data.sort((a,b)=>(rolePriority[a.role]-rolePriority[b.role])||a.name.localeCompare(b.name));
+  for(const c of data)people.push({n:c.name,r:c.role,rate:c.hourly_wage??RATE});
 }
 const $=s=>document.querySelector(s);let jobStageFilter="All",query="",day={},cur=null,st="ov",currentUserEmail=null,currentUserProfile=null,currentPayments=null,currentFiles=null,currentEstActual=null,currentCloseout=null,currentTimeline=null,eaLabor=[],eaMats=[],jcQuery="",jcSort="marginDesc",jcStageFilter="All",jcReviewFilter="all",jcApprovedFilter="all",jcPageSize=50,jcVisibleCount=50,jobSort="soldDesc",jobDateFrom="",jobDateTo="";const FILE_CATS=["Materials","Estimate Details","Contracts","Permits","Project Photos/Videos","Accounting"];const fileRenaming=new Set();const jcExpanded=new Set();const jobsExpanded=new Set();const col=p=>p==null?"var(--steel)":p>=50?"var(--good)":p>=38?"var(--amber)":"var(--alert)";
 const COST_CATEGORY_FIELD={Materials:"mat","Equipment / Rentals":"equip","Disposal / Dumpster":"disp","Permits / Fees":"permit","Fuel / Travel":"fuel","Other / Misc":"other",Labor:"laborIn",Subcontractors:"laborSub"};
@@ -549,13 +565,20 @@ function mergeJobRecord(j,m,costRows,subTotal){
   };
 }
 // Centralized costing-completeness check, used everywhere a margin/GP/profit
-// figure is displayed or rolled up. A job counts as complete when it has
-// verified labor evidence through ANY valid method -- real logged hours, a
-// manual hours estimate, a manually-entered Labor cost line (how the
-// "Job Costing sheet" imports recorded labor for many jobs with no
-// timesheet behind it), or a subcontractor cost (a sub-out job has no
-// in-house hours or Labor line by design -- the Subs tab total IS its
-// labor cost) -- not hours specifically.
+// figure is displayed or rolled up. A job counts as complete when real
+// money is actually behind it -- a nonzero labor cost, or a nonzero
+// subcontractor cost (a sub-out job has no in-house hours or Labor line by
+// design -- the Subs tab total IS its labor cost).
+//
+// Logged hours alone are NOT sufficient evidence: a crew member with no
+// hourly wage set (null, or fixed to 0 for someone who legitimately isn't
+// paid hourly) produces real hours with a $0 computed labor cost -- a job
+// worked entirely by that person would clear an "hours > 0" gate while its
+// real labor cost is silently missing, the same failure as the Reviewed-
+// override bug below, through a different door. So hours only count once
+// they've actually produced a labor cost (or a manual-hours entry has a
+// matching Labor job_costs line, which is exactly what `laborCost>0`
+// checks) -- never hours by themselves.
 //
 // `reviewed` does NOT override this -- see Fix Plan v2, P0.2: several jobs
 // had been ticked Reviewed despite having genuinely zero cost/labor/hours
@@ -568,15 +591,14 @@ function mergeJobRecord(j,m,costRows,subTotal){
 // least 40% of the contract price, modeled on the reviewer's flagged
 // examples (all under 11%) and the business's ~22.7% average margin. That
 // broke real, fully-costed jobs that just run a healthy markup -- e.g. a
-// $78,341.10 contract with $21,601.50 of real logged direct cost (377
-// hours, real labor, a real sub payment, real materials) is a legitimate
-// 66.6% margin at a 27.6% cost ratio, not missing data, and got wrongly
-// flagged "Incomplete." Averages don't mean every healthy job sits near
-// that ratio. Removed; evidence-based only, same as before this session.
+// $78,341.10 contract with $21,601.50 of real logged direct cost is a
+// legitimate 66.6% margin at a 27.6% cost ratio, not missing data, and got
+// wrongly flagged "Incomplete." Averages don't mean every healthy job sits
+// near that ratio. Removed.
 function directCostOf(j){return(j.laborCost||0)+(j.materialCost||0)+(j.additionalCost||0);}
 function costingComplete(j){
   if(j.unpriced)return false;
-  return j.laborCost>0||j.hrs>0||j.manualHours>0||j.sub>0;
+  return j.laborCost>0||j.sub>0;
 }
 function laborCostComplete(j){
   return j.reviewed||j.laborCost>0||j.hrs>0||j.sub>0;
@@ -4259,7 +4281,10 @@ function drawLabor(){
   renderLaborView();
 }
 let crewSchedWeekStart=null,crewAssignments=[];
-const CREW_SCHED_PEOPLE=people.filter(p=>p.r==="Crew").map(p=>p.n);
+// A live filter, not a cached constant -- people is empty until
+// fetchCrewRates() resolves at boot, so caching this at script-parse time
+// would have permanently frozen it at [].
+const crewSchedPeople=()=>people.filter(p=>p.r==="Crew").map(p=>p.n);
 function shiftSlots(shift){return shift==="Morning"?["AM"]:shift==="Afternoon"?["PM"]:["AM","PM"]}
 function cellHasConflict(dayAssignments){
   const occ={AM:0,PM:0};
@@ -4281,7 +4306,7 @@ function renderCrewSchedule(){
   $("#crewSchedLabel").textContent=`${new Date(crewSchedWeekStart+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})} – ${new Date(weekEnd+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}`;
   const dow=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
   const head=`<tr><th>Crew</th>${days.map((d,i)=>`<th>${dow[i]}<br>${d.slice(5)}</th>`).join("")}</tr>`;
-  const body=CREW_SCHED_PEOPLE.map(person=>{
+  const body=crewSchedPeople().map(person=>{
     const cells=days.map(day=>{
       const dayAssignments=crewAssignments.filter(a=>a.person===person&&a.assignment_date===day);
       const conflict=cellHasConflict(dayAssignments);

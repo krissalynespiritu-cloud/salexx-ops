@@ -29,7 +29,7 @@ global.results = results;
 // with a $22/hr wage on file (supabase/87_add_carlos_jr.sql) so his labor
 // cost is calculated at his real rate instead of the company fallback rate.
 global.mockJobsData = [];
-global.mockCrewData = [{ name: 'Carlos Jr.', hourly_wage: 22 }];
+global.mockCrewData = [{ name: 'Carlos Jr.', role: 'Crew', hourly_wage: 22, active: true }];
 
 function makeChain(table) {
   const chain = {
