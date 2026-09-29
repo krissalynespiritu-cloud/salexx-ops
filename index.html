@@ -807,6 +807,11 @@ function loadBudgetDonut(){
     const total=jobs.reduce((s,j)=>s+(Number(j[field])||0),0);
     if(total)byCat[cat]=total;
   }
+  // Real subcontractor spend lives in the Subs tab's own sub_payments total
+  // (j.sub), not in a job_costs row under the "Subcontractors" category --
+  // fold both in so Subs shows up here at all. Fix Plan v2, P1.
+  const subTotal=jobs.reduce((s,j)=>s+(Number(j.sub)||0),0);
+  if(subTotal)byCat["Subcontractors"]=(byCat["Subcontractors"]||0)+subTotal;
   const entries=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const total=entries.reduce((s,[,v])=>s+v,0);
   const colors=["var(--hivis)","var(--good)","var(--amber)","var(--violet)","var(--sky)"];
@@ -832,11 +837,19 @@ function renderMiniCal(){
   for(let d=1;d<=daysInMonth;d++)cells.push(d);
   const dow=["S","M","T","W","T","F","S"];
   const head=dow.map(d=>`<span style="font-size:9px;color:var(--steel);text-align:center">${d}</span>`).join("");
+  // Job schedule milestones -- a job's start date, end date, or any day a
+  // multi-day job spans -- show as a small dot so this isn't just a bare
+  // date grid. Fix Plan v2, P1.
+  const scheduledJobs=jobs.filter(j=>j.scheduledStart);
+  const jobsOn=dateStr=>scheduledJobs.filter(j=>j.scheduledStart<=dateStr&&(!j.scheduledEnd||j.scheduledEnd>=dateStr));
   const body=cells.map(d=>{
     if(!d)return `<span></span>`;
     const dateStr=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
     const isToday=dateStr===todayStr;
-    return `<span style="text-align:center;font-size:11px;padding:4px 0;border-radius:6px;${isToday?"background:var(--violet);color:#fff;font-weight:600":"color:var(--text)"}">${d}</span>`;
+    const onDay=jobsOn(dateStr);
+    const dot=onDay.length?`<span style="display:block;width:4px;height:4px;border-radius:50%;background:${isToday?"#fff":"var(--hivis)"};margin:1px auto 0"></span>`:"";
+    const title=onDay.length?` title="${escapeHtml(onDay.map(j=>j.client).join(", "))}"`:"";
+    return `<span${title} style="text-align:center;font-size:11px;padding:4px 0;border-radius:6px;${isToday?"background:var(--violet);color:#fff;font-weight:600":"color:var(--text)"}${onDay.length?";cursor:help":""}">${d}${dot}</span>`;
   }).join("");
   $("#miniCal").innerHTML=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px 2px;margin-bottom:4px">${head}</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px 2px">${body}</div>`;
 }
@@ -932,6 +945,14 @@ async function loadTopKpis(token){
   const inPrev=d=>!allTime&&d&&d>=prevStart&&d<=prevEnd;
   const pct=(c,p)=>p?((c-p)/p*100):(c>0?100:0);
   const chg=(d,label="vs prior period")=>`<span style="color:${d>=0?"var(--good)":"var(--alert)"}">${icon(d>=0?"trendUp":"trendDown",11)} ${Math.abs(d).toFixed(1)}%</span> <span style="color:var(--steel)">${label}</span>`;
+  // For small integer counts (a handful of leads/jobs), a % change against a
+  // near-zero prior-period baseline explodes into meaningless numbers like
+  // "21900%". Show the plain count delta instead -- it's accurate at any
+  // baseline size and never needs a division. Fix Plan v2, P1.
+  const chgCount=(cur,prev,label="vs prior period")=>{
+    const d=cur-prev,sign=d>=0?"+":"−";
+    return `<span style="color:${d>=0?"var(--good)":"var(--alert)"}">${icon(d>=0?"trendUp":"trendDown",11)} ${sign}${Math.abs(d)}</span> <span style="color:var(--steel)">${label}</span>`;
+  };
   const fetchFrom=allTime?"0000-01-01":prevStart;
   const [{data:payRows,error:e1},{data:leadRows,error:e2}]=await Promise.all([
     sb.from("payments").select("amount,paid_on").gte("paid_on",fetchFrom).lte("paid_on",dashEnd),
@@ -945,7 +966,6 @@ async function loadTopKpis(token){
   const doneCurJobs=jobs.filter(j=>inCur(j.done)),donePrevJobs=jobs.filter(j=>inPrev(j.done));
   const activeNow=jobs.filter(j=>j.stage!=="Completed").length;
   const activeAtPeriodStart=allTime?activeNow:activeNow-soldCurJobs.length+doneCurJobs.length;
-  const activeChangePct=pct(activeNow,activeAtPeriodStart);
   const leadsCur=(leadRows||[]).filter(l=>inCur(l.lead_date)).length;
   const leadsPrev=(leadRows||[]).filter(l=>inPrev(l.lead_date)).length;
   const doneCur=doneCurJobs.length,donePrev=donePrevJobs.length;
@@ -955,10 +975,10 @@ async function loadTopKpis(token){
   const soldCurPricedCount=soldCurJobs.filter(j=>j.revenue!=null).length;
   const marginCoverageDesc=soldCurPricedCount?`Based on ${priced(soldCurJobs).length} of ${soldCurPricedCount} sold jobs with complete costing`:null;
   $("#kpis").innerHTML=[
-    kpiCardCompact(svgIcon("money"),"var(--hivis)","Total Revenue",e1?errVal:money(revCur),e1?"":(allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(revCur,revPrev)))),
-    kpiCardCompact(svgIcon("building"),"var(--sky)","Active Jobs",activeNow,allTime?`<span style="color:var(--steel)">current snapshot</span>`:chg(activeChangePct,"vs start of period")),
-    kpiCardCompact(svgIcon("chart"),"var(--violet)","New Leads",e2?errVal:leadsCur,e2?"":(allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(leadsCur,leadsPrev)))),
-    kpiCardCompact(svgIcon("alert"),"var(--amber)","Jobs Completed",doneCur,allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(doneCur,donePrev))),
+    kpiCardCompact(svgIcon("money"),"var(--hivis)","Total Revenue",e1?errVal:money(revCur),e1?"":(allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(revCur,revPrev)))+`<br><span style="color:var(--steel);font-size:10px">Cash payments recorded in this range — not job contract value</span>`),
+    kpiCardCompact(svgIcon("building"),"var(--sky)","Active Jobs",activeNow,allTime?`<span style="color:var(--steel)">current snapshot</span>`:chgCount(activeNow,activeAtPeriodStart,"vs start of period")),
+    kpiCardCompact(svgIcon("chart"),"var(--violet)","New Leads",e2?errVal:leadsCur,e2?"":(allTime?`<span style="color:var(--steel)">all time</span>`:chgCount(leadsCur,leadsPrev))),
+    kpiCardCompact(svgIcon("alert"),"var(--amber)","Jobs Completed",doneCur,allTime?`<span style="color:var(--steel)">all time</span>`:chgCount(doneCur,donePrev)),
     kpiCardCompact(svgIcon("chart"),"var(--good)","Profit Margin",marginCur.toFixed(1)+"%",(allTime?`<span style="color:var(--steel)">all time</span>`:chg(pct(marginCur,marginPrev)))+(marginCoverageDesc?`<br><span style="color:var(--steel);font-size:10px">${marginCoverageDesc}</span>`:""))
   ].join("");
 }
@@ -1021,13 +1041,18 @@ async function drawToday(){$("#greeting").textContent=greetingLine();
   const monthPrefix=todayStr.slice(0,7);
   const leadsThisMonth=(leadRows||[]).filter(l=>(l.lead_date||"").startsWith(monthPrefix)).length;
   const won=(leadRows||[]).filter(l=>l.status==="Won").length,lost=(leadRows||[]).filter(l=>l.status==="Lost").length;
-  const closeRateKnown=won+lost>0;
+  const totalLeadsCount=leadRows?.length||0;
+  // Close rate as won/(won+lost) reads 100% the moment nobody has ever
+  // bothered to mark a lead Lost -- which is exactly what happens in
+  // practice. won/total leads is meaningful at any stage of the pipeline,
+  // whether or not losses get logged. Fix Plan v2, P1.
+  const closeRateKnown=totalLeadsCount>0;
   const weekHours=(weekRows||[]).reduce((s,r)=>s+Number(r.hours),0);
   const kpi2NeedsData=(icon,color,k,d)=>`<div class="kpi"><div style="display:flex;align-items:center;gap:9px;margin-bottom:8px"><span style="${badgeStyle(color)}">${icon}</span><p class="k" style="margin:0">${k}</p></div><p class="v" style="color:var(--steel);font-size:16px">Needs data</p><p class="d">${d}</p></div>`;
   $("#kpis2").innerHTML=[
-    closeRateKnown?kpiCard(svgIcon("trendUp"),"var(--sky)","Leads this month / close rate",`${leadsThisMonth} / ${(won/(won+lost)*100).toFixed(0)}%`,`${won} won, ${lost} lost of ${leadRows?.length||0} leads`):kpi2NeedsData(svgIcon("trendUp"),"var(--sky)","Leads this month / close rate",`${leadsThisMonth} leads this month — no leads marked Won or Lost yet`),
+    closeRateKnown?kpiCard(svgIcon("trendUp"),"var(--sky)","Leads this month / close rate",`${leadsThisMonth} / ${(won/totalLeadsCount*100).toFixed(1)}%`,`${won} won of ${totalLeadsCount} leads (${lost} marked lost)`):kpi2NeedsData(svgIcon("trendUp"),"var(--sky)","Leads this month / close rate",`${leadsThisMonth} leads this month — no leads yet`),
     (()=>{const sp=(adPerf||[]).reduce((s,r)=>s+Number(r.spend||0),0),ld=(adPerf||[]).reduce((s,r)=>s+Number(r.leads||0),0),rv=(adPerf||[]).reduce((s,r)=>s+Number(r.revenue||0),0);return sp>0?kpiCard(svgIcon("target"),"var(--violet)","Cost per lead / ROAS",`${ld?money(sp/ld):"—"} / ${(rv/sp).toFixed(1)}x`,`${money(sp)} spent, ${ld} leads, ${money(rv)} won`):kpi2NeedsData(svgIcon("target"),"var(--violet)","Cost per lead / ROAS","No ad spend logged yet — add it in FB Ads")})(),
-    kpiCard(svgIcon("clock"),"var(--amber)","This week's crew hours",weekHours.toFixed(2),"Monday through Sunday, all logged hours")
+    kpiCard(svgIcon("clock"),"var(--amber)","This week's crew hours",weekHours.toFixed(2),weekHours?"Monday through Sunday, all logged hours":"No hours logged yet this week")
   ].join("");
   const jobsWithCosts=new Set([...(jcRows||[]).map(r=>r.job_id),...(spRows||[]).map(r=>r.job_id),...(teRows||[]).map(r=>r.job_id)]).size;
   const crewWithWage=(crewRows||[]).filter(c=>c.hourly_wage!=null).length;
@@ -1046,7 +1071,11 @@ async function drawToday(){$("#greeting").textContent=greetingLine();
 }
 function renderUpcomingSchedule(){
   const todayStr=todayPacific(),horizon=addDays(todayStr,14);
-  const upcoming=jobs.filter(j=>j.scheduledStart&&j.scheduledStart<=horizon&&(!j.scheduledEnd||j.scheduledEnd>=todayStr)).sort((a,b)=>a.scheduledStart.localeCompare(b.scheduledStart));
+  // A job whose start date is in the past and has no end date (or an end
+  // date also in the past) has already happened -- it isn't "upcoming" or
+  // "running" just because nothing closed it out. Only include a job that
+  // hasn't started yet, or one that's genuinely still running today.
+  const upcoming=jobs.filter(j=>j.scheduledStart&&j.scheduledStart<=horizon&&(j.scheduledStart>=todayStr||(j.scheduledEnd&&j.scheduledEnd>=todayStr))).sort((a,b)=>a.scheduledStart.localeCompare(b.scheduledStart));
   $("#upcomingSchedule").innerHTML=upcoming.length?upcoming.map(j=>{
     const running=j.scheduledStart<=todayStr;
     return `<button class="jrow" data-open="${j.id}" style="width:100%"><span class="mid"><span class="cn">${escapeHtml(j.client)}</span><span class="mt">${j.scheduledStart}${j.scheduledEnd?" – "+j.scheduledEnd:""}</span></span><span class="rt"><span class="stage ${running?"st-prog":"st-proj"}">${running?"Running":"Upcoming"}</span></span></button>`;
@@ -1099,15 +1128,21 @@ async function drawMoneyAndBreakdowns(token){
     kpiCard(svgIcon("alert"),"var(--alert)","Backlog, $0 collected",e1?icon("alert",13):noDeposit,e1?"couldn't load payment data":`open jobs with no deposit logged`)
   ].join("");
   // ---------- Sales activity, last 6 weeks ----------
+  // The last 6 calendar weeks ending this week -- not "the last 6 weeks
+  // that happen to have a row," which silently showed ancient data (and
+  // nothing else) the moment activity logging fell behind for more than a
+  // week or two.
   const wk={},ensure=w=>wk[w]||={leads:0,appts:0,shows:0,closed:0,rev:0};
   for(const r of adminD||[]){const w=mondayOf(r.log_date);ensure(w);wk[w].leads+=r.leads_assigned||0;wk[w].appts+=r.appointments_set||0}
   for(const r of closerD||[]){const w=mondayOf(r.log_date);ensure(w);wk[w].shows+=r.shows_received||0;wk[w].closed+=r.closed_deals||0;wk[w].rev+=Number(r.revenue||0)}
-  const weeks=Object.keys(wk).sort().slice(-6);
+  const weeks=[];
+  {let m=mondayOf(todayPacific());for(let i=0;i<6;i++){weeks.unshift(m);const d=parseDateOnly(m);d.setDate(d.getDate()-7);m=toDateOnlyString(d)}}
+  const anyActivity=weeks.some(w=>wk[w]);
   $("#salesActivityTable").innerHTML=(e2||e3)
     ?`<tbody><tr><td style="color:var(--alert)">${icon("alert",13)} Couldn't load — ${escapeHtml((e2||e3).message)}</td></tr></tbody>`
-    :weeks.length
-    ?`<thead><tr><th>Week of</th><th>Leads</th><th>Appts set</th><th>Shows</th><th>Closed</th><th>Revenue</th></tr></thead><tbody>${weeks.map(w=>{const d=wk[w];return `<tr><td>${w}</td><td>${d.leads}</td><td>${d.appts}</td><td>${d.shows}</td><td>${d.closed}</td><td>${d.rev?money(d.rev):"—"}</td></tr>`}).join("")}</tbody>`
-    :`<tbody><tr><td>No activity logged yet</td></tr></tbody>`;
+    :anyActivity
+    ?`<thead><tr><th>Week of</th><th>Leads</th><th>Appts set</th><th>Shows</th><th>Closed</th><th>Revenue</th></tr></thead><tbody>${weeks.map(w=>{const d=wk[w]||{leads:0,appts:0,shows:0,closed:0,rev:0};return `<tr><td>${w}</td><td>${d.leads}</td><td>${d.appts}</td><td>${d.shows}</td><td>${d.closed}</td><td>${d.rev?money(d.rev):"—"}</td></tr>`}).join("")}</tbody>`
+    :`<tbody><tr><td>No activity logged in the last 6 weeks</td></tr></tbody>`;
   // ---------- Job type breakdown ----------
   const openByType={};
   for(const j of jobs)if(j.revenue!=null&&j.stage!=="Completed")openByType[j.type]=(openByType[j.type]||0)+j.revenue;

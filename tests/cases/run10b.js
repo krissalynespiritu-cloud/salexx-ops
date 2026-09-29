@@ -139,6 +139,14 @@ const testLogic = `
 
   // ---- TEST 6: Dashboard Upcoming Schedule list shows the right jobs, correctly labeled Running vs Upcoming, excludes far-future and unscheduled jobs ----
   try {
+    // TEST 3/4 edited SLX-S1's own schedule fields (a fixed literal start
+    // date, a cleared end date) to exercise the save path -- restore it to
+    // a genuinely-running window (started days ago, still open) so this
+    // test checks the render logic against real "running" data instead of
+    // whatever TEST 3/4 happened to leave behind.
+    const s1 = jobs.find(j => j.id === 'SLX-S1');
+    s1.scheduledStart = addDays(todayPacific(), -5);
+    s1.scheduledEnd = addDays(todayPacific(), 5);
     renderUpcomingSchedule();
     const html = document.getElementById('upcomingSchedule').innerHTML;
     check('TEST 6: shows the running job (already started, still within window)', html.includes('Running Job Client') && html.includes('Running'));
