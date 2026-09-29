@@ -32,8 +32,11 @@ alter table jobs add column if not exists pipeline_stage text;
 alter table jobs add column if not exists pipeline_stage_updated_at timestamptz;
 
 -- Explicit translation for GHL stage names that don't match a real
--- job_stage value even ignoring case (e.g. "Final Walkthrough" vs the
--- app's "Final Walk-through"). Editable any time with a plain insert --
+-- job_stage value even ignoring case, or that name a finishing-touch
+-- concept the app tracks as a boolean milestone rather than a stage
+-- (see 95_trim_stage_enum_milestones.sql -- "Final Walkthrough" and
+-- "Review Requested" both map to Completed here since neither is a
+-- real stage value anymore). Editable any time with a plain insert --
 -- no code change needed to add or correct a mapping later.
 create table if not exists ghl_stage_map (
   ghl_stage text primary key,
@@ -45,10 +48,10 @@ insert into ghl_stage_map (ghl_stage, app_stage) values
   ('Ready for Scheduling', 'Ready For Scheduling'),
   ('Project Scheduled', 'Project Scheduled'),
   ('In Progress', 'In Progress'),
-  ('Final Walkthrough', 'Final Walk-through'),
+  ('Final Walkthrough', 'Completed'),
   ('Needs Some Touches', 'Punch list / Touch-ups (if needed)'),
   ('Completed', 'Completed'),
-  ('Review Requested', 'Review Requested')
+  ('Review Requested', 'Completed')
 on conflict (ghl_stage) do update set app_stage = excluded.app_stage;
 
 create or replace function set_job_stage_by_contact(p_email text default null, p_phone text default null, p_stage text default null)
