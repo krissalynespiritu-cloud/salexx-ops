@@ -544,7 +544,8 @@ function mergeJobRecord(j,m,costRows,subTotal){
     finalPaymentDone:!!j.final_payment_done,finalPaymentDate:j.final_payment_date||"",
     finalPhotosDone:!!j.final_photos_done,finalPhotosDate:j.final_photos_date||"",
     reviewRequestedDone:!!j.review_requested_done,reviewRequestedDate:j.review_requested_date||"",
-    scheduledStart:j.scheduled_start_date||"",scheduledEnd:j.scheduled_end_date||""
+    scheduledStart:j.scheduled_start_date||"",scheduledEnd:j.scheduled_end_date||"",
+    pipelineStage:j.pipeline_stage||null,pipelineStageUpdatedAt:j.pipeline_stage_updated_at||null
   };
 }
 // Centralized costing-completeness check, used everywhere a margin/GP/profit
@@ -1626,6 +1627,7 @@ function jobCardHTML(j){
       ${jobUpdatesButtonHTML(j)}
       ${jobTasksButtonHTML(j)}
       <select data-jf="stage" data-job="${j.id}" class="stage ${stClass(j.stage)}" title="${escapeHtml(j.stage)}" style="border:0;cursor:pointer;font-family:inherit;appearance:none;-webkit-appearance:none;padding:5px 9px;width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${STAGES.map(s=>`<option value="${s}" ${s===j.stage?"selected":""}>${s}</option>`).join("")}</select>
+      ${j.pipelineStage?`<span title="GHL pipeline stage: ${escapeHtml(j.pipelineStage)}${j.pipelineStageUpdatedAt?" (as of "+new Date(j.pipelineStageUpdatedAt).toLocaleDateString()+")":""}" style="flex-shrink:0;width:8px;height:8px;border-radius:50%;background:var(--violet);cursor:help"></span>`:""}
       <span data-job-status="${j.id}" style="font-size:10px;color:var(--steel);min-height:12px"></span>
       <button data-open="${j.id}" class="chip" style="padding:3px 8px;font-size:10px;flex-shrink:0">Open →</button>
       <span style="position:relative;flex-shrink:0">
