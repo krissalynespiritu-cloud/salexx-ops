@@ -549,44 +549,34 @@ function mergeJobRecord(j,m,costRows,subTotal){
   };
 }
 // Centralized costing-completeness check, used everywhere a margin/GP/profit
-// figure is displayed or rolled up.
+// figure is displayed or rolled up. A job counts as complete when it has
+// verified labor evidence through ANY valid method -- real logged hours, a
+// manual hours estimate, a manually-entered Labor cost line (how the
+// "Job Costing sheet" imports recorded labor for many jobs with no
+// timesheet behind it), or a subcontractor cost (a sub-out job has no
+// in-house hours or Labor line by design -- the Subs tab total IS its
+// labor cost) -- not hours specifically.
 //
-// A fully sub-out job (no in-house hours, no manual hours, no in-house Labor
-// cost line -- the Subs tab total IS its entire labor cost) is complete as
-// soon as that subcontractor cost is logged, full stop. There's no in-house
-// hours figure to sanity-check against the contract, and a sub-out job can
-// legitimately be a small fraction of the contract price if the business
-// marks the sub's work up significantly -- see run71.js, reproducing a real
-// reported case (Jane Vitek Dixon: $21,723.74 contract, $3,500 sub cost,
-// 16% direct-cost ratio, fully priced).
+// `reviewed` does NOT override this -- see Fix Plan v2, P0.2: several jobs
+// had been ticked Reviewed despite having genuinely zero cost/labor/hours
+// entered, which let a false 90%+ margin display and roll up into every
+// average. Ticking Reviewed is blocked in the UI while a job fails this
+// test (see the jc-reviewed change handler) so once a job legitimately
+// passes, checking it back off never happens.
 //
-// Every other job counts as complete only when BOTH:
-//  (1) it has verified in-house labor evidence -- real logged hours, a
-//      manual hours estimate, or a manually-entered Labor cost line (how
-//      the "Job Costing sheet" imports recorded labor for many jobs with
-//      no timesheet behind it), AND
-//  (2) its direct cost (labor + material + additional, excluding overhead)
-//      is at least DIRECT_COST_MIN_RATIO of the contract price -- a job
-//      with, say, $339 of cost against an $8,068 contract has clearly not
-//      had materials/labor entered yet, whatever the labor-evidence check
-//      above says. `reviewed` does NOT override this -- see Fix Plan v2,
-//      P0.2: several jobs had been ticked Reviewed despite obviously
-//      missing costs, which let a false 90%+ margin display and roll up
-//      into every average (the reviewer's own examples cluster at 4-11%;
-//      40% was chosen against the business's real ~55-65% typical direct-
-//      cost ratio implied by its verified 22.7% weighted gross margin).
-//      Ticking Reviewed is blocked in the UI while a job fails this test
-//      (see the jc-reviewed change handler) so once a job legitimately
-//      passes, checking it back off never happens.
-const DIRECT_COST_MIN_RATIO=0.4;
+// An earlier version of this function also required direct cost to be at
+// least 40% of the contract price, modeled on the reviewer's flagged
+// examples (all under 11%) and the business's ~22.7% average margin. That
+// broke real, fully-costed jobs that just run a healthy markup -- e.g. a
+// $78,341.10 contract with $21,601.50 of real logged direct cost (377
+// hours, real labor, a real sub payment, real materials) is a legitimate
+// 66.6% margin at a 27.6% cost ratio, not missing data, and got wrongly
+// flagged "Incomplete." Averages don't mean every healthy job sits near
+// that ratio. Removed; evidence-based only, same as before this session.
 function directCostOf(j){return(j.laborCost||0)+(j.materialCost||0)+(j.additionalCost||0);}
 function costingComplete(j){
   if(j.unpriced)return false;
-  if(!j.contract)return false;
-  const subOut=j.sub>0&&!(j.hrs>0)&&!(j.manualHours>0)&&!(j.laborCost>0);
-  if(subOut)return true;
-  const hasLaborEvidence=j.laborCost>0||j.hrs>0||j.manualHours>0;
-  return hasLaborEvidence&&directCostOf(j)/j.contract>=DIRECT_COST_MIN_RATIO;
+  return j.laborCost>0||j.hrs>0||j.manualHours>0||j.sub>0;
 }
 function laborCostComplete(j){
   return j.reviewed||j.laborCost>0||j.hrs>0||j.sub>0;
