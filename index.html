@@ -5708,7 +5708,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 	async function fetchLeads(){
 		const {data,error}=await sb.from("leads").select("*").order("lead_date",{ascending:false});
 		if(error){console.error(error);return}
-		leadRecords=(data||[]).map(l=>({id:l.lead_id,name:l.name,phone:l.phone||"",email:l.email||"",source:l.source||"",status:l.status,leadDate:l.lead_date,value:Number(l.est_value)||0,notes:l.notes||"",estimateBooked:!!l.estimate_booked,estimateBookedDate:l.estimate_booked_date||null,shown:!!l.shown,shownDate:l.shown_date||null,closedRevenue:l.closed_revenue==null?"":Number(l.closed_revenue),saleDate:l.sale_date||null,manager:l.manager||"",lossReason:l.loss_reason||"",designSent:!!l.design_sent_date,designSold:!!l.design_sold_date,jobId:l.job_id||null,clientId:l.client_id||null,needsReview:!!l.needs_review}));
+		leadRecords=(data||[]).map(l=>({id:l.lead_id,name:l.name,phone:l.phone||"",email:l.email||"",source:l.source||"",status:l.status,leadDate:l.lead_date,value:Number(l.est_value)||0,notes:l.notes||"",estimateBooked:!!l.estimate_booked,estimateBookedDate:l.estimate_booked_date||null,shown:!!l.shown,shownDate:l.shown_date||null,closedRevenue:l.closed_revenue==null?"":Number(l.closed_revenue),saleDate:l.sale_date||null,manager:l.manager||"",lossReason:l.loss_reason||"",designSent:!!l.design_sent_date,designSold:!!l.design_sold_date,jobId:l.job_id||null,clientId:l.client_id||null,needsReview:!!l.needs_review,pipelineStage:l.pipeline_stage||null,pipelineStageUpdatedAt:l.pipeline_stage_updated_at||null}));
 	}
 	function setLeadStatus(msg,isError){
 		const el=document.getElementById("leadSaveStatus");if(!el)return;
@@ -5920,6 +5920,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 				<button data-lead-notes="${lead.id}" title="${hasNote?"Notes":"No notes yet"}" aria-label="Notes" style="position:relative;background:none;border:1px solid ${hasNote?"var(--hivis)":"var(--line)"};color:${hasNote?"var(--hivis)":"var(--steel)"};border-radius:5px;width:24px;height:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
 					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>
 				</button>
+				${lead.pipelineStage?`<span title="GHL pipeline stage: ${escapeHtml(lead.pipelineStage)}${lead.pipelineStageUpdatedAt?" (as of "+new Date(lead.pipelineStageUpdatedAt).toLocaleDateString()+")":""}" style="flex-shrink:0;width:8px;height:8px;border-radius:50%;background:var(--violet);cursor:help"></span>`:""}
 				${li("leadDate",lead.leadDate,"","96px","date")}
 				${sel("source","Source",sourceOptions.map(o=>`<option ${lead.source===o?"selected":""}>${o}</option>`).join(""),"90px",`color:${sourceColor};background:${sourceBg};border-color:${sourceColor};font-weight:600`)}
 				${sel("status","Status",statusOptions.map(o=>`<option ${lead.status===o?"selected":""}>${o}</option>`).join(""),"84px",`color:${statusColor};background:${statusBg};border-color:${statusColor};font-weight:600`)}
