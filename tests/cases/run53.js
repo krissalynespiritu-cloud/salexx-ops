@@ -156,7 +156,7 @@ try {
 setTimeout(() => {
   // ---- TEST 7 (source-level): the row's fixed-width columns were trimmed so the
   // whole row fits inside the page's 900px .wrap without a horizontal scroll ----
-  const leadDateW = Number((rawHtml.match(/li\("leadDate",lead\.leadDate,"","(\d+)px","date"\)/) || [])[1] || 999);
+  const leadDateW = Number((rawHtml.match(/li\("leadDate",lead\.leadDate,"","width:(\d+)px","date"\)/) || [])[1] || 999);
   check('TEST 7: lead date column narrower than the old 104px', leadDateW < 104, leadDateW);
   const lossReasonW = Number((rawHtml.match(/LOSS_REASONS\.map\(o=>`<option \$\{lead\.lossReason===o\?"selected":""\}>\$\{o\}<\/option>`\)\.join\(""\),"(\d+)px"\)/) || [])[1] || 999);
   check('TEST 7: why-lost column narrower than the old 110px', lossReasonW < 110, lossReasonW);

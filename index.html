@@ -6025,7 +6025,7 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>
 				</button>
 				${lead.pipelineStage?`<span title="GHL pipeline stage: ${escapeHtml(lead.pipelineStage)}${lead.pipelineStageUpdatedAt?" (as of "+new Date(lead.pipelineStageUpdatedAt).toLocaleDateString()+")":""}" style="flex-shrink:0;width:8px;height:8px;border-radius:50%;background:var(--violet);cursor:help"></span>`:""}
-				${li("leadDate",lead.leadDate,"","96px","date")}
+				${li("leadDate",lead.leadDate,"","width:96px","date")}
 				${sel("source","Source",sourceOptions.map(o=>`<option ${lead.source===o?"selected":""}>${o}</option>`).join(""),"90px",`color:${sourceColor};background:${sourceBg};border-color:${sourceColor};font-weight:600`)}
 				${sel("status","Status",statusOptions.map(o=>`<option ${lead.status===o?"selected":""}>${o}</option>`).join(""),"84px",`color:${statusColor};background:${statusBg};border-color:${statusColor};font-weight:600`)}
 				<span style="display:flex;gap:4px;flex-shrink:0" title="Appt booked / Shown up">${tog("estimateBooked","Appt")}${tog("shown","Shown")}</span>
@@ -6043,7 +6043,25 @@ sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showAuthGate()});
 		}).join("") : '<div class="empty">No leads match.</div>';
 		const remaining = filtered.length - visible.length;
 		const loadMoreHtml = remaining > 0 ? `<button id="leadLoadMoreBtn" class="chip" style="width:100%;text-align:center;margin-top:6px">Load ${Math.min(leadPageSize, remaining)} more (${remaining} remaining)</button>` : "";
-		$("#leadList").innerHTML = rowsHtml + loadMoreHtml;
+		// This list is a flat row of unlabeled inputs -- once a checkbox is
+		// checked or a value typed, there was no way left to tell what column
+		// it belonged to without hovering each control one at a time. A real
+		// header row, matching each row's own widths so it lines up.
+		const H="font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--steel);flex-shrink:0;white-space:nowrap";
+		const leadHeaderHtml = visible.length ? `<div class="jrow" style="flex-wrap:nowrap;align-items:center;gap:5px;padding:0 9px 6px;margin-bottom:4px;border-bottom:1px solid var(--line);background:none">
+			<span style="flex:1 1 75px;min-width:65px;${H}">Lead name</span>
+			<span style="width:24px;${H}"></span>
+			<span style="width:96px;${H}">Lead date</span>
+			<span style="width:90px;${H}">Source</span>
+			<span style="width:84px;${H}">Status</span>
+			<span style="display:flex;gap:4px;${H}" title="Appointment booked / Shown up">Appt/Shown</span>
+			<span style="width:70px;${H};text-align:right">Value $</span>
+			<span style="display:flex;gap:4px;${H}" title="Design sent / Design sold">Design</span>
+			<span style="width:98px;${H}">Why lost</span>
+			<span style="width:122px;${H}">Linked job</span>
+			<span style="width:22px;${H}"></span>
+		</div>` : "";
+		$("#leadList").innerHTML = leadHeaderHtml + rowsHtml + loadMoreHtml;
 	};
 
 	// ---------- Lead Source Report page: by-source funnel table, its own date filter ----------
