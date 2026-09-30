@@ -4666,11 +4666,29 @@ function renderMonthlyKpi(){
     const head=`<tr class="pfHead" data-mk-period="${m}"><td style="text-align:left"><span class="expandCaret${open?" open":""}" style="display:inline-flex;align-items:center;vertical-align:-0.15em">${icon("chevronRight",12)}</span> ${m}</td><td>${r.leads??0}</td><td>${r.appointments??0}</td><td>${r.estimates??0}</td><td>${r.sales??0}</td><td style="color:${rateColor(r.overall_close_pct)}">${pct(r.overall_close_pct)}</td><td>${money(r.revenue)}</td><td>${r.avg_job_size==null?"—":money(r.avg_job_size)}</td><td>${r.cost_per_lead==null?"—":money(r.cost_per_lead)}</td></tr>`;
     if(!open)return head;
     const monthLeads=leadsForMonth(m);
+    // One <td> per real column (Month/Leads/Appts/Estimates/Sales/Close%/
+    // Revenue/Avg job/Cost per lead) so a drill-down row lines up exactly
+    // under the header it belongs to, instead of a free-text summary line.
+    // Estimates has no lead-level boolean of its own (monthly_kpi's
+    // Estimates count comes from the separate `estimates` table, not
+    // leads) -- designSent is the closest lead-level signal that a real
+    // estimate/design was produced for that lead.
+    const chk=ok=>ok?`<span style="color:var(--good);font-weight:700">✓</span>`:`<span style="color:var(--steel)">—</span>`;
+    const statusColor=s=>s==="Won"?"var(--good)":s==="Lost"?"var(--alert)":s==="Estimated"?"var(--amber)":s==="Contacted"?"var(--sky)":"var(--steel)";
     const leadRow=l=>{
       const linkedJob=l.jobId?jobs.find(j=>j.id===l.jobId):null;
-      const statusColor=l.status==="Won"?"var(--good)":l.status==="Lost"?"var(--alert)":l.status==="Estimated"?"var(--amber)":l.status==="Contacted"?"var(--sky)":"var(--steel)";
-      const jobBit=linkedJob?`<button data-open="${linkedJob.id}" style="background:none;border:0;padding:0;color:var(--sky);font:inherit;cursor:pointer;text-decoration:underline">${escapeHtml(linkedJob.id+" · "+linkedJob.client)} — ${money(linkedJob.contract)}</button>`:(l.status==="Won"?`<span style="color:var(--steel)">no linked job</span>`:"—");
-      return `<tr class="pfDrill"><td style="padding-left:22px;text-align:left">${escapeHtml(l.name)} · <span style="color:${statusColor}">${l.status}</span>${l.estimateBooked?" · appt booked":""}</td><td colspan="3" style="text-align:left;color:var(--steel)">${escapeHtml(l.source||"—")}</td><td>${l.status==="Won"?money(l.closedRevenue):"—"}</td><td colspan="3" style="text-align:left">${jobBit}</td></tr>`;
+      const jobBit=linkedJob?`<button data-open="${linkedJob.id}" style="background:none;border:0;padding:0;color:var(--sky);font:inherit;font-size:inherit;cursor:pointer;text-decoration:underline">${escapeHtml(linkedJob.id)}</button>`:"—";
+      return `<tr class="pfDrill">
+        <td style="padding-left:22px;text-align:left">${escapeHtml(l.name)} <span style="color:${statusColor(l.status)}">· ${l.status}</span></td>
+        <td style="text-align:left;color:var(--steel)">${escapeHtml(l.source||"—")}</td>
+        <td>${chk(l.estimateBooked)}</td>
+        <td>${chk(l.designSent)}</td>
+        <td>${chk(l.status==="Won")}</td>
+        <td>—</td>
+        <td>${l.status==="Won"?money(l.closedRevenue):"—"}</td>
+        <td>${jobBit}</td>
+        <td>—</td>
+      </tr>`;
     };
     const drill=monthLeads.length?monthLeads.map(leadRow).join(""):`<tr class="pfDrill"><td colspan="9" style="padding-left:22px;text-align:left;color:var(--steel)">No leads with this lead date -- Leads Tracker may still be catching up, or this month's rows came from Estimates/Ad Spend only.</td></tr>`;
     return head+drill;

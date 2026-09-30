@@ -34,8 +34,8 @@ global.mockJobsData = [
   { job_id: 'SLX-M1', client_name: 'Won Client', client_id: null, address_city: '1 Test St', job_type: 'Roofing', stage: 'In Progress', contract_price: 15000, change_orders: 0, discounts: 0, overhead_pct: 18, sold_date: '2026-03-06', completed_date: null, monday_item_id: null, retired: false }
 ];
 global.mockLeadsData = [
-  { lead_id: 'L-1', name: 'Won Lead Person', phone: '', email: '', source: 'Referral', status: 'Won', lead_date: '2026-03-05', est_value: 15000, job_id: 'SLX-M1', estimate_booked: true, closed_revenue: 15000 },
-  { lead_id: 'L-2', name: 'New Lead Person', phone: '', email: '', source: 'Facebook', status: 'New', lead_date: '2026-03-10', est_value: 0, job_id: null, estimate_booked: false, closed_revenue: null }
+  { lead_id: 'L-1', name: 'Won Lead Person', phone: '', email: '', source: 'Referral', status: 'Won', lead_date: '2026-03-05', est_value: 15000, job_id: 'SLX-M1', estimate_booked: true, design_sent_date: '2026-03-06', closed_revenue: 15000 },
+  { lead_id: 'L-2', name: 'New Lead Person', phone: '', email: '', source: 'Facebook', status: 'New', lead_date: '2026-03-10', est_value: 0, job_id: null, estimate_booked: false, design_sent_date: null, closed_revenue: null }
 ];
 global.mockMonthlyKpiData = [
   { month: '2026-03-01', ad_spend: null, leads: 2, appointments: 1, estimates: 0, sales: 1, lost: 0, revenue: 15000, lead_to_appt_pct: 50, appt_to_estimate_pct: null, estimate_to_sale_pct: null, overall_close_pct: 50, avg_job_size: 15000, cost_per_lead: null }
@@ -83,12 +83,17 @@ const testLogic = `
   try {
     document.querySelector('[data-mk-period="2026-03"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const html = document.getElementById('monthlyKpiTable').innerHTML;
+    const wonRow = html.match(/Won Lead Person[\\s\\S]{0,900}?<\\/tr>/)?.[0] || '';
+    const newRow = html.match(/New Lead Person[\\s\\S]{0,900}?<\\/tr>/)?.[0] || '';
     check('TEST 2: shows the Won lead by name', html.includes('Won Lead Person'));
-    check('TEST 2: shows the Won lead\\'s source', html.includes('Referral'));
-    check('TEST 2: shows the Won lead\\'s closed revenue', html.includes('$15,000.00'));
-    check('TEST 2: shows the linked job/contract for the Won lead', html.includes('SLX-M1') && html.includes('Won Client'));
-    check('TEST 2: shows the second, non-Won lead too', html.includes('New Lead Person') && html.includes('Facebook'));
-    check('TEST 2: the non-Won lead has no linked-job button (not Won, no job_id)', /New Lead Person[\\s\\S]{0,300}—/.test(html));
+    check('TEST 2: shows the Won lead\\'s source under the Leads column', wonRow.includes('Referral'));
+    check('TEST 2: Won lead has an Appt checkmark', (wonRow.match(/✓/g) || []).length >= 3, wonRow);
+    check('TEST 2: shows the Won lead\\'s closed revenue', wonRow.includes('$15,000.00'));
+    check('TEST 2: shows a click-through to the linked job for the Won lead', wonRow.includes('data-open="SLX-M1"'));
+    check('TEST 2: shows the second, non-Won lead too', html.includes('New Lead Person'));
+    check('TEST 2: the non-Won lead shows its source too', newRow.includes('Facebook'));
+    check('TEST 2: the non-Won lead has no checkmarks at all (nothing booked/sent/won)', !newRow.includes('✓'), newRow);
+    check('TEST 2: the non-Won lead has no linked-job button (not Won, no job_id)', !newRow.includes('data-open='));
   } catch (e) { check('TEST 2: no throw', false, e.stack); }
 
   // ---- TEST 3: clicking again collapses it back, without re-fetching monthly_kpi ----
