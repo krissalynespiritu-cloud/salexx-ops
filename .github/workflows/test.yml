@@ -22,3 +22,28 @@ jobs:
           node-version: 24
       - run: npm ci
       - run: npm test
+
+  sql-test:
+    # tests/sql/job_financials_test.sql -- the JS suite above only ever mocks
+    # job_margins' output, never runs the real SQL that computes it. This
+    # spins up a throwaway Postgres and runs the view's actual formula
+    # against hand-calculated expected values, so a wrong edit to the view
+    # gets caught here instead of showing up as a wrong number in production.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f tests/sql/job_financials_test.sql

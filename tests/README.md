@@ -82,9 +82,12 @@ adjust:
   UI that was later redesigned; it was retired rather than ported here
   since it no longer tests anything real. If you're rebuilding coverage
   for Change Orders, start fresh rather than resurrecting it.
-- This suite covers UI/interaction logic, not SQL correctness — Supabase
-  migrations in `supabase/` are still verified by hand by running them
-  against the real project and checking the results, per `supabase/README.md`.
+- This suite covers UI/interaction logic, not SQL correctness. The
+  job-costing views (`job_financials`/`job_margins`) specifically ARE
+  covered, separately, by `tests/sql/job_financials_test.sql` — see the
+  root `README.md` for what it does and how to run it. Everything else in
+  `supabase/` is still verified by hand by running it against the real
+  project and checking the results, per `supabase/README.md`.
 - jsdom prints `Not implemented: Window's scrollTo() method` warnings to
   stderr in some cases (jsdom doesn't implement scrolling). These are
   harmless noise, not failures — check the `=== FAIL (n) ===` count, not
