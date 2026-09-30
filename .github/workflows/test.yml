@@ -1,0 +1,24 @@
+name: Tests
+
+# Runs the full regression suite (tests/README.md) on every push and pull
+# request against main, so a broken change gets caught here instead of
+# shipping silently to the live app. `npm test` regenerates fixtures from
+# the real index.html and runs every case in tests/cases/ -- same thing
+# you'd run locally.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm test
