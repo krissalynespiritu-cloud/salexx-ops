@@ -92,13 +92,17 @@ const testLogic = `
     body = document.getElementById('jobList').innerHTML;
     check('Jobs: oldest-sold-first sort works', body.indexOf('Alpha Client') < body.indexOf('Bravo Client') && body.indexOf('Bravo Client') < body.indexOf('Charlie Client'));
     document.getElementById('jobSort').value = 'soldDesc';
+    check('Jobs: sold-date dropdown defaults to All Time', document.getElementById('jobRangeSelect').value === 'all');
+    check('Jobs: custom from/to hidden by default', document.getElementById('jobCustom').style.display === 'none');
+    setVal('jobRangeSelect', 'custom');
+    check('Jobs: Custom reveals from/to', document.getElementById('jobCustom').style.display !== 'none');
     setVal('jobDateFrom', '2026-02-01');
     setVal('jobDateTo', '2026-02-28');
     body = document.getElementById('jobList').innerHTML;
     check('Jobs: date range filter includes only Bravo (Feb)', body.includes('Bravo Client') && !body.includes('Alpha Client') && !body.includes('Charlie Client'), body.slice(0, 500));
-    document.getElementById('jobDateClear').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    setVal('jobRangeSelect', 'all');
     body = document.getElementById('jobList').innerHTML;
-    check('Jobs: Clear dates restores all three', body.includes('Alpha Client') && body.includes('Bravo Client') && body.includes('Charlie Client'));
+    check('Jobs: All Time restores all three', body.includes('Alpha Client') && body.includes('Bravo Client') && body.includes('Charlie Client'));
   } catch (e) { check('Jobs: no throw', false, e.stack); }
 
   // ---- ESTIMATES PAGE (drawEstimates refetches from Supabase on every change, so each step needs a real wait) ----
