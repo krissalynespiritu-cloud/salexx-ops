@@ -47,3 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f tests/sql/job_financials_test.sql
+      # tests/sql/task_repeat_test.sql -- runs the real supabase/100_task_repeat.sql
+      # (next-due-date math + the trigger that creates the next copy of a
+      # repeating task when it's completed), which the mocked JS suite can't see.
+      - run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f tests/sql/task_repeat_test.sql
