@@ -114,16 +114,6 @@ const testLogic = `
     check('TEST 5: no leftover empty-state text', !list.innerHTML.includes('No matches for'));
   } catch (e) { check('TEST 5: no throw', false, e.stack); }
 
-  // ---- TEST 6: payroll period with zero hours shows a real, correctly-punctuated message ----
-  try {
-    global.payrollWeeks = { '2026-01-01': { total: 0, people: {} } };
-    global.payrollPaid = {};
-    openPayrollPeriod('2026-01-01');
-    await new Promise(r => setTimeout(r, 10));
-    const body = document.getElementById('ppBody').innerHTML;
-    check('TEST 6: shows the real empty message with correct punctuation', body.includes('No hours logged this period.'), body);
-  } catch (e) { check('TEST 6: no throw', false, e.stack); }
-
   // ---- unrelated features remain unaffected ----
   try {
     check('unrelated: Retire Job functions still present', typeof openRetireJobReview === 'function' && typeof confirmRetireJob === 'function');

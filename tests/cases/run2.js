@@ -132,21 +132,8 @@ const testLogic = `
     await new Promise(r => setTimeout(r, 20));
     check('TEST 4: Payroll view now visible', !document.getElementById('laborPayrollView').classList.contains('hidden'));
     check('TEST 4: Project Hours view now hidden', document.getElementById('laborHoursView').classList.contains('hidden'));
-    const payrollHtml = document.getElementById('payrollList').innerHTML;
-    check('TEST 4: payroll list rendered a period row', payrollHtml.includes('data-open-payroll'), payrollHtml);
+    check('TEST 4: Payroll opens straight on Timesheets (no Pay Periods list)', !document.getElementById('payrollList') && !!document.getElementById('tsSheet'));
   } catch (e) { check('TEST 4: no throw', false, e.stack); }
-
-  // ---- TEST 5: opening a payroll period still shows the standalone payrollDetail overlay correctly ----
-  try {
-    const periodBtn = document.querySelector('[data-open-payroll]');
-    check('TEST 5 setup: a period row exists', !!periodBtn);
-    periodBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 20));
-    check('TEST 5: payrollDetail overlay is shown', !document.getElementById('payrollDetail').classList.contains('hidden'));
-    document.getElementById('payrollBack').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 20));
-    check('TEST 5: back button hides payrollDetail again', document.getElementById('payrollDetail').classList.contains('hidden'));
-  } catch (e) { check('TEST 5: no throw', false, e.stack); }
 
   // ---- TEST 6: navigating away and back to Labor restores last-selected subview (payroll) ----
   try {

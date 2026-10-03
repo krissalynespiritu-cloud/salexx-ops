@@ -72,19 +72,6 @@ const testLogic = `
     check('TEST 1: clicking it calls window.print()', global.printCalls === before + 1);
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
-  // ---- TEST 2: the payroll period Print button calls window.print() ----
-  try {
-    global.payrollWeeks = { '2026-01-01': { total: 500, people: { Carlos: { hours: 20, amount: 500 } } } };
-    global.payrollPaid = {};
-    openPayrollPeriod('2026-01-01');
-    await new Promise(r => setTimeout(r, 20));
-    const btn = document.getElementById('payrollPrintBtn');
-    check('TEST 2: payroll detail has a real Print button', !!btn);
-    const before = global.printCalls;
-    btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    check('TEST 2: clicking it calls window.print()', global.printCalls === before + 1);
-  } catch (e) { check('TEST 2: no throw', false, e.stack); }
-
   // ---- unrelated features remain unaffected ----
   try {
     check('unrelated: Retire Job functions still present', typeof openRetireJobReview === 'function' && typeof confirmRetireJob === 'function');

@@ -68,12 +68,13 @@ const testLogic = `
 (async () => {
   await fetchJobs();
 
-  // ---- TEST 1: Payroll shows a real error, not a $0 week ----
+  // ---- TEST 1: Payroll (timesheet) shows a real error with Retry, not a $0 week ----
   try {
     global.mockFailTables = new Set(['time_entries']);
-    await drawPayroll();
-    const html = document.getElementById('payrollList').innerHTML;
-    check('TEST 1: shows a real error', html.includes("Couldn't load payroll"), html);
+    await drawTimesheet();
+    const html = document.getElementById('tsSheet').innerHTML;
+    check('TEST 1: shows a real error', html.includes("Couldn't load the timesheet"), html);
+    check('TEST 1: with a Retry button', html.includes('data-retry-fn="drawTimesheet"'), html);
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
   // ---- TEST 2: Subcontractors list shows a real error, not "No subcontractors yet." ----
