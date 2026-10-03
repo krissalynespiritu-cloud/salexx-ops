@@ -3680,7 +3680,9 @@ async function toggleCostingApproved(jobId,checked){
 function drawJobCostingKpis(list,hasMargin){
   const priced=list.filter(hasMargin),withPrice=list.filter(j=>j.revenue!=null);
   const rev=priced.reduce((t,j)=>t+(j.revenue||0),0),cost=priced.reduce((t,j)=>t+(j.totalCost||0),0),gp=priced.reduce((t,j)=>t+(j.gp||0),0);
-  const margin=rev>0?gp/rev*100:null,needs=withPrice.length-priced.length;
+  // Only Completed jobs are expected to be fully costed -- a job still in
+  // progress naturally hasn't had all its labor/costs logged yet.
+  const margin=rev>0?gp/rev*100:null,needs=withPrice.filter(j=>j.stage==="Completed"&&!hasMargin(j)).length;
   const reviewed=list.filter(j=>j.reviewed).length,approved=list.filter(j=>j.approved).length;
   const note=t=>`<span style="color:var(--steel)">${t}</span>`;
   const coverage=note(`${priced.length} of ${list.length} job${list.length===1?"":"s"} fully costed`);
@@ -3689,17 +3691,37 @@ function drawJobCostingKpis(list,hasMargin){
     kpiCardCompact(svgIcon("receipt"),"var(--sky)","Job Cost",money(cost),coverage),
     kpiCardCompact(svgIcon("trendUp"),"var(--good)","Gross Profit",`<span style="color:${col(margin)}">${money(gp)}</span>`,coverage),
     kpiCardCompact(svgIcon("chart"),"var(--violet)","Margin",`<span style="color:${col(margin)}">${margin==null?"—":margin.toFixed(1)+"%"}</span>`,note("profit ÷ revenue")),
-    kpiCardCompact(svgIcon("alert"),"var(--amber)","Needs Costing",needs,note(needs?"priced but missing labor or costs":"every priced job is costed")),
+    kpiCardCompact(svgIcon("alert"),needs?"var(--alert)":"var(--amber)","Needs Costing",`<span style="color:${needs?"var(--alert)":"var(--good)"}">${needs}</span>`,note(needs?`Completed job${needs===1?"":"s"} still missing labor or costs`:"every Completed job is costed")),
     kpiCardCompact(svgIcon("checkSquare"),"var(--sky)","Reviewed",`${reviewed} / ${list.length}`,note(`${approved} approved`))
   ].join("");
 }
+// Job Costing's filter chips group the stages by where the job is
+// (Kris, 2026-10-03), instead of one chip per stage. "Needs Costing" is
+// the same rule as the Needs Costing card: a Completed job with a price
+// whose labor/costs aren't fully logged yet.
+const JC_GROUPS=[
+  ["All",null],
+  ["Needs Costing",null],
+  ["Not Started",["Designs Sold","Permitting / Drawings","Ready For Scheduling","Project Scheduled"]],
+  ["In Progress",["In Progress","Final Walk-through","Punch list / Touch-ups (if needed)","Final payment due","Final payment received","Final Photos / Videos","Review Requested"]],
+  ["Completed",["Completed"]],
+  ["On Hold",["Project on hold"]]
+];
+const jcNeedsCosting=j=>j.stage==="Completed"&&j.revenue!=null&&!costingComplete(j);
+function jcInGroup(j,g){
+  if(g==="All")return true;
+  if(g==="Needs Costing")return jcNeedsCosting(j);
+  const grp=JC_GROUPS.find(([n])=>n===g);
+  return grp&&grp[1]?grp[1].includes(j.stage):j.stage===g;// a bare stage name still works
+}
 function drawJobCosting(){
-  $("#jcStageChips").innerHTML=["All",...STAGES].map(s=>{
-    const n=s==="All"?jobs.length:jobs.filter(j=>j.stage===s).length;
-    return `<button class="chip ${s==="All"?"":stClass(s)}" aria-pressed="${jcStageFilter===s}" data-jcs="${escapeHtml(s)}">${escapeHtml(s)}<b>${n}</b></button>`;
+  $("#jcStageChips").innerHTML=JC_GROUPS.map(([g])=>{
+    const n=jobs.filter(j=>jcInGroup(j,g)).length;
+    const warn=g==="Needs Costing"&&n>0&&jcStageFilter!==g;// red outline only when not selected -- red on the blue "selected" fill is unreadable
+    return `<button class="chip" aria-pressed="${jcStageFilter===g}" data-jcs="${escapeHtml(g)}"${warn?' style="color:var(--alert);border-color:var(--alert)"':""}>${escapeHtml(g)}<b>${n}</b></button>`;
   }).join("");
   const q=(jcQuery||"").toLowerCase();
-  let list=jobs.filter(j=>(jcStageFilter==="All"||j.stage===jcStageFilter)&&(jcReviewFilter==="all"||(jcReviewFilter==="reviewed"?j.reviewed:!j.reviewed))&&(jcApprovedFilter==="all"||(jcApprovedFilter==="approved"?j.approved:!j.approved))&&(!q||[j.client,j.id,j.type].join(" ").toLowerCase().includes(q)));
+  let list=jobs.filter(j=>jcInGroup(j,jcStageFilter)&&(jcReviewFilter==="all"||(jcReviewFilter==="reviewed"?j.reviewed:!j.reviewed))&&(jcApprovedFilter==="all"||(jcApprovedFilter==="approved"?j.approved:!j.approved))&&(!q||[j.client,j.id,j.type].join(" ").toLowerCase().includes(q)));
   const hasMargin=j=>j.revenue!=null&&costingComplete(j);
   list=[...list].sort((a,b)=>{
     if(jcSort==="clientAsc")return (a.client||"").localeCompare(b.client||"");

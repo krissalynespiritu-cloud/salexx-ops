@@ -55,7 +55,7 @@ const testLogic = `
     check('TEST 1: gross profit $14,000', k().includes('$14,000.00'), k());
     check('TEST 1: weighted margin 46.7% (not inflated by C)', k().includes('46.7%'), k());
     check('TEST 1: coverage note 2 of 4', k().includes('2 of 4 jobs fully costed'), k());
-    check('TEST 1: Needs Costing = 1 (C is priced but has no labor)', /Needs Costing 1 /.test(k()), k());
+    check('TEST 1: Needs Costing = 0 (C is missing labor but still In Progress)', /Needs Costing 0 /.test(k()) && k().includes('every Completed job is costed'), k());
     check('TEST 1: Reviewed 1 / 4, 1 approved', k().includes('1 / 4') && k().includes('1 approved'), k());
   } catch (e) { check('TEST 1: no throw', false, e.stack); }
 
@@ -76,6 +76,36 @@ const testLogic = `
     check('TEST 3: Reviewed only -> Alpha 40.0%', k().includes('40.0%') && k().includes('1 / 1'), k());
     jcReviewFilter = 'all';
   } catch (e) { check('TEST 3: no throw', false, e.stack); }
+
+  // ---- TEST 4: Needs Costing only counts Completed jobs ----
+  try {
+    jobs.push({ id: 'E', client: 'Echo', stage: 'Completed', type: 'Fence', contract: 8000, revenue: 8000, totalCost: 300, gp: 7700, marginPct: 96, laborCost: 0, sub: 0, reviewed: false, approved: false });
+    jcStageFilter = 'All'; jcQuery = ''; drawJobCosting();
+    check('TEST 4: a Completed job with no labor counts', /Needs Costing 1 /.test(k()) && k().includes('Completed job still missing'), k());
+    check('TEST 4: the In Progress one (C) still does not', !/Needs Costing 2 /.test(k()), k());
+    jobs.pop(); drawJobCosting();
+  } catch (e) { check('TEST 4: no throw', false, e.stack); }
+
+  // ---- TEST 5: grouped filter chips ----
+  try {
+    jobs.push({ id: 'E', client: 'Echo', stage: 'Completed', type: 'Fence', contract: 8000, revenue: 8000, totalCost: 300, gp: 7700, marginPct: 96, laborCost: 0, sub: 0, reviewed: false, approved: false },
+              { id: 'F', client: 'Fox', stage: 'Final Photos / Videos', type: 'Deck', contract: 100, revenue: 100, totalCost: 50, gp: 50, marginPct: 50, laborCost: 10, reviewed: false, approved: false },
+              { id: 'G', client: 'Golf', stage: 'Permitting / Drawings', type: 'Deck', contract: null, revenue: null, unpriced: true },
+              { id: 'H', client: 'Hotel', stage: 'Project on hold', type: 'Deck', contract: null, revenue: null, unpriced: true });
+    jcStageFilter = 'All'; drawJobCosting();
+    const chips = [...document.querySelectorAll('[data-jcs]')].map(b => b.textContent);
+    check('TEST 5: six grouped chips with counts', chips.join('|') === 'All8|Needs Costing1|Not Started1|In Progress3|Completed3|On Hold1', chips.join('|'));
+    const pick = async g => { document.querySelector('[data-jcs="' + g + '"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); await new Promise(r => setTimeout(r, 10)); return [...document.querySelectorAll('#jobCostingTable [data-jc-expand]')].map(b => b.dataset.jcExpand).sort().join(','); };
+    check('TEST 5: Needs Costing = Completed + missing costs (E only)', (await pick('Needs Costing')) === 'E');
+    check('TEST 5: In Progress includes the finishing stages', (await pick('In Progress')) === 'C,D,F', document.getElementById('jobCostingTable').textContent.slice(0, 200));
+    check('TEST 5: Not Started', (await pick('Not Started')) === 'G');
+    check('TEST 5: On Hold', (await pick('On Hold')) === 'H');
+    check('TEST 5: Completed', (await pick('Completed')) === 'A,B,E');
+    check('TEST 5: Needs Costing chip shows as a warning when not selected', (document.querySelector('[data-jcs="Needs Costing"]').getAttribute('style')||'').includes('alert'));
+    await pick('Needs Costing');
+    check('TEST 5: ...but not while selected (readable on the blue fill)', !(document.querySelector('[data-jcs="Needs Costing"]').getAttribute('style')||'').includes('alert'));
+    jobs.splice(-4); jcStageFilter = 'All'; drawJobCosting();
+  } catch (e) { check('TEST 5: no throw', false, e.stack); }
 
   console.log('\\n=== PASS (' + results.pass.length + ') ===');
   results.pass.forEach(p => console.log('  ok - ' + p));
