@@ -3703,7 +3703,7 @@ function drawJobCostingKpis(list,hasMargin){
   const rev=priced.reduce((t,j)=>t+(j.revenue||0),0),cost=priced.reduce((t,j)=>t+(j.totalCost||0),0),gp=priced.reduce((t,j)=>t+(j.gp||0),0);
   // Only Completed jobs are expected to be fully costed -- a job still in
   // progress naturally hasn't had all its labor/costs logged yet.
-  const margin=rev>0?gp/rev*100:null,needs=withPrice.filter(j=>j.stage==="Completed"&&!hasMargin(j)).length;
+  const margin=rev>0?gp/rev*100:null,needs=list.filter(jcNeedsCosting).length;
   const reviewed=list.filter(j=>j.reviewed).length,approved=list.filter(j=>j.approved).length;
   const note=t=>`<span style="color:var(--steel)">${t}</span>`;
   const coverage=note(`${priced.length} of ${list.length} job${list.length===1?"":"s"} fully costed`);
@@ -3712,33 +3712,38 @@ function drawJobCostingKpis(list,hasMargin){
     kpiCardCompact(svgIcon("receipt"),"var(--sky)","Job Cost",money(cost),coverage),
     kpiCardCompact(svgIcon("trendUp"),"var(--good)","Gross Profit",`<span style="color:${col(margin)}">${money(gp)}</span>`,coverage),
     kpiCardCompact(svgIcon("chart"),"var(--violet)","Margin",`<span style="color:${col(margin)}">${margin==null?"—":margin.toFixed(1)+"%"}</span>`,note("profit ÷ revenue")),
-    kpiCardCompact(svgIcon("alert"),needs?"var(--alert)":"var(--amber)","Needs Costing",`<span style="color:${needs?"var(--alert)":"var(--good)"}">${needs}</span>`,note(needs?`Completed job${needs===1?"":"s"} still missing labor or costs`:"every Completed job is costed")),
+    kpiCardCompact(svgIcon("alert"),needs?"var(--alert)":"var(--amber)","Needs Costing",`<span style="color:${needs?"var(--alert)":"var(--good)"}">${needs}</span>`,note(needs?`Completed job${needs===1?"":"s"} missing price, labor or costs`:"every Completed job is costed")),
     kpiCardCompact(svgIcon("checkSquare"),"var(--sky)","Reviewed",`${reviewed} / ${list.length}`,note(`${approved} approved`))
   ].join("");
 }
 // Job Costing's filter chips group the stages by where the job is
-// (Kris, 2026-10-03), instead of one chip per stage. "Needs Costing" is
-// the same rule as the Needs Costing card: a Completed job with a price
-// whose labor/costs aren't fully logged yet.
-const JC_GROUPS=[
-  ["All",null],
-  ["Needs Costing",null],
-  ["Not Started",["Designs Sold","Permitting / Drawings","Ready For Scheduling","Project Scheduled"]],
-  ["In Progress",["In Progress","Final Walk-through","Punch list / Touch-ups (if needed)","Final payment due","Final payment received","Final Photos / Videos","Review Requested"]],
-  ["Completed",["Completed"]],
-  ["On Hold",["Project on hold"]]
-];
-const jcNeedsCosting=j=>j.stage==="Completed"&&j.revenue!=null&&!costingComplete(j);
+// (Kris, 2026-10-03). Grouping is by STAGE only, so costs entered on a job
+// that's still in progress never move it into a Completed bucket. Completed
+// jobs are split by how far their costing has got:
+//   Needs Costing -- no price yet, or labor/costs not fully logged (warning)
+//   To Approve    -- fully costed, Approved not ticked yet
+//   Approved      -- costing approved
+const JC_NOT_STARTED=["Designs Sold","Permitting / Drawings","Ready For Scheduling","Project Scheduled"];
+const JC_IN_PROGRESS=["In Progress","Final Walk-through","Punch list / Touch-ups (if needed)","Final payment due","Final payment received","Final Photos / Videos","Review Requested"];
+const JC_GROUPS=["All","Not Started","In Progress","Completed · Needs Costing","Completed · To Approve","Completed · Approved","On Hold"];
+const jcNeedsCosting=j=>j.stage==="Completed"&&(j.revenue==null||!costingComplete(j));
 function jcInGroup(j,g){
-  if(g==="All")return true;
-  if(g==="Needs Costing")return jcNeedsCosting(j);
-  const grp=JC_GROUPS.find(([n])=>n===g);
-  return grp&&grp[1]?grp[1].includes(j.stage):j.stage===g;// a bare stage name still works
+  switch(g){
+    case "All":return true;
+    case "Not Started":return JC_NOT_STARTED.includes(j.stage);
+    case "In Progress":return JC_IN_PROGRESS.includes(j.stage);
+    case "Completed · Needs Costing":case "Needs Costing":return jcNeedsCosting(j);
+    case "Completed · To Approve":return j.stage==="Completed"&&!jcNeedsCosting(j)&&!j.approved;
+    case "Completed · Approved":return j.stage==="Completed"&&!jcNeedsCosting(j)&&!!j.approved;
+    case "Completed":return j.stage==="Completed";
+    case "On Hold":return j.stage==="Project on hold";
+    default:return j.stage===g;// a bare stage name still works
+  }
 }
 function drawJobCosting(){
-  $("#jcStageChips").innerHTML=JC_GROUPS.map(([g])=>{
+  $("#jcStageChips").innerHTML=JC_GROUPS.map(g=>{
     const n=jobs.filter(j=>jcInGroup(j,g)).length;
-    const warn=g==="Needs Costing"&&n>0&&jcStageFilter!==g;// red outline only when not selected -- red on the blue "selected" fill is unreadable
+    const warn=g==="Completed · Needs Costing"&&n>0&&jcStageFilter!==g;// red outline only when not selected -- red on the blue "selected" fill is unreadable
     return `<button class="chip" aria-pressed="${jcStageFilter===g}" data-jcs="${escapeHtml(g)}"${warn?' style="color:var(--alert);border-color:var(--alert)"':""}>${escapeHtml(g)}<b>${n}</b></button>`;
   }).join("");
   const q=(jcQuery||"").toLowerCase();

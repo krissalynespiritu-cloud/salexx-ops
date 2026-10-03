@@ -81,30 +81,35 @@ const testLogic = `
   try {
     jobs.push({ id: 'E', client: 'Echo', stage: 'Completed', type: 'Fence', contract: 8000, revenue: 8000, totalCost: 300, gp: 7700, marginPct: 96, laborCost: 0, sub: 0, reviewed: false, approved: false });
     jcStageFilter = 'All'; jcQuery = ''; drawJobCosting();
-    check('TEST 4: a Completed job with no labor counts', /Needs Costing 1 /.test(k()) && k().includes('Completed job still missing'), k());
+    check('TEST 4: a Completed job with no labor counts', /Needs Costing 1 /.test(k()) && k().includes('Completed job missing'), k());
     check('TEST 4: the In Progress one (C) still does not', !/Needs Costing 2 /.test(k()), k());
     jobs.pop(); drawJobCosting();
   } catch (e) { check('TEST 4: no throw', false, e.stack); }
 
-  // ---- TEST 5: grouped filter chips ----
+  // ---- TEST 5: grouped filter chips, Completed split by costing state ----
   try {
     jobs.push({ id: 'E', client: 'Echo', stage: 'Completed', type: 'Fence', contract: 8000, revenue: 8000, totalCost: 300, gp: 7700, marginPct: 96, laborCost: 0, sub: 0, reviewed: false, approved: false },
               { id: 'F', client: 'Fox', stage: 'Final Photos / Videos', type: 'Deck', contract: 100, revenue: 100, totalCost: 50, gp: 50, marginPct: 50, laborCost: 10, reviewed: false, approved: false },
               { id: 'G', client: 'Golf', stage: 'Permitting / Drawings', type: 'Deck', contract: null, revenue: null, unpriced: true },
-              { id: 'H', client: 'Hotel', stage: 'Project on hold', type: 'Deck', contract: null, revenue: null, unpriced: true });
+              { id: 'H', client: 'Hotel', stage: 'Project on hold', type: 'Deck', contract: null, revenue: null, unpriced: true },
+              { id: 'I', client: 'India', stage: 'Completed', type: 'Deck', contract: null, revenue: null, unpriced: true },
+              { id: 'K', client: 'Kilo', stage: 'In Progress', type: 'Deck', contract: 900, revenue: 900, totalCost: 400, gp: 500, marginPct: 55, laborCost: 300, reviewed: true, approved: true });
     jcStageFilter = 'All'; drawJobCosting();
     const chips = [...document.querySelectorAll('[data-jcs]')].map(b => b.textContent);
-    check('TEST 5: six grouped chips with counts', chips.join('|') === 'All8|Needs Costing1|Not Started1|In Progress3|Completed3|On Hold1', chips.join('|'));
+    check('TEST 5: grouped chips with counts', chips.join('|') === 'All10|Not Started1|In Progress4|Completed · Needs Costing2|Completed · To Approve1|Completed · Approved1|On Hold1', chips.join('|'));
     const pick = async g => { document.querySelector('[data-jcs="' + g + '"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); await new Promise(r => setTimeout(r, 10)); return [...document.querySelectorAll('#jobCostingTable [data-jc-expand]')].map(b => b.dataset.jcExpand).sort().join(','); };
-    check('TEST 5: Needs Costing = Completed + missing costs (E only)', (await pick('Needs Costing')) === 'E');
-    check('TEST 5: In Progress includes the finishing stages', (await pick('In Progress')) === 'C,D,F', document.getElementById('jobCostingTable').textContent.slice(0, 200));
+    check('TEST 5: Needs Costing = Completed and (no price or not costed): E, I', (await pick('Completed · Needs Costing')) === 'E,I');
+    check('TEST 5: To Approve = Completed, costed, not approved: B', (await pick('Completed · To Approve')) === 'B');
+    check('TEST 5: Approved = Completed, costed, approved: A', (await pick('Completed · Approved')) === 'A');
+    check('TEST 5: a fully costed + approved job that is still In Progress stays In Progress (K)', (await pick('In Progress')) === 'C,D,F,K');
     check('TEST 5: Not Started', (await pick('Not Started')) === 'G');
     check('TEST 5: On Hold', (await pick('On Hold')) === 'H');
-    check('TEST 5: Completed', (await pick('Completed')) === 'A,B,E');
-    check('TEST 5: Needs Costing chip shows as a warning when not selected', (document.querySelector('[data-jcs="Needs Costing"]').getAttribute('style')||'').includes('alert'));
-    await pick('Needs Costing');
-    check('TEST 5: ...but not while selected (readable on the blue fill)', !(document.querySelector('[data-jcs="Needs Costing"]').getAttribute('style')||'').includes('alert'));
-    jobs.splice(-4); jcStageFilter = 'All'; drawJobCosting();
+    await pick('All');
+    check('TEST 5: Needs Costing chip is a warning when not selected', (document.querySelector('[data-jcs="Completed · Needs Costing"]').getAttribute('style')||'').includes('alert'));
+    await pick('Completed · Needs Costing');
+    check('TEST 5: ...but not while selected', !(document.querySelector('[data-jcs="Completed · Needs Costing"]').getAttribute('style')||'').includes('alert'));
+    check('TEST 5: card counts the same 2', /Needs Costing 2 /.test(k()), k());
+    jobs.splice(-6); jcStageFilter = 'All'; drawJobCosting();
   } catch (e) { check('TEST 5: no throw', false, e.stack); }
 
   console.log('\\n=== PASS (' + results.pass.length + ') ===');
